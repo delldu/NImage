@@ -33,8 +33,7 @@ SOURCE :=  \
 	source/seam.c \
 # 	source/histogram.c \
 	source/hash64.c \
-	source/retinex.c \
-	source/phash.c
+	source/retinex.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra

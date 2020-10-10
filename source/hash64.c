@@ -8,8 +8,6 @@
 
 
 #include "hash64.h"
-#include "filter.h"
-#include "matrix.h"
 
 #define PHASH_ROWS 8
 #define PHASH_COLS 8
@@ -326,43 +324,6 @@ HASHMAT *hashmat_create(int m, int n)
 	return matrix;
 }
 
-HASHMAT *hashmat_load(char *fname)
-{
-	int ret;
-	HASHMAT head;
-	HASHMAT *mat = NULL;
-	
-	FILE *fp = fopen(fname, "rb");
-	if (fp == NULL) {
-		syslog_error("Open file %s.", fname);
-		return NULL;
-	}
-
-	// Is it matrix file ?
-	ret = fread(&(head), __mhead_size(), 1, fp);
-	if (ret <=0 || head.m < 1 || head.n < 1 || head.magic != HASHMAT_MAGIC) {
-		syslog_error("%s is NOT hashmat file\n", fname);
-		goto quit;
-	}
-	
-	mat = hashmat_create(head.m, head.n);
-	if (! hashmat_valid(mat)) {
-		syslog_error("Create matrix.");
-		goto quit;
-	}
-	ret = fread(mat->base, head.m * head.n * sizeof(HASH64), 1, fp);
-	fclose(fp);	
-
-	// assert(ret >= 0);
-
-	return mat;
-	
-quit:
-	fclose(fp);
-	return NULL;
-}
-
-
 void hashmat_print(HASHMAT *m)
 {
 	int i, j;
@@ -377,28 +338,6 @@ void hashmat_print(HASHMAT *m)
 		printf("%lx", m->me[i][j]);
 		printf("%s", (j < m->n - 1)?", " : "\n");
 	}
-}
-
-
-int hashmat_save(HASHMAT *M, char *fname)
-{
-	FILE *fp;
-
-	check_hashmat(M);
-
-	if ((fp = fopen(fname, "w")) == NULL) {
-		syslog_error("Create file %s.", fname);
-		return RET_ERROR;
-	}
-
-	// write down matrix head
-	fwrite(M, __mhead_size(), 1, fp);	// Save head
-	// write down data
-	fwrite(M->base, M->m * M->n * sizeof(HASH64), 1, fp);	// Save head
-
-	fclose(fp);	
-
-	return RET_OK;
 }
 
 

@@ -14,14 +14,9 @@
 extern "C" {
 #endif
 
-#include "common.h"
 #include "image.h"
 
 #define HASH64 uint64_t
-
-#define HASH64_ROW(x) ((int)((x >> 32) & 0xffff))
-#define HASH64_COL(x) ((int)(x & 0xffff))
-#define HASH64_ROW_COL(row, col) (((row) & 0xffff) << 32) | ((col) & 0xffff))
 
 HASH64 image_ahash(IMAGE *image, char oargb, RECT *rect);
 HASH64 image_phash(IMAGE *image, char oargb, RECT *rect);
@@ -69,11 +64,8 @@ typedef struct {
 
 int hashmat_valid(HASHMAT *M);
 HASHMAT *hashmat_create(int m, int n);
-HASHMAT *hashmat_load(char *fname);
-int hashmat_save(HASHMAT *mat, char *fname);
 void hashmat_print(HASHMAT *m);
 void hashmat_destroy(HASHMAT *m);
-
 
 
 #if defined(__cplusplus)
