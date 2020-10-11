@@ -165,6 +165,11 @@ double vector_sum(VECTOR *v)
 	return sum;
 }
 
+double vector_mean(VECTOR *v)
+{
+	return vector_sum(v)/v->m;
+}
+
 // Guass 1D kernel
 VECTOR *vector_gskernel(double sigma)
 {

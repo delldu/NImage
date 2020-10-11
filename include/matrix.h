@@ -78,8 +78,11 @@ MATRIX *matrix_transpose(MATRIX *matrix);
 // Dot add/sub/mul/div
 int matrix_add(MATRIX *A, MATRIX *B);
 int matrix_sub(MATRIX *A, MATRIX *B);
-int matrix_mul(MATRIX *A, MATRIX *B);
-int matrix_div(MATRIX *A, MATRIX *B);
+int matrix_dotmul(MATRIX *A, MATRIX *B);
+int matrix_dotdiv(MATRIX *A, MATRIX *B);
+int matrix_multi(MATRIX *C, MATRIX *A, MATRIX *B);
+
+double matrix_median(MATRIX *mat);
 
 
 void matrix_destroy(MATRIX *m);

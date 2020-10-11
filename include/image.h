@@ -40,7 +40,6 @@ typedef struct {
 typedef struct {
 	DWORD magic;				// IMAGE_MAGIC
 	int height, width, format;	// RGB, GRAY, BIT
-//	char filename[FILENAME_MAXLEN];
 	RGB **ie,*base; 
 } IMAGE;
 
@@ -198,6 +197,8 @@ int image_save(IMAGE *img, const char *fname);
 BYTE image_getvalue(IMAGE *img, char oargb, int r, int c);
 void image_setvalue(IMAGE *img, char oargb, int r, int c, BYTE x);
 MATRIX *image_getplane(IMAGE *img, char oargb);
+MATRIX *image_rect_plane(IMAGE *img, char oargb, RECT *rect);
+
 int image_setplane(IMAGE *img, char oargb, MATRIX *mat);
 
 

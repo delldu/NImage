@@ -8,17 +8,20 @@
 
 
 #include "hash64.h"
+#include "filter.h"
 
 #define PHASH_ROWS 8
 #define PHASH_COLS 8
 
 #define HASHMAT_MAGIC MAKE_FOURCC('H', 'M','A','T') 
 
-static int __mhead_size()
-{
-	return (sizeof(HASHMAT) - sizeof(HASH64 **) - sizeof(HASH64 *));
-}
-
+#define check_MATRIX(mat) \
+                        do { \
+                                if (! matrix_valid(mat)) { \
+                                        syslog_error("Bad matrix."); \
+                                        return 0L; \
+                                } \
+                        } while(0)
 
 #if 0
 int hash_hamming(HASH64 f1, HASH64 f2)

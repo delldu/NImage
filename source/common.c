@@ -53,7 +53,6 @@ void math_topolar(int x, int y, double *r, double *a)
 		*a = 180 - da;
 }
 
-
 int math_arcindex(double a, int arcstep)
 {
 	int n;
@@ -151,7 +150,6 @@ int rect_delete(int i)
 	return RET_ERROR;
 }
 
-
 // return ms
 TIME get_time()
 {
@@ -175,4 +173,5 @@ void time_spend(char *prompt)
 
 	time_reset();
 }
+
 

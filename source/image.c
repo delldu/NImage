@@ -322,33 +322,110 @@ void image_setvalue(IMAGE *img, char oargb, int r, int c, BYTE x)
 
 MATRIX *image_getplane(IMAGE *img, char oargb)
 {
+	RECT rect;
+
+	image_rect(&rect, img);
+	return image_rect_plane(img, oargb, &rect);
+}
+
+MATRIX *image_rect_plane(IMAGE *img, char oargb, RECT *rect)
+{
 	BYTE n;
 	int i, j;
+	int y2;
 	MATRIX *mat;
 
 	CHECK_IMAGE(img);
 	CHECK_ARGBH(oargb);
-	mat = matrix_create(img->height, img->width);
+
+	// BUG: image_rect(rect,img);
+		
+	mat = matrix_create(rect->h, rect->w);
 	CHECK_MATRIX(mat);
 
 	switch(oargb) {
+	case 'Y':
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				y2 = (66*(img->ie[i + rect->r][j + rect->c].r)
+					+ 129*(img->ie[i + rect->r][j + rect->c].g)
+					+ 25*(img->ie[i + rect->r][j + rect->c].b) + 128)/256 + 16;
+				mat->me[i][j] = (double)CLAMP(y2, 0, 255);
+			}
+		}
+		break;
 	case 'A':
-		image_foreach(img, i, j) {
-			color_rgb2gray(img->ie[i][j].r, img->ie[i][j].g, img->ie[i][j].b, &n);
-			mat->me[i][j] = (double)n;
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				color_rgb2gray(img->ie[i + rect->r][j + rect->c].r, 
+					img->ie[i + rect->r][j + rect->c].g,
+					img->ie[i + rect->r][j + rect->c].b, &n);
+				mat->me[i][j] = (double)n;
+			}
 		}
 		break;
 	case 'R':
-		image_foreach(img, i, j)
-			mat->me[i][j] = (double)img->ie[i][j].r;
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].r;
+			}
+		}
 		break;
 	case 'G':
-		image_foreach(img, i, j)
-			mat->me[i][j] = (double)img->ie[i][j].g;
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].g;
+			}
+		}
 		break;
 	case 'B':
-		image_foreach(img, i, j)
-			mat->me[i][j] = (double)img->ie[i][j].b;
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].b;
+			}
+		}
+		break;
+	case 'a':
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+			mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].a;
+			}
+		}
+		break;
+	case 'd':
+		for (i = 0; i < (rect)->h; i++) {
+			if (i + rect->r < 0 || i + rect->r >= img->height)
+				continue;
+			for (j = 0; j < (rect)->w; j++) {
+				if (j + rect->c < 0 || j + rect->c >= img->width)
+					continue;
+				mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].d;
+			}
+		}
 		break;
 	}
 

@@ -77,13 +77,6 @@ typedef struct { int count; DOT dot[MAX_OBJECT_NUM]; } DOTS;
 typedef struct { int count; LINE line[MAX_OBJECT_NUM]; } LINES;
 typedef struct { int count; RECT rect[MAX_OBJECT_NUM]; } RECTS;
 
-
-#define line_dump(line) printf("line: (%d, %d, %d, %d)\n", (line)->r1, (line)->c1, (line)->r2, (line)->c2)
-#define rect_dump(rect) printf("rect: (%d, %d, %d, %d)\n", (rect)->r, (rect)->c, (rect)->h, (rect)->w)
-
-#define rect_same(rect1, rect2) \
-	((rect1)->r == (rect2)->r && (rect1)->c == (rect2)->c && (rect1)->h == (rect2)->h && (rect1)->w == (rect2)->w)
-
 #define rect_foreach(rect, i, j) \
 	for (i = 0; i < (rect)->h; i++) \
 		for (j = 0; j < (rect)->w; j++)

@@ -77,6 +77,14 @@ static int __matrix_8conn(MATRIX *mat, int r, int c)
 	return sum;
 }
 
+static int __matrix_cmp(const void *p1, const void *p2)
+{
+	double *d1 = (double *)p1;
+	double *d2 = (double *)p2;
+	
+	return (*d1 < *d2)?-1 : (*d1 > *d2)? 1: 0;
+}
+
 int matrix_memsize(DWORD m, DWORD n)
 {
 	int size;
@@ -162,6 +170,8 @@ void matrix_print(MATRIX *m, char *format)
 	}
 
 	// write data
+	printf("matrix: %dx%d\n", m->m, m->n);
+	
 	matrix_foreach(m, i, j) {
 		if (strchr(format, 'f'))	// double
 			printf(format, m->me[i][j]);
@@ -354,7 +364,6 @@ int matrix_weight(MATRIX *mat, RECT *rect)
 }
 
 
-// NO Lua interface
 int matrix_normal(MATRIX *mat)
 {
 	int i, j;
@@ -603,7 +612,7 @@ int matrix_sub(MATRIX *A, MATRIX *B)
 }
 
 // Dot divide A/B
-int matrix_mul(MATRIX *A, MATRIX *B)
+int matrix_dotmul(MATRIX *A, MATRIX *B)
 {
 	int i, j;
 	
@@ -624,7 +633,7 @@ int matrix_mul(MATRIX *A, MATRIX *B)
 }
 
 // Inter divide A/B
-int matrix_div(MATRIX *A, MATRIX *B)
+int matrix_dotdiv(MATRIX *A, MATRIX *B)
 {
 	int i, j;
 	
@@ -638,12 +647,61 @@ int matrix_div(MATRIX *A, MATRIX *B)
 
 	for (i = 0; i < A->m; i++) {
 		for (j = 0; j < A->n; j++) {
-			if (ABS(B->me[i][j]) > MIN_DOUBLE_NUMBER)
-				A->me[i][j] /= B->me[i][j];
-			else
-				A->me[i][j] = 0.0f;
+			A->me[i][j] /= (B->me[i][j] + MIN_DOUBLE_NUMBER);
 		}
 	}
 	
 	return RET_OK;
 }
+
+// [C] = [A] * [B]
+int matrix_multi(MATRIX *C, MATRIX *A, MATRIX *B)
+{
+	int i, j, k;
+	double d;
+
+	check_matrix(C);
+	check_matrix(A);
+	check_matrix(B);
+
+	if (A->n != B->m) {
+		syslog_error("Matrix  AxB dimensions.");
+		return RET_ERROR;
+	}
+
+	if (C->m < A->m || C->n < B->n) {
+		syslog_error("RESULT matrix C dimension too small.");
+		return RET_ERROR;
+	}
+
+	for (i = 0; i < A->m; i++) {
+		for (j = 0; j < B->n; j++) {
+		    d = 0.0f;
+	    	for (k = 0; k < A->n; k++) {
+	        	d += A->me[i][k] * B->me[k][j];
+	    	}
+			C->me[i][j] = d;
+		}
+	}
+	return RET_OK;
+}
+
+double matrix_median(MATRIX *mat)
+{
+	int k;
+	double m;
+	MATRIX *copy;
+
+	copy = matrix_copy(mat);
+	if (! matrix_valid(mat) || ! matrix_valid(copy))
+		return 0.0f;
+
+	qsort(copy->base, copy->m * copy->n, sizeof(double *), __matrix_cmp);
+	k = (copy->m * copy->n)/2;
+	m = (copy->base[k - 1] + copy->base[k])/2.0;
+
+	matrix_destroy(copy);
+	
+	return m;
+}
+

@@ -23,6 +23,8 @@ extern "C" {
 
 // MS_BEGIN
 MATRIX *matrix_box_filter(MATRIX *src, int r);
+MATRIX *matrix_mean_filter(MATRIX *src, int r);
+
 int matrix_guided_filter(MATRIX *mat, MATRIX *guidance, int radius, double eps);
 int matrix_fast_guided_filter(MATRIX *P, MATRIX *I, int radius, double eps, int scale);
 int matrix_beeps_filter(MATRIX *mat, double stdv, double dec);

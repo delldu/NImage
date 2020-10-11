@@ -276,28 +276,28 @@ int __guided_means(MATRIX *P, MATRIX *I, int radius, double eps, MATRIX *mean_a,
 
 	// Step 1
 	mean_p = matrix_box_filter(P, radius); check_matrix(mean_p);
-	matrix_div(mean_p, one);
+	matrix_dotdiv(mean_p, one);
 	mean_i = matrix_box_filter(I, radius); check_matrix(mean_i);
-	matrix_div(mean_i, one);
+	matrix_dotdiv(mean_i, one);
 	memcpy(zero->base, I->base, zero->m * I->n * sizeof(double));
-	matrix_mul(zero, I);	// zero = I .* I
+	matrix_dotmul(zero, I);	// zero = I .* I
 	mean_ii = matrix_box_filter(zero, radius); check_matrix(mean_ii);
-	matrix_div(mean_ii, one);
+	matrix_dotdiv(mean_ii, one);
 
 	memcpy(zero->base, I->base, zero->m * I->n * sizeof(double));
-	matrix_mul(zero, P); // zero = I .* P
+	matrix_dotmul(zero, P); // zero = I .* P
 	mean_ip = matrix_box_filter(zero, radius); check_matrix(mean_ip);
-	matrix_div(mean_ip, one);
+	matrix_dotdiv(mean_ip, one);
 
 	// Step 2
 	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(double));
-	matrix_mul(zero, mean_i); // Zero = mean_i .* mean_i
+	matrix_dotmul(zero, mean_i); // Zero = mean_i .* mean_i
 	var_i = matrix_copy(mean_ii); check_matrix(var_i);
 	matrix_sub(var_i, zero);
 	
 	// Zero = mean_i .* mean_p
 	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(double));
-	matrix_mul(zero, mean_p);
+	matrix_dotmul(zero, mean_p);
 	cov_ip = matrix_copy(mean_ip); check_matrix(cov_ip);
 	matrix_sub(cov_ip, zero);
 
@@ -307,21 +307,21 @@ int __guided_means(MATRIX *P, MATRIX *I, int radius, double eps, MATRIX *mean_a,
 	// var_i += eps
 	matrix_foreach(var_i,i,j)
 		var_i->me[i][j] += eps;
-	matrix_div(a, var_i);
+	matrix_dotdiv(a, var_i);
 	
 	memcpy(zero->base, a->base, zero->m * zero->n * sizeof(double));
-	matrix_mul(zero, mean_i); // zero = a .* mean_i
+	matrix_dotmul(zero, mean_i); // zero = a .* mean_i
 	matrix_sub(b, zero);
 
 	// Step 4
 	matrix_destroy(zero);
 	zero = matrix_box_filter(a, radius);
-	matrix_div(zero, one);
+	matrix_dotdiv(zero, one);
 	memcpy(mean_a->base, zero->base, zero->m * zero->n * sizeof(double));
 
 	matrix_destroy(zero);
 	zero = matrix_box_filter(b, radius);
-	matrix_div(zero, one);
+	matrix_dotdiv(zero, one);
 	memcpy(mean_b->base, zero->base, zero->m * zero->n * sizeof(double));
 
 	matrix_destroy(a);
@@ -393,6 +393,24 @@ MATRIX *matrix_box_filter(MATRIX *src, int r)
 	matrix_destroy(sum);
 
 	return mat;
+}
+
+
+MATRIX *matrix_mean_filter(MATRIX *src, int r)
+{
+	MATRIX *zero, *one, *mean;
+	
+	zero = matrix_create(src->m, src->n); CHECK_MATRIX(zero);
+	matrix_pattern(zero, "one");
+	one = matrix_box_filter(zero, r); CHECK_MATRIX(one);
+
+	mean = matrix_box_filter(src, r); CHECK_MATRIX(mean);
+	matrix_dotdiv(mean, one);
+
+	matrix_destroy(one);
+	matrix_destroy(zero);
+	
+	return mean;
 }
 
 // BEEPS
@@ -494,7 +512,7 @@ int matrix_fast_guided_filter(MATRIX *P, MATRIX *I, int radius, double eps, int 
 		mean_a = matrix_zoom(small_mean_a, P->m, P->n, 0);
 		mean_b = matrix_zoom(small_mean_b, P->m, P->n, 0);
 
-		matrix_mul(mean_a, I);
+		matrix_dotmul(mean_a, I);
 		
 		matrix_add(mean_a, mean_b);
 		
@@ -572,7 +590,7 @@ int matrix_guided_filter(MATRIX *P, MATRIX *I, int radius, double eps)
 	if (ret == RET_OK) {
 		// Step 5
 		// mean_a .* I + mean_b
-		matrix_mul(mean_a, I);
+		matrix_dotmul(mean_a, I);
 		matrix_add(mean_a, mean_b);
 		
 		memcpy(P->base, mean_a->base, mean_a->m * mean_a->n * sizeof(double));
@@ -603,12 +621,12 @@ int matrix_lee_filter(MATRIX *mat, int radius, double eps)
 
 	// Step 1
 	mean_mat = matrix_box_filter(mat, radius); check_matrix(mean_mat);
-	matrix_div(mean_mat, one);
+	matrix_dotdiv(mean_mat, one);
 	
 	memcpy(zero->base, mat->base, zero->m * zero->n * sizeof(double));
-	matrix_mul(zero, mat);	// zero = mat .* mat
+	matrix_dotmul(zero, mat);	// zero = mat .* mat
 	mean_mat_mat = matrix_box_filter(zero, radius); check_matrix(mean_mat_mat);
-	matrix_div(mean_mat_mat, one);
+	matrix_dotdiv(mean_mat_mat, one);
 	matrix_sub(mean_mat_mat, mean_mat);
 
 	k_mat = matrix_copy(mean_mat_mat); check_matrix(k_mat);
@@ -616,19 +634,19 @@ int matrix_lee_filter(MATRIX *mat, int radius, double eps)
 	matrix_foreach(zero,i,j) {
 		zero->me[i][j] += eps;
 	}
-	matrix_div(k_mat, zero);	// K = mean_mat_mat/(mean_mat_mat + eps)
+	matrix_dotdiv(k_mat, zero);	// K = mean_mat_mat/(mean_mat_mat + eps)
 
 	// zero = (1 - k) * mean_mat
 	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(double));
 	matrix_foreach(zero,i,j) {
 		zero->me[i][j] = 1.0f - zero->me[i][j];
 	}
-	matrix_mul(zero, mean_mat);
+	matrix_dotmul(zero, mean_mat);
 
 	// 	dst = (1 - k) * mean_mat + k * mat
 	dst = matrix_copy(zero); check_matrix(dst);
 	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(double));
-	matrix_mul(zero, mat);
+	matrix_dotmul(zero, mat);
 	matrix_add(dst, zero);
 
 	// Save dst to mat

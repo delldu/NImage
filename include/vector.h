@@ -50,6 +50,7 @@ VECTOR *vector_create(int m);
 int vector_valid(VECTOR *v);
 int vector_clear(VECTOR *vec);
 double vector_sum(VECTOR *v);
+double vector_mean(VECTOR *v);
 int vector_normal(VECTOR *v);
 
 int vector_cosine(VECTOR *v1, VECTOR *v2, double *res);

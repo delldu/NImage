@@ -65,7 +65,6 @@ int color_beskin(BYTE r, BYTE g, BYTE b)
 	return 0;
 }
 
-
 // RGB color space
 int color_rgbcmp(RGB *c1, RGB *c2)
 {
@@ -75,8 +74,6 @@ int color_rgbcmp(RGB *c1, RGB *c2)
 		return (c1->r - c2->r);
 	return (c1->b - c2->b);
 }
-
-
 
 // L¡G0¡X100¡@a¡G-128¡X127¡@b¡G-128¡X127¡@  ?
 void color_rgb2lab(BYTE R, BYTE G, BYTE B, double *L, double *a, double *b)
@@ -220,7 +217,6 @@ void color_luv2rgb(double L, double u, double v, BYTE *R, BYTE *G, BYTE *B)
 	}
 }
 
-
 void color_rgb2hsv(BYTE R, BYTE G, BYTE B, BYTE *h, BYTE *s, BYTE *v)
 {
 	int x;
@@ -315,7 +311,6 @@ VECTOR *color_vector(IMAGE *img, RECT *rect, int ndim)
 	return vec;
 }
 
-
 double color_likeness(IMAGE *f, IMAGE *g, RECT *rect, int ndim)
 {
 	double avgd;
@@ -331,7 +326,6 @@ double color_likeness(IMAGE *f, IMAGE *g, RECT *rect, int ndim)
 	
 	return avgd;
 }
-
 
 int skin_detect(IMAGE *img)
 {
@@ -416,7 +410,6 @@ int *color_count(IMAGE *image, int rows, int cols, int levs)
 
 	return count;
 }
-
 
 int color_picker()
 {
