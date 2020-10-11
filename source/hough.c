@@ -17,8 +17,10 @@
 #include "image.h"
 #include <math.h>
 
+#define MAX_LINE_NO 2048
+
 typedef struct { int r1, c1, r2, c2; } LINE;
-typedef struct { int count; LINE line[MAX_OBJECT_NUM]; } LINES;
+typedef struct { int count; LINE line[MAX_LINE_NO]; } LINES;
 
 static LINES __global_line_set;
 
@@ -31,7 +33,7 @@ void line_put(int r1, int c1, int r2, int c2)
 {
 	LINES *lines = line_set();
 
-	if (lines->count < MAX_OBJECT_NUM) {
+	if (lines->count < MAX_LINE_NO) {
 		lines->line[lines->count].r1 = r1;
 		lines->line[lines->count].c1 = c1;
 		lines->line[lines->count].r2 = r2;

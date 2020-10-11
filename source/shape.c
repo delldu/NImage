@@ -11,8 +11,10 @@
 
 #define MAYBE_SKELETON_COLOR 128
 
+#define MAX_POINT_NO 8192
+
 typedef struct { int r, c; } DOT;
-typedef struct { int count; DOT dot[MAX_OBJECT_NUM]; } DOTS;
+typedef struct { int count; DOT dot[MAX_POINT_NO]; } DOTS;
 
 static DOTS __global_dot_set;
 
@@ -24,7 +26,7 @@ DOTS *dot_set()
 void dot_put(int r, int c)
 {
 	DOTS *dots = dot_set();
-	if (dots->count < MAX_OBJECT_NUM) {
+	if (dots->count < MAX_POINT_NO) {
 		dots->dot[dots->count].r = r;
 		dots->dot[dots->count].c = c;
 		dots->count++;

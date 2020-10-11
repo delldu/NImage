@@ -18,6 +18,8 @@
 #define OBJECT_DETECTION_HI_THRESHOLD 0.10f // 10.0%
 #define OBJECT_DETECTION_MIN_POINTS 3
 
+#define MAX_OBJECT_NUM 4096
+
 static int object_min_points = OBJECT_DETECTION_MIN_POINTS;
 
 typedef struct { int count; RECT rect[MAX_OBJECT_NUM]; } RECTS;

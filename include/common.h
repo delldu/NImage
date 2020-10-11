@@ -61,9 +61,7 @@ extern "C" {
 #define GET_FOURCC4(a) ((BYTE)(((a)>>24) & 0xff))
 
 
-#define MAX_OBJECT_NUM 2048
 typedef struct { int r, c, h, w; } RECT;
-
 #define rect_foreach(rect, i, j) \
 	for (i = 0; i < (rect)->h; i++) \
 		for (j = 0; j < (rect)->w; j++)
