@@ -11,6 +11,8 @@
 #include "image.h"
 #include "frame.h"
 
+#define FILENAME_MAXLEN 256
+
 static double __math_snr(int m, char *orig, char *now)
 {
 	int i, k;

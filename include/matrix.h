@@ -45,6 +45,7 @@ typedef struct {
 		} \
 	} while(0)
 
+typedef double (*distancef_t)(double *a, double *b, int n);
 
 MATRIX *matrix_create(int m, int n);
 

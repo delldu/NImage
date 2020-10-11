@@ -35,7 +35,56 @@
 #define  LAB_Z_G  0.109477f /* = xyzZg / 1.088754 */
 #define  LAB_Z_B  0.872766f /* = xyzZb / 1.088754 */
 
+#define CUBE_CELL_OFFSET(r,c,d) (((r)*cols + (c))*(levs) + (d))
+
+// Color balance
+#define COLOR_BALANCE_GRAY_WORLD 0
+#define COLOR_BALANCE_FULL_REFLECT 1
+
+/*
+From Keith Jack's excellent book "Video Demystified" (ISBN 1-878707-09-4)
+Y = 0.257R + 0.504G + 0.098B + 16
+U = 0.148R - 0.291G + 0.439B + 128
+V = 0.439R - 0.368G - 0.071B + 128
+
+R = 1.164(Y - 16) + 1.596(V - 128)
+G = 1.164(Y - 16) - 0.391(U - 128) - 0.813(V - 128)
+B = 1.164(Y - 16) + 2.018(U - 128)
+*/
+
+#define RGB_TO_YCBCR( r, g, b, y, cb, cr )       \
+do {                                                                  \
+	int _r = (r), _g = (g), _b = (b);                    \
+	                                                          \
+	(y) = (66 * _r + 129 * _g + 25 * _b  +  16*256 + 128) >> 8; \
+	(cb) = (-38 * _r  - 74 * _g + 112 * _b  + 128*256 + 128) >> 8; \
+	(cr) = (112 * _r - 94 * _g  -18 * _b  + 128*256 + 128) >> 8; \
+} while (0)
+
+
+/*
+* Y = 16 + 0.2568R + 0.5051G + 0.0979B   ==> (263, 517, 100)
+*Cg = 128 - 0.318R  + 0.4392G - 0.1212B  ==> (-326, 450, -124)
+*Cr = 128 + 0.4392R - 0.3677G - 0.0714B  ==> (450,  -377,  -73)
+*/
+
+#define RGB_TO_YCGCR( r, g, b, y, cg, cr )        \
+do {                                                                  \
+     int _r = (r), _g = (g), _b = (b);                       \
+                                                                      \
+     (y)  = (   263 * _r + 517 * _g + 100 * _b  +  16*1024) >> 10; \
+     (cg) = ( - 326 * _r + 450 * _g - 124 * _b  + 128*1024) >> 10; \
+     (cr) = (   450 * _r - 377 * _g -  73 * _b  + 128*1024) >> 10; \
+} while (0)
+
+// xxxx, how to use them ?
 extern int color_rgbcmp(RGB *c1, RGB *c2);
+extern void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cb, BYTE *cr);
+extern void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cg, BYTE *cr);
+extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v);
+extern void color_luv2rgb(double L, double u, double v, BYTE *R, BYTE *G, BYTE *B);
+extern Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B);
+extern int color_prmgain(IMAGE *img, double *r_gain, double *g_gain, double *b_gain);
 
 static int __color_rgbcmp(const void *p1, const void *p2)
 {
@@ -43,7 +92,6 @@ static int __color_rgbcmp(const void *p1, const void *p2)
 	RGB *c2 = *(RGB * const *)p2;
 	return color_rgbcmp(c1, c2);
 }
-
 
 // Color is skin ? Maybe !!!
 int color_beskin(BYTE r, BYTE g, BYTE b)
@@ -75,7 +123,7 @@ int color_rgbcmp(RGB *c1, RGB *c2)
 	return (c1->b - c2->b);
 }
 
-// L¡G0¡X100¡@a¡G-128¡X127¡@b¡G-128¡X127¡@  ?
+// xxxx how to use ?
 void color_rgb2lab(BYTE R, BYTE G, BYTE B, double *L, double *a, double *b)
 {
 	double x, y, z;
@@ -404,7 +452,7 @@ int *color_count(IMAGE *image, int rows, int cols, int levs)
 		for (j = 0; j < image->width; j++) {
 			j2 = (j/bw);
 			k2 = image->ie[i][j].a;
-			count[VOICE_CELL_OFFSET(i2, j2, k2)]++;
+			count[CUBE_CELL_OFFSET(i2, j2, k2)]++;
 		}
 	}
 
@@ -416,7 +464,6 @@ int color_picker()
 	static int color_set[9] = {0x00ff00, 0x0000ff, 0x00ffff, 0xff00ff, 0xffff00, 0x7f0000, 0x007f00, 0x00ff7f, 0x007f7f};
 	return color_set[random() % ARRAY_SIZE(color_set)];
 }
-
 
 int skin_statics(IMAGE *img, RECT *rect)
 {

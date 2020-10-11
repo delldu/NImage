@@ -22,6 +22,32 @@
 #define FRAME_FMT_RGB24   MAKE_FOURCC('R','G','B','3')  /*!< 24 RGB-8-8-8 */
 #define FRAME_FMT_RGBA32  MAKE_FOURCC('R','G','B','A')  /*!< 32 RGB-8-8-8-8 */
 
+/*
+From Keith Jack's excellent book "Video Demystified" (ISBN 1-878707-09-4)
+Y = 0.257R + 0.504G + 0.098B + 16
+U = 0.148R - 0.291G + 0.439B + 128
+V = 0.439R - 0.368G - 0.071B + 128
+
+R = 1.164(Y - 16) + 1.596(V - 128)
+G = 1.164(Y - 16) - 0.391(U - 128) - 0.813(V - 128)
+B = 1.164(Y - 16) + 2.018(U - 128)
+*/
+#define YCBCR_TO_RGB( y, cb, cr, r, g, b )       \
+do {                                                                  \
+     int _y  = (y)  -  16;                                            \
+     int _cb = (cb) - 128;                                            \
+     int _cr = (cr) - 128;                                            \
+                                                                      \
+     int _r = ((298 * _y             + 409 * _cr + 128) >> 8);          \
+     int _g = ((298 * _y - 100 * _cb - 208 * _cr + 128) >> 8);          \
+     int _b = ((298 * _y + 516 * _cb             + 128) >> 8);          \
+                                                                      \
+     (r) = (BYTE)CLAMP( _r, 0, 255 );                                       \
+     (g) = (BYTE)CLAMP( _g, 0, 255 );                                       \
+     (b) = (BYTE)CLAMP( _b, 0, 255 );                                       \
+} while (0)
+
+
 int frame_goodfmt(DWORD fmt)
 {
 	return (fmt == FRAME_FMT_YV12 ||

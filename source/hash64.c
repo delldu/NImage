@@ -7,13 +7,10 @@
 ************************************************************************************/
 
 
-#include "hash64.h"
-#include "filter.h"
+#include "image.h"
 
 #define PHASH_ROWS 8
 #define PHASH_COLS 8
-
-#define HASHMAT_MAGIC MAKE_FOURCC('H', 'M','A','T') 
 
 #define check_MATRIX(mat) \
                         do { \
@@ -22,6 +19,8 @@
                                         return 0L; \
                                 } \
                         } while(0)
+
+extern MATRIX *matrix_mean_filter(MATRIX *src, int r);
 
 #if 0
 int hash_hamming(HASH64 f1, HASH64 f2)
@@ -285,72 +284,5 @@ HASH64 texture_hash(IMAGE *image, RECT *rect)
 	vector_destroy(vector);
 
 	return finger;
-}
-
-int hashmat_valid(HASHMAT *M)
-{
-	return (M && M->m >= 0 && M->n >= 1 && M->me && M->magic == HASHMAT_MAGIC);
-}
-
-HASHMAT *hashmat_create(int m, int n)
-{
-	int i;
-	HASHMAT *matrix;
-	
-	if (m < 1 || n < 1) {
-			syslog_error("Create hashmat.");
-			return NULL;
-	}
-	matrix = (HASHMAT *)calloc((size_t)1, sizeof(HASHMAT));
-	if (! matrix) {
-			syslog_error("Allocate memeory.");
-			return NULL;
-	}
-	matrix->magic = HASHMAT_MAGIC;
-	matrix->m = m; matrix->n = n; matrix->_m = m;
-
-	matrix->base = (HASH64 *)calloc((size_t)(m * n), sizeof(HASH64));
-	if (! matrix->base) {
-			syslog_error("Allocate memeory.");
-			free(matrix); return NULL;
-	}
-	matrix->me = (HASH64 **)calloc(m, sizeof(HASH64 *));
-	if (! matrix->me) {
-			syslog_error("Allocate memeory.");
-			free(matrix->base);
-			free(matrix);
-			return NULL;
-	}
-	for (i = 0; i < m; i++)
-			matrix->me[i] = &(matrix->base[i * n]);
-
-	return matrix;
-}
-
-void hashmat_print(HASHMAT *m)
-{
-	int i, j;
-	if (! hashmat_valid(m)) {
-		syslog_error("Bad hashmat.");
-		return;
-	}
-
-	printf("hashmat: %dx%d\n", m->m, m->n);
-
-	hashmat_foreach(m, i, j) {
-		printf("%lx", m->me[i][j]);
-		printf("%s", (j < m->n - 1)?", " : "\n");
-	}
-}
-
-
-void hashmat_destroy(HASHMAT *m)
-{
-	if (! hashmat_valid(m)) {
-			return;
-	}
-	free(m->me);
-	free(m->base);
-	free(m);
 }
 

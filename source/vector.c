@@ -15,6 +15,7 @@
 
 #define VECTOR_MAGIC MAKE_FOURCC('V','E','C','T')
 
+extern int math_gsbw(double sigma);
 
 VECTOR *vector_create(int m)
 {

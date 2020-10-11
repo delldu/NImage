@@ -15,9 +15,11 @@
 extern "C" {
 #endif
 
-#include "common.h"
 #include "matrix.h"
 #include "vector.h"
+
+#define CONFIG_JPEG 1
+#define CONFIG_PNG 1
 
 typedef struct {
 	BYTE r, g, b, a;
@@ -112,55 +114,6 @@ typedef struct {
 		} \
 	} while (0)
 
-/*
-From Keith Jack's excellent book "Video Demystified" (ISBN 1-878707-09-4)
-Y = 0.257R + 0.504G + 0.098B + 16
-U = 0.148R - 0.291G + 0.439B + 128
-V = 0.439R - 0.368G - 0.071B + 128
-
-R = 1.164(Y - 16) + 1.596(V - 128)
-G = 1.164(Y - 16) - 0.391(U - 128) - 0.813(V - 128)
-B = 1.164(Y - 16) + 2.018(U - 128)
-*/
-#define YCBCR_TO_RGB( y, cb, cr, r, g, b )       \
-do {                                                                  \
-     int _y  = (y)  -  16;                                            \
-     int _cb = (cb) - 128;                                            \
-     int _cr = (cr) - 128;                                            \
-                                                                      \
-     int _r = ((298 * _y             + 409 * _cr + 128) >> 8);          \
-     int _g = ((298 * _y - 100 * _cb - 208 * _cr + 128) >> 8);          \
-     int _b = ((298 * _y + 516 * _cb             + 128) >> 8);          \
-                                                                      \
-     (r) = (BYTE)CLAMP( _r, 0, 255 );                                       \
-     (g) = (BYTE)CLAMP( _g, 0, 255 );                                       \
-     (b) = (BYTE)CLAMP( _b, 0, 255 );                                       \
-} while (0)
-
-#define RGB_TO_YCBCR( r, g, b, y, cb, cr )       \
-do {                                                                  \
-	int _r = (r), _g = (g), _b = (b);                    \
-	                                                          \
-	(y) = (66 * _r + 129 * _g + 25 * _b  +  16*256 + 128) >> 8; \
-	(cb) = (-38 * _r  - 74 * _g + 112 * _b  + 128*256 + 128) >> 8; \
-	(cr) = (112 * _r - 94 * _g  -18 * _b  + 128*256 + 128) >> 8; \
-} while (0)
-
-/*
-* Y = 16 + 0.2568R + 0.5051G + 0.0979B   ==> (263, 517, 100)
-*Cg = 128 - 0.318R  + 0.4392G - 0.1212B  ==> (-326, 450, -124)
-*Cr = 128 + 0.4392R - 0.3677G - 0.0714B  ==> (450,  -377,  -73)
-*/
-
-#define RGB_TO_YCGCR( r, g, b, y, cg, cr )        \
-do {                                                                  \
-     int _r = (r), _g = (g), _b = (b);                       \
-                                                                      \
-     (y)  = (   263 * _r + 517 * _g + 100 * _b  +  16*1024) >> 10; \
-     (cg) = ( - 326 * _r + 450 * _g - 124 * _b  + 128*1024) >> 10; \
-     (cr) = (   450 * _r - 377 * _g -  73 * _b  + 128*1024) >> 10; \
-} while (0)
-
 #define RGB565_R(x) ((((x) >> 11) & 0x1f) << 3)
 #define RGB565_G(x) ((((x) >> 5) & 0x3f) << 2)
 #define RGB565_B(x) (((x) & 0x1f) << 3)
@@ -187,48 +140,33 @@ MATRIX *image_rect_plane(IMAGE *img, char oargb, RECT *rect);
 int image_setplane(IMAGE *img, char oargb, MATRIX *mat);
 
 
-void color_rgb2lab(BYTE R, BYTE G, BYTE B, double *L, double *a, double *b);
 void color_rgb2hsv(BYTE R, BYTE G, BYTE B, BYTE *h, BYTE *s, BYTE *v);
-void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cb, BYTE *cr);
-void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cg, BYTE *cr);
 void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE *gray);
-void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v);
-void color_luv2rgb(double L, double u, double v, BYTE *R, BYTE *G, BYTE *B);
-Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B);
 int skin_detect(IMAGE *img);
 int skin_statics(IMAGE *img, RECT *rect);
 
 int color_cluster(IMAGE *image, int num, int update);
-int color_beskin(BYTE r, BYTE g, BYTE b);
 int *color_count(IMAGE *image, int rows, int cols, int levs);
 int color_picker();
 int color_balance(IMAGE *img, int method, int debug);
-
-int color_gwmgain(IMAGE *img, double *r_gain, double *g_gain, double *b_gain);
-int color_rect_gwmgain(IMAGE *img, RECT *rect, double *r_gain, double *g_gain, double *b_gain);
-
-int color_prmgain(IMAGE *img, double *r_gain, double *g_gain, double *b_gain);
-int color_rect_prmgain(IMAGE *img, RECT *rect, double *r_gain, double *g_gain, double *b_gain);
 
 int color_correct(IMAGE *img, double gain_r, double gain_g, double gain_b);
 int color_togray(IMAGE *img);
 int color_torgb565(IMAGE *img);
 double color_distance(RGB *c1, RGB *c2);
-	
 
 int image_drawline(IMAGE *img, int r1, int c1, int r2, int c2, int color);  
 int image_drawrect(IMAGE *img, RECT *rect, int color, int fill);
 int image_drawtext(IMAGE *image, int r, int c, char *texts, int color);
 int image_drawkxb(IMAGE *image, double k, double b, int color);
 
-int image_estimate(char oargb, IMAGE *orig, IMAGE *now, VECTOR *res);
+int image_psnr(char oargb, IMAGE *orig, IMAGE *now, double *psnr);
 int image_paste(IMAGE *img, int r, int c, IMAGE *small, double alpha);
 int image_rect_paste(IMAGE *bigimg, RECT *bigrect, IMAGE *smallimg, RECT *smallrect);
 
 int image_statistics(IMAGE *img, char orgb, double *avg, double *stdv);
 int image_rect_statistics(IMAGE *img, RECT *rect, char orgb, double *avg, double *stdv);
 void image_destroy(IMAGE *img);
-
 
 // Image Color ...
 int color_midval(IMAGE *img, char orgb);
@@ -238,17 +176,12 @@ double color_likeness(IMAGE *f, IMAGE *g, RECT *rect, int ndim);
 // Image Shape ...
 VECTOR *shape_vector(IMAGE *img, RECT *rect, int ndim);
 double shape_likeness(IMAGE *f, IMAGE *g, RECT *rect, int ndim);
-
 // Image Texture ...
 VECTOR *texture_vector(IMAGE *img, RECT *rect, int ndim);
 double texture_likeness(IMAGE *f, IMAGE *g, RECT *rect, int ndim);
-
-
-
 // Contour & Skeleton
 int image_contour(IMAGE *img);
 int image_skeleton(IMAGE *img); 
-
 // Middle value edge &  Canny edge
 int shape_midedge(IMAGE *img);
 int shape_bestedge(IMAGE *img);
@@ -286,6 +219,54 @@ int image_negative(IMAGE *image);
 int image_clahe(IMAGE *image, int grid_rows, int grid_cols, double limit);
 int image_niblack(IMAGE *image, int radius, double scale);
 
+// Filter
+int image_make_noise(IMAGE *img, char orgb, int rate);
+int image_delete_noise(IMAGE *img);
+int image_gauss_filter(IMAGE *image, double sigma);
+int image_guided_filter(IMAGE *img, IMAGE *guidance, int radius, double eps, int scale, int debug);
+int image_beeps_filter(IMAGE *img, double stdv, double dec, int debug);
+int image_lee_filter(IMAGE *img, int radius, double eps, int debug);
+int image_dehaze_filter(IMAGE *img, int radius, int debug);
+int image_medium_filter(IMAGE *img, int radius);
+int image_fast_filter(IMAGE *img, int n, int *kernel, int total);
+int image_gauss3x3_filter(IMAGE *img, RECT *rect);
+int image_gauss5x5_filter(IMAGE *img, RECT *rect);
+int image_dot_filter(IMAGE *img, int i, int j);
+int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total);
+
+// Hash
+HASH64 image_ahash(IMAGE *image, char oargb, RECT *rect);
+HASH64 image_phash(IMAGE *image, char oargb, RECT *rect);
+HASH64 shape_hash(IMAGE *image, RECT *rect);
+HASH64 texture_hash(IMAGE *image, RECT *rect);
+int hash_hamming(HASH64 f1, HASH64 f2);
+double hash_likeness(HASH64 f1, HASH64 f2);
+void hash_dump(char *title, HASH64 finger);
+
+// Histogram
+#define HISTOGRAM_MAX_COUNT 256
+typedef struct {
+ 	int total;
+	int count[HISTOGRAM_MAX_COUNT];
+
+	double cdf[HISTOGRAM_MAX_COUNT];
+	
+	int map[HISTOGRAM_MAX_COUNT];
+} HISTOGRAM;
+
+void histogram_reset(HISTOGRAM *h);
+void histogram_add(HISTOGRAM *h, int c);
+void histogram_del(HISTOGRAM *h, int c);
+int histogram_middle(HISTOGRAM *h);
+int histogram_top(HISTOGRAM *h, double ratio);
+int histogram_clip(HISTOGRAM *h, int threshold);
+int histogram_cdf(HISTOGRAM *h);
+int histogram_map(HISTOGRAM *h, int max);
+double histogram_likeness(HISTOGRAM *h1, HISTOGRAM *h2);
+void histogram_sum(HISTOGRAM *sum, HISTOGRAM *sub);
+int histogram_rect(HISTOGRAM *hist, IMAGE *img, RECT *rect);
+void histogram_dump(HISTOGRAM *h);
+	
 #if defined(__cplusplus)
 }
 #endif

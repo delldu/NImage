@@ -376,6 +376,19 @@ int matrix_normal(MATRIX *mat)
 	return RET_OK;;
 }
 
+// Guass band width
+int math_gsbw(double sigma)
+{
+	int  dim;
+	double d;
+
+	d = 3 * sigma; dim = (int)d;
+	if (d > (double)dim)
+		dim++;
+
+	return 2 * dim + 1;
+}
+
 MATRIX *matrix_gskernel(double sigma)
 {
 	int i, j, dim;

@@ -20,6 +20,34 @@
 
 static int object_min_points = OBJECT_DETECTION_MIN_POINTS;
 
+typedef struct { int count; RECT rect[MAX_OBJECT_NUM]; } RECTS;
+static RECTS __global_rect_set;
+
+RECTS *rect_set()
+{
+	return &__global_rect_set;
+}
+
+int rect_put(RECT *rect)
+{
+	RECTS *mrs = rect_set();
+
+	// Too small objects, ignore !
+	if (rect->h < 8 || rect->w < 8)
+		return RET_ERROR;
+
+	if (20 * rect->h < rect->w || 20 * rect->w < rect->h) // Too narrow
+		return RET_ERROR;
+
+	if (mrs->count < MAX_OBJECT_NUM) {
+		mrs->rect[mrs->count] = *rect;
+		mrs->count++;
+		return RET_OK;
+	}
+
+	return RET_ERROR;
+}
+
 int has_weight(int w)
 {
 	return (w >= object_min_points)? 1 : 0;
@@ -360,3 +388,15 @@ int motion_detect(IMAGE *fg, IMAGE *bg, int debug)
 	return RET_OK;
 }
 
+void image_drawrects(IMAGE *img)
+{
+	int i;
+	
+	RECTS *mrs = rect_set();
+//	printf("Motion Set: %d\n", mrs->count);
+	for (i = 0; i < mrs->count; i++) {
+		// printf("  %d: h = %d, w = %d\n", i, mrs->rect[i].h, mrs->rect[i].w);
+		mrs->rect[i].r += rand()%3;
+		image_drawrect(img, &mrs->rect[i],	color_picker(), 0);
+	}
+}

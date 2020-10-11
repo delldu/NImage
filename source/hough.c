@@ -17,6 +17,29 @@
 #include "image.h"
 #include <math.h>
 
+typedef struct { int r1, c1, r2, c2; } LINE;
+typedef struct { int count; LINE line[MAX_OBJECT_NUM]; } LINES;
+
+static LINES __global_line_set;
+
+LINES *line_set()
+{
+	return &__global_line_set;
+}
+
+void line_put(int r1, int c1, int r2, int c2)
+{
+	LINES *lines = line_set();
+
+	if (lines->count < MAX_OBJECT_NUM) {
+		lines->line[lines->count].r1 = r1;
+		lines->line[lines->count].c1 = c1;
+		lines->line[lines->count].r2 = r2;
+		lines->line[lines->count].c2 = c2;
+		lines->count++;
+	}
+}
+
 static int __hough_line(IMAGE *image, int threshold, int debug)
 {
 #define MAX_ANGLES 180

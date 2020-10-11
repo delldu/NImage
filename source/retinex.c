@@ -10,7 +10,8 @@
 
 #include "image.h"
 #include "matrix.h"
-#include "filter.h"
+
+extern int matrix_gauss_filter(MATRIX *mat, double sigma);
 
 // Single Scale
 // R  (x,y) = log(I (x,y)) - log(I (x,y) * F(x,y)) 

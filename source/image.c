@@ -8,14 +8,9 @@
 ************************************************************************************/
 
 #include "image.h"
-#include "filter.h"
-#include "histogram.h"
 
 #include <stdlib.h>
 #include <errno.h>
-
-// Support JPEG image
-#define CONFIG_JPEG 1
 
 #ifdef CONFIG_JPEG
 #include <jpeglib.h>
@@ -65,18 +60,14 @@ typedef struct {
 } BITMAP_RGBQUAD;
 
 
-
 #define IMAGE_MAX_NB_SIZE 25
 RGB *__image_rgb_nb[IMAGE_MAX_NB_SIZE];
-
 
 extern int color_rgbcmp(RGB *c1, RGB *c2);
 extern void color_rgbsort(int n, RGB *cv[]);
 extern int image_memsize(WORD h, WORD w);
 extern void image_membind(IMAGE *img, WORD h, WORD w);
 
-
-#define CONFIG_PNG 1
 
 #ifdef CONFIG_JPEG
 static void __jpeg_errexit (j_common_ptr cinfo)
@@ -1581,14 +1572,14 @@ int image_drawkxb(IMAGE *image, double k, double b, int color)
         return RET_OK;
 }
 
-// make sure dimesion of res is more than 2
-int image_estimate(char oargb, IMAGE *orig, IMAGE *curr, VECTOR *res)
+// Peak Signal Noise Ratio
+int image_psnr(char oargb, IMAGE *orig, IMAGE *curr, double *psnr)
 {
 	int i, j, k;
 	long long n, sum;
-	double d;
+	double d = 0.0;
 
-	check_argb(oargb);
+	check_rgb(oargb);
 	check_image(orig);
 	check_image(curr);
 	
@@ -1599,18 +1590,6 @@ int image_estimate(char oargb, IMAGE *orig, IMAGE *curr, VECTOR *res)
 
 	n = sum = 0;
 	switch(oargb) {
-	case 'A':
-		image_foreach(orig, i, j) {
-			k = orig->ie[i][j].r - curr->ie[i][j].r;
-			n += k * k;
-			k = orig->ie[i][j].g - curr->ie[i][j].g;
-			n += k * k;
-			k = orig->ie[i][j].b - curr->ie[i][j].b;
-			n += k * k;
-			k = (orig->ie[i][j].r * orig->ie[i][j].r) + (orig->ie[i][j].g * orig->ie[i][j].g) + (orig->ie[i][j].b * orig->ie[i][j].b);
-			sum += k;
-		}
-		break;
  	case 'R':
 		image_foreach(orig, i, j) {
 			k = orig->ie[i][j].r - curr->ie[i][j].r;
@@ -1644,21 +1623,15 @@ int image_estimate(char oargb, IMAGE *orig, IMAGE *curr, VECTOR *res)
 	if (sum == 0)		// Force sum == 1
 		sum = 1;
 	d = 1.0f * n/sum;
-	printf("NMSE = %f\n", d);
-	if (res && res->m > 0)
-		res->ve[0] = d;
 
 	// Calculate 10 * logf(3 * 255 * 255 * orig->height * orig->width / n);
 	if (n == 0)
 		n = 1;		// FORCE n == 1
-	if (oargb == 'A')
-		d =  log(195075.0f * orig->height * orig->width / n);
-	else
-		d =  log(65025.0f * orig->height * orig->width / n);
+	d =  log(65025.0f * orig->height * orig->width / n);
 	d = 10.0f * d;
 	printf("PSNR = %f\n", d);
-	if (res && res->m > 1)
-		res->ve[1] = d;
+	if (psnr)
+		*psnr = d;
 
 	return RET_OK;
 }
@@ -1771,7 +1744,6 @@ int image_delete_noise(IMAGE *img)
 			}
 		}
 	}
-	image_estimate('A', orig, img, NULL);
 	image_destroy(orig);
 
 	return RET_OK;
@@ -1982,7 +1954,6 @@ MATRIX *image_classmat(IMAGE *image)
 	return mat;
 }
 
-
 IMAGE *image_subimg(IMAGE *img, RECT *rect)
 {
 	int i; 
@@ -2005,19 +1976,6 @@ IMAGE *image_subimg(IMAGE *img, RECT *rect)
 	}
 #endif
 	return sub;
-}
-
-void image_drawrects(IMAGE *img)
-{
-	int i;
-	
-	RECTS *mrs = rect_set();
-//	printf("Motion Set: %d\n", mrs->count);
-	for (i = 0; i < mrs->count; i++) {
-		// printf("  %d: h = %d, w = %d\n", i, mrs->rect[i].h, mrs->rect[i].w);
-		mrs->rect[i].r += rand()%3;
-		image_drawrect(img, &mrs->rect[i],	color_picker(), 0);
-	}
 }
 
 // Gray stattics

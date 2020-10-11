@@ -30,8 +30,6 @@ SOURCE :=  \
 	source/video.c \
 	source/blend.c \
 	source/filter.c \
-	source/seam.c \
- 	source/histogram.c \
 	source/hash64.c \
 	source/retinex.c
 

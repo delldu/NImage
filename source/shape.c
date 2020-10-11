@@ -8,9 +8,31 @@
 ************************************************************************************/
 #include "common.h"
 #include "image.h"
-#include "filter.h"
 
 #define MAYBE_SKELETON_COLOR 128
+
+typedef struct { int r, c; } DOT;
+typedef struct { int count; DOT dot[MAX_OBJECT_NUM]; } DOTS;
+
+static DOTS __global_dot_set;
+
+DOTS *dot_set()
+{
+	return &__global_dot_set;
+}
+
+void dot_put(int r, int c)
+{
+	DOTS *dots = dot_set();
+	if (dots->count < MAX_OBJECT_NUM) {
+		dots->dot[dots->count].r = r;
+		dots->dot[dots->count].c = c;
+		dots->count++;
+	}
+	else {
+		syslog_debug("Too many dots.");
+	}
+}
 
 static int __matrix_8connect(MATRIX *mat, int r, int c)
 {
@@ -442,6 +464,43 @@ static int __skeleton_matrix(MATRIX *mat)
 	return RET_OK;	
 }
 
+// Carte to polar coordinate
+void math_topolar(int x, int y, double *r, double *a)
+{
+	double dr, da;
+
+	if (x == 0) {
+		if (y >= 0) {
+			*a = 90; *r = y;
+		}
+		else {
+			*a = 270; *r = -y;
+		}
+		return;
+	}
+
+	// x != 0
+	dr = sqrt(x * x + y * y) + 0.5000;
+	da = asin(1.0000 * y/dr)/3.1415926 * 180;
+
+	*r = dr;
+	if (x > 0) { //  (x, y) in 1/4 section
+		*a = da;
+		if (y < 0)
+			*a += 360;
+	}
+	else  //  (x, y) in 2/3 section
+		*a = 180 - da;
+}
+
+int math_arcindex(double a, int arcstep)
+{
+	int n;
+	n = (2 * a + arcstep) / (2 * arcstep); // [a/arcstep + 1/2]
+	if (n >= 360/arcstep)
+		n = 0;
+	return n;
+}
 
 VECTOR *shape_vector(IMAGE *img, RECT *rect, int ndim)
 {
