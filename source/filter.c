@@ -199,14 +199,16 @@ static MATRIX *__beeps_vh(MATRIX *mat, double stdv, double dec)
 	return r;
 }
 
-
 // Create dark channel
 static int __create_darkchan(IMAGE *img, int radius)
 {
 	BYTE min;
  	int i, j, i1, i2, j1, j2, k;
+ 	MATRIX *mat;
 	
 	check_image(img);
+
+	mat = matrix_create(img->height, img->width); check_matrix(mat);
 
 	// 1. Save dark channel AS channel A of image
 	image_foreach(img,i,j) {
@@ -230,7 +232,7 @@ static int __create_darkchan(IMAGE *img, int radius)
 				if (img->ie[i][k].a < min)
 					min = img->ie[i][k].a;
 			}
-			img->ie[i][j].d = min;
+			mat->me[i][j] = min;
 		}
 	}
 	// Row Filter
@@ -238,14 +240,16 @@ static int __create_darkchan(IMAGE *img, int radius)
 		for (i = 0; i < img->height; i++) {
 			i1 = MAX(i - radius, 0);
 			i2 = MIN(i + radius, img->height - 1);
-			min = img->ie[i1][j].d;
+			min = mat->me[i1][j];
 			for (k = i1 + 1; k <= i2; k++) {
-				if (img->ie[k][j].d < min)
-					min = img->ie[k][j].d;
+				if (mat->me[k][j] < min)
+					min = mat->me[k][j];
 			}				
 			img->ie[i][j].a = min;
 		}
 	}
+
+	matrix_destroy(mat);
 
 	return RET_OK;
 }
@@ -994,8 +998,10 @@ int image_medium_filter(IMAGE *img, int radius)
 {
 	HISTOGRAM hist;
  	int i, j, i1, i2, i3, j1, j2, j3, k;
+ 	MATRIX *mat;
 	
 	check_image(img);
+	mat = matrix_create(img->height, img->width); check_matrix(mat);
 
 	// Channel a Median Filter
 	for (i = 0; i < img->height; i++) {
@@ -1010,7 +1016,7 @@ int image_medium_filter(IMAGE *img, int radius)
 			for (j3 = j1; j3 <= j2; j3++)
 				histogram_add(&hist, img->ie[i3][j3].a);
 		}
-		img->ie[i][0].d = histogram_middle(&hist);
+		mat->me[i][0] = histogram_middle(&hist);
 
 		for (j = 1; j < img->width; j++) {
 			// Update histogram ? 
@@ -1023,13 +1029,15 @@ int image_medium_filter(IMAGE *img, int radius)
 				for (k = i1; k <= i2; k++)
 					histogram_add(&hist, img->ie[k][j2].a);
 			}
-			img->ie[i][j].d = histogram_middle(&hist);
+			mat->me[i][j] = histogram_middle(&hist);
 		}
 	}
 
 	// Save filter result
 	image_foreach(img,i,j)
-		img->ie[i][j].a = img->ie[i][j].d;
+		img->ie[i][j].a = mat->me[i][j];
+
+	matrix_destroy(mat);
 
 	return RET_OK;
 }
@@ -1074,8 +1082,10 @@ int image_fast_filter(IMAGE *img, int n, int *kernel, int total)
 int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 {
 	int i, j, k, m;
+	MATRIX *mat;
 
 	check_image(img);
+	mat = matrix_create(img->height, img->width); check_matrix(mat);
 
 	image_rectclamp(img, rect);
 
@@ -1092,7 +1102,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 			for (k = -n; k <= n; k++) {
 				m += kernel[k + n]*img->ie[i + rect->r][j + rect->c + k].r;
 			}
-			img->ie[i + rect->r][j + rect->c].d = m;
+			mat->me[i + rect->r][j + rect->c] = m;
 		}
 	}
 	// R Channel Row Conv
@@ -1100,7 +1110,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 		for (i = n; i < rect->h - n; i++) {
 			m = 0;
 			for (k = -n; k <= n; k++) {
-				m += kernel[k + n]*img->ie[i + rect->r + k][j + rect->c].d;
+				m += kernel[k + n]*mat->me[i + rect->r + k][j + rect->c];
 			}				
 			m /= total;
 			img->ie[i + rect->r][j + rect->c].r = (BYTE)(m);
@@ -1113,7 +1123,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 			m = 0;
 			for (k = -n; k <= n; k++)
 				m += kernel[k + n]*img->ie[i + rect->r][j + rect->c + k].g;
-			img->ie[i + rect->r][j + rect->c].d = m;
+			mat->me[i + rect->r][j + rect->c] = m;
 		}
 	}
 	// G Channel Row Conv
@@ -1121,7 +1131,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 		for (i = n; i < rect->h - n; i++) {
 			m = 0;
 			for (k = -n; k <= n; k++)
-				m += kernel[k + n]*img->ie[i + rect->r + k][j + rect->c].d;
+				m += kernel[k + n]*mat->me[i + rect->r + k][j + rect->c];
 			m /= total;
 
 			img->ie[i + rect->r][j + rect->c].g = (BYTE)(m);
@@ -1134,7 +1144,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 			m = 0;
 			for (k = -n; k <= n; k++)
 				m += kernel[k + n]*img->ie[i + rect->r][j + rect->c + k].b;
-			img->ie[i + rect->r][j + rect->c].d = m;
+			mat->me[i + rect->r][j + rect->c] = m;
 		}
 	}
 	// B Channel Row Conv
@@ -1142,7 +1152,7 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 		for (i = n; i < rect->h - n; i++) {
 			m = 0;
 			for (k = -n; k <= n; k++)
-				m += kernel[k + n]*img->ie[i + rect->r + k][j + rect->c].d;
+				m += kernel[k + n]*mat->me[i + rect->r + k][j + rect->c];
 			m /= total;
 
 			img->ie[i + rect->r][j + rect->c].b = (BYTE)(m);
@@ -1151,5 +1161,3 @@ int image_rect_filter(IMAGE *img, RECT *rect, int n, int *kernel, int total)
 
 	return RET_OK;
 }
-
-

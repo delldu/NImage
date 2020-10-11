@@ -369,7 +369,7 @@ int color_cluster(IMAGE *image, int num, int update)
 			image->ie[i][j].g = (BYTE)ccmat->me[c][1];
 			image->ie[i][j].b = (BYTE)ccmat->me[c][2];
 		}
-		image->ie[i][j].d = (BYTE)ccmat->me[c][5];	// Depths, Layers
+		image->ie[i][j].a = (BYTE)ccmat->me[c][5];	// Depths, Layers
 	}
 
 	matrix_destroy(ccmat);
@@ -403,7 +403,7 @@ int *color_count(IMAGE *image, int rows, int cols, int levs)
 		i2 = (i/bh);
 		for (j = 0; j < image->width; j++) {
 			j2 = (j/bw);
-			k2 = image->ie[i][j].d;
+			k2 = image->ie[i][j].a;
 			count[VOICE_CELL_OFFSET(i2, j2, k2)]++;
 		}
 	}

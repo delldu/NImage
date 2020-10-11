@@ -109,7 +109,7 @@ static void __mask_finetune(IMAGE *mask, IMAGE *src, int debug)
 	mask_foreach(mask, i, j) {
 		if (! __mask_border(mask, i, j))
 			continue;
-		count[src->ie[i][j].d]++;
+		count[src->ie[i][j].a]++;
 	}
 
 	// Fast delete border's blocks
@@ -117,7 +117,7 @@ static void __mask_finetune(IMAGE *mask, IMAGE *src, int debug)
 		if (count[k] < BOARDER_THRESHOLD)
 			continue;
 		mask_foreach(src, i, j) {
-			if (src->ie[i][j].d == k) {
+			if (src->ie[i][j].a == k) {
 				__mask_remove(mask, i, j);
 			}
 		}

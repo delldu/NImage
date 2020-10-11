@@ -21,7 +21,7 @@ extern "C" {
 
 typedef struct {
 	BYTE r, g, b, a;
-	WORD d; // d -- depth;
+	// WORD d; // d -- depth;
 } RGB;
 #define RGB_R(x) ((BYTE)((x) >> 16) & 0xff)
 #define RGB_G(x) ((BYTE)((x) >> 8) & 0xff)
@@ -31,7 +31,6 @@ typedef struct {
 typedef struct {
 	double L, a, b;
 } LAB;
-#define LAB_QDIM(qL, qa, qb) (1 + ((int)(100/(qL))) * ((int)(240)/(qa)) * ((int)(240)/(qb)))
 
 typedef struct {
 	double L, u, v;
@@ -44,15 +43,9 @@ typedef struct {
 } IMAGE;
 
 #define IMAGE_RGB 0
-#define IMAGE_RGBREV 1
-#define IMAGE_BITMAP 2
-#define IMAGE_GRAY 3
-#define IMAGE_YCBCR 4
-#define IMAGE_HSV 5
-#define IMAGE_LAB 6
-#define IMAGE_LUV 7
-#define IMAGE_RLUV 8
-#define IMAGE_RGB565 9
+#define IMAGE_BITMAP 1
+#define IMAGE_GRAY 2
+#define IMAGE_RGB565 3
 
 #define image_foreach(img, i, j) \
 	for (i = 0; i < img->height; i++) \
@@ -91,14 +84,6 @@ typedef struct {
 	do { \
 		if (! strchr("ARGB", orgb)) { \
 			syslog_error("Bad color %c (ARGB).\n", orgb); \
-			return RET_ERROR; \
-		} \
-	} while (0)
-
-#define check_argbh(orgb) \
-	do { \
-		if (! strchr("ARGBH", orgb)) { \
-			syslog_error("Bad color %c (ARGBH).", orgb); \
 			return RET_ERROR; \
 		} \
 	} while (0)
@@ -297,6 +282,9 @@ IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b,
 // Retinex
 int image_retinex(IMAGE *image, int nscale);
 
+int image_negative(IMAGE *image);
+int image_clahe(IMAGE *image, int grid_rows, int grid_cols, double limit);
+int image_niblack(IMAGE *image, int radius, double scale);
 
 #if defined(__cplusplus)
 }

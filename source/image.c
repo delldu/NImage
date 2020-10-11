@@ -9,6 +9,7 @@
 
 #include "image.h"
 #include "filter.h"
+#include "histogram.h"
 
 #include <stdlib.h>
 #include <errno.h>
@@ -28,6 +29,9 @@
 #define BITMAP_WIN_OS2_OLD 12
 #define BITMAP_WIN_NEW     40
 #define BITMAP_OS2_NEW     64
+
+#define CLAHE_MAX_ROWS 8
+#define CLAHE_MAX_COLS 8
 
 #define FILE_END(fp) (ferror(fp) || feof(fp))
 
@@ -413,17 +417,6 @@ MATRIX *image_rect_plane(IMAGE *img, char oargb, RECT *rect)
 				if (j + rect->c < 0 || j + rect->c >= img->width)
 					continue;
 			mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].a;
-			}
-		}
-		break;
-	case 'd':
-		for (i = 0; i < (rect)->h; i++) {
-			if (i + rect->r < 0 || i + rect->r >= img->height)
-				continue;
-			for (j = 0; j < (rect)->w; j++) {
-				if (j + rect->c < 0 || j + rect->c >= img->width)
-					continue;
-				mat->me[i][j] = (double)img->ie[i + rect->r][j + rect->c].d;
 			}
 		}
 		break;
@@ -2048,4 +2041,203 @@ MATRIX *image_gstatics(IMAGE *img, int rows, int cols)
 		mat->me[i][j] /= ball;
 
 	return mat;
+}
+
+// cal example: image_clahe(image, 4, 4, 4);
+int image_clahe(IMAGE *image, int grid_rows, int grid_cols, double limit)
+{
+	BYTE g;
+	int i, j, h, w, i2, j2;
+	double u, v, d;
+	int d1r, d1c, d2r, d2c, d3r, d3c, d4r, d4c;
+	RECT rect;
+	HISTOGRAM hist[CLAHE_MAX_ROWS][CLAHE_MAX_COLS], *d1, *d2, *d3, *d4;
+
+	check_image(image);
+
+	if (grid_rows > CLAHE_MAX_ROWS)
+		grid_rows = CLAHE_MAX_ROWS;
+	if (grid_cols > CLAHE_MAX_COLS)
+		grid_cols = CLAHE_MAX_COLS;
+
+	h = (image->height + grid_rows - 1)/grid_rows;
+	w = (image->width + grid_cols - 1)/grid_cols;
+	limit = MAX(1, (limit * h * w/256.0));
+
+	color_togray(image);
+	for (i = 0; i < grid_rows; i++) {
+		for (j = 0; j < grid_cols; j++) {
+			rect.r = i * h;
+			rect.h = h;
+			rect.c = j * w;
+			rect.w = w;
+			image_rectclamp(image, &rect);
+
+			histogram_rect(&hist[i][j], image, &rect);	// Suppose: image is gray		
+			histogram_clip(&hist[i][j], (int)limit);
+			histogram_cdf(&hist[i][j]);
+			histogram_map(&hist[i][j], 255);
+			// histogram_dump(&hist[i][j]);
+		}
+	}
+
+	// Interpolate
+	/*************************************************************************************
+	d1    d2
+	    (p)
+	d3    d4
+	(1.0 - u) * (1.0 - v) * d1 + (1.0 - u)*v*d2 + u*(1.0 - v)*d3 + u*v*d4
+	**************************************************************************************/
+	for (i = 0; i <= grid_rows; i++) {
+		if (i == 0) {
+			rect.r = 0;
+			rect.h = h/2;
+			
+			d1r = d2r = d3r = d4r = 0;
+		} else if (i == grid_rows) {
+			rect.r = (i - 1)*h + h/2;
+			rect.h = h/2;
+			
+			d1r = d2r = d3r = d4r = grid_rows - 1;
+ 		}
+		else {
+			rect.r = (i - 1)*h + h/2;
+			rect.h = h;
+			
+			d1r = d2r = i - 1;
+			d3r = d4r = i;
+		}
+		
+		for (j = 0; j <= grid_cols; j++) {
+			if (j == 0) {
+				rect.c = 0;
+				rect.w = w/2;
+				
+				d1c = d2c = d3c = d4c = 0;
+			} else if (j == grid_cols) {
+				rect.c = (j - 1)*w + w/2;
+				rect.w = w/2;
+
+				d1c = d2c = d3c = d4c = grid_cols - 1;
+			}
+			else {
+				rect.c = (j - 1)*w + w/2;
+				rect.w = w;
+
+				d1c = d3c = j - 1;
+				d2c = d4c = j;
+			}
+
+			d1 = &hist[d1r][d1c];
+			d2 = &hist[d2r][d2c];
+			d3 = &hist[d3r][d3c];
+			d4 = &hist[d4r][d4c];
+
+			for (i2 = rect.r; i2 < rect.r + rect.h; i2++) {
+				u = (double)(i2 - rect.r)/(double)rect.h;
+				
+				for (j2 = rect.c; j2 < rect.c + rect.w; j2++) {
+					v = (double)(j2 - rect.c)/(double)rect.w;
+					
+					g = image->ie[i2][j2].r;
+					d = (1.0 - u)*(1.0 - v)*d1->map[g] + (1.0 - u)*v*d2->map[g] + u*(1.0 - v)*d3->map[g] + u*v*d4->map[g];
+
+					g = (d > 255)?255 : (int)d;
+
+					image->ie[i2][j2].r = g;
+					image->ie[i2][j2].g = g;
+					image->ie[i2][j2].b = g;
+				}
+			}
+		}
+	}
+
+	return RET_OK;
+}
+
+
+int image_niblack(IMAGE *image, int radius, double scale)
+{
+	int i, j;
+	MATRIX *mean, *stdv, *temp, *area;
+
+	check_image(image);
+
+	// Fast count 
+	area = matrix_create(image->height, image->width);
+	check_matrix(area);
+	matrix_pattern(area, "one");
+
+	temp = matrix_copy(area);
+	matrix_integrate(temp);
+	matrix_foreach(area, i, j) {
+		area->me[i][j] = matrix_difference(temp, i - radius, j - radius, i + radius, j + radius);
+	}
+	matrix_destroy(temp);
+
+	color_togray(image);
+	mean = image_getplane(image, 'R');
+  	stdv = matrix_copy(mean);
+
+	// mean
+	temp = matrix_copy(mean);
+	matrix_integrate(temp);
+	matrix_foreach(mean, i, j) {
+		mean->me[i][j] = matrix_difference(temp, i - radius, j - radius, i + radius, j + radius);
+		mean->me[i][j] /= area->me[i][j];
+	}
+	matrix_destroy(temp);
+
+	// stdv
+	matrix_foreach(stdv, i, j)
+		stdv->me[i][j] = stdv->me[i][j] * stdv->me[i][j];
+	temp = matrix_copy(stdv);
+	matrix_integrate(temp);
+	matrix_foreach(stdv, i, j) {
+		stdv->me[i][j] = matrix_difference(temp, i - radius, j - radius, i + radius, j + radius);
+		stdv->me[i][j] /= area->me[i][j];	
+		
+		stdv->me[i][j] -= mean->me[i][j] * mean->me[i][j];
+		stdv->me[i][j] = sqrt(stdv->me[i][j]);
+	}
+	matrix_destroy(temp);
+
+	// Threshold
+	matrix_foreach(stdv, i, j) {
+		stdv->me[i][j] *= scale;
+		stdv->me[i][j] += mean->me[i][j];
+	}
+
+	image_foreach(image, i, j) {
+		if (image->ie[i][j].r >= stdv->me[i][j]) {
+			image->ie[i][j].r = 255;
+			image->ie[i][j].g = 255;
+			image->ie[i][j].b = 255;
+		}
+		else {
+			image->ie[i][j].r = 0;
+			image->ie[i][j].g = 0;
+			image->ie[i][j].b = 0;
+ 		}
+	}
+ 
+ 	matrix_destroy(mean);
+	matrix_destroy(stdv);
+	matrix_destroy(area);
+
+ 	return RET_OK;
+}
+
+int image_negative(IMAGE *image)
+{
+	int i, j;
+	check_image(image);
+
+	image_foreach(image, i, j) {
+		image->ie[i][j].r = 255 - image->ie[i][j].r;
+		image->ie[i][j].g = 255 - image->ie[i][j].g;
+		image->ie[i][j].b = 255 - image->ie[i][j].b;
+	}
+
+	return RET_OK;	
 }

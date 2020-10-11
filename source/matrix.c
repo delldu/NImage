@@ -15,9 +15,6 @@
 
 #define MATRIX_MAGIC MAKE_FOURCC('M','A','T','R') 
 
-
-#define MATRIX_MORE_ROWS 16
-
 static int __matrix_qsort_column = 0;
 
 extern int matrix_memsize(DWORD m, DWORD n);
@@ -26,8 +23,8 @@ extern void matrix_membind(MATRIX *mat, DWORD m, DWORD n);
 // Euclidean Space square !!!
 static double __euc_distance2(double *a, double *b, int n)
 {
-	double d = 0.0f;
 	(void)n;
+	double d = 0.0f;
 #if 0
 	int i;
 	for (i = 0; i < n; i++)
@@ -39,9 +36,6 @@ static double __euc_distance2(double *a, double *b, int n)
 	d2 = (a[2] - b[2]);  d2 *= d2;
 	d = d0 + d1 + d2;
 #endif
-
-
-
 	return d; // sqrt(d);	
 }
 
@@ -489,7 +483,6 @@ MATRIX *matrix_wkmeans(MATRIX *mat, int k, distancef_t distance)
 //	int start_time = time_ticks();
 	do {
 		count++;
-//		CheckPoint("count = %d", count);
 		needcheck = 0;
 		for (i = 0; i < mat->m; i++) {
 			a = (int)(mat->me[i][CLASS_INDEX]);	// old class !!!
