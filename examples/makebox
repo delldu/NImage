@@ -1,0 +1,89 @@
+#!/bin/bash
+#/************************************************************************************
+#***
+#***	File Author: Dell, Fri May 30 12:46:39 CST 2020
+#***
+#************************************************************************************/
+
+export LC_ALL=C
+
+function applet_list()
+{
+	grep =y imagebox.config | sed -e "s/=y//" -e "s/CONFIG_//" | tr A-Z a-z | sort
+}
+
+function applet_source()
+{
+	applets=`applet_list`
+
+	for f in $applets ; do
+		echo "${f}_main.c"
+	done
+}
+
+function applet_table()
+{
+	applets=`applet_list`
+
+	echo
+	echo "/* Warning: "
+	echo " * Don't edit this table manually. !!! "
+	echo " *"
+	echo " */"
+
+	echo	
+
+	for f in $applets ; do
+		echo "extern int ${f}_main(int agrc, char **argv);"
+	done
+	echo 
+
+	echo "static applet_t applet_table[] = {"
+	for f in $applets ; do
+		echo -e "\t{ \"$f\", ${f}_main },"
+	done
+	echo "};"
+
+	echo
+}
+
+function applet_links()
+{
+	local DIR=$1
+	applets=`applet_list`
+
+	cd ${DIR}
+	for f in $applets ; do
+		ln -sf imagebox $f
+	done
+	cd ${OLDPWD}
+}
+
+
+function help()
+{
+	echo "Usage: $1 [options]";
+	echo "options:"
+	echo "    --help      Display this help."
+	echo "    --source    Source list."
+	echo "    --table     Function table."
+}
+
+function main()
+{
+	case "$1" in
+	--help)
+		help "$0";;
+	--source)
+		applet_source;;
+	--table)
+		applet_table;;
+	--links)
+		applet_links "$2" ;;
+	*)
+		help "$0";;
+	esac
+
+}
+
+main "$@"
