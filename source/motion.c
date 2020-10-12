@@ -209,9 +209,9 @@ static int rect_divide(MATRIX *mat, RECT *rect, RECT *rect1, RECT *rect2)
 	return 0;
 }
 
-static int color_delta(RGB c1, RGB c2, int threshold)
+static int color_delta(RGBA_8888 c1, RGBA_8888 c2, int threshold)
 {
-	int delta = (c1.r - c2.r)*(c1.r - c2.r) + (c1.g - c2.g)*(c1.g - c2.g) + 	(c1.b - c2.b)*(c1.b - c2.b);
+	int delta = (c1.r - c2.r)*(c1.r - c2.r) + (c1.g - c2.g)*(c1.g - c2.g) +	(c1.b - c2.b)*(c1.b - c2.b);
 	return (delta >= threshold)? 1 : 0;
 }
 

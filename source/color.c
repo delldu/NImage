@@ -78,7 +78,7 @@ do {                                                                  \
 } while (0)
 
 // xxxx, how to use them ?
-extern int color_rgbcmp(RGB *c1, RGB *c2);
+extern int color_rgbcmp(RGBA_8888 *c1, RGBA_8888 *c2);
 extern void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cb, BYTE *cr);
 extern void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE *y, BYTE *cg, BYTE *cr);
 extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v);
@@ -88,8 +88,8 @@ extern int color_prmgain(IMAGE *img, double *r_gain, double *g_gain, double *b_g
 
 static int __color_rgbcmp(const void *p1, const void *p2)
 {
-	RGB *c1 = *(RGB * const *)p1;
-	RGB *c2 = *(RGB * const *)p2;
+	RGBA_8888 *c1 = *(RGBA_8888 * const *)p1;
+	RGBA_8888 *c2 = *(RGBA_8888 * const *)p2;
 	return color_rgbcmp(c1, c2);
 }
 
@@ -114,7 +114,7 @@ int color_beskin(BYTE r, BYTE g, BYTE b)
 }
 
 // RGB color space
-int color_rgbcmp(RGB *c1, RGB *c2)
+int color_rgbcmp(RGBA_8888 *c1, RGBA_8888 *c2)
 {
 	if (c1->g != c2->g)
 		return (c1->g - c2->g);
@@ -323,9 +323,9 @@ void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE *gray)
 	*gray = (BYTE)d;
 }
 
-void color_rgbsort(int n, RGB *cv[])
+void color_rgbsort(int n, RGBA_8888 *cv[])
 {
-	qsort(cv, n, sizeof(RGB *), __color_rgbcmp);
+	qsort(cv, n, sizeof(RGBA_8888 *), __color_rgbcmp);
 }
 
 int color_midval(IMAGE *img, char orgb)
@@ -682,7 +682,7 @@ int color_torgb565(IMAGE *img)
 }
 
 // Lab distance
-double color_distance(RGB *c1, RGB *c2)
+double color_distance(RGBA_8888 *c1, RGBA_8888 *c2)
 {
 	static int first = 1;
 	static double L[0xffff + 1], a[0xffff + 1], b[0xffff + 1];

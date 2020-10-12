@@ -14,7 +14,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
+#include "common.h"
 #include "matrix.h"
 #include "vector.h"
 
@@ -23,12 +23,10 @@ extern "C" {
 
 typedef struct {
 	BYTE r, g, b, a;
-	// WORD d; // d -- depth;
-} RGB;
+} RGBA_8888;
 #define RGB_R(x) ((BYTE)((x) >> 16) & 0xff)
 #define RGB_G(x) ((BYTE)((x) >> 8) & 0xff)
 #define RGB_B(x) ((BYTE)((x) & 0xff))
-#define RGB_RGB(r, g, b) ((r) << 16 | (g) << 8 | (b))
 
 typedef struct {
 	double L, a, b;
@@ -41,10 +39,10 @@ typedef struct {
 typedef struct {
 	DWORD magic;				// IMAGE_MAGIC
 	int height, width, format;	// RGB, GRAY, BIT
-	RGB **ie,*base; 
+	RGBA_8888 **ie,*base; 
 } IMAGE;
 
-#define IMAGE_RGB 0
+#define IMAGE_RGBA 0
 #define IMAGE_BITMAP 1
 #define IMAGE_GRAY 2
 #define IMAGE_RGB565 3
@@ -132,6 +130,8 @@ int image_outdoor(IMAGE *img, int i, int di, int j, int dj);
 int image_rectclamp(IMAGE *img, RECT *rect);
 int image_save(IMAGE *img, const char *fname);
 
+int image_show(IMAGE *image, char *title);
+
 BYTE image_getvalue(IMAGE *img, char oargb, int r, int c);
 void image_setvalue(IMAGE *img, char oargb, int r, int c, BYTE x);
 MATRIX *image_getplane(IMAGE *img, char oargb);
@@ -153,7 +153,7 @@ int color_balance(IMAGE *img, int method, int debug);
 int color_correct(IMAGE *img, double gain_r, double gain_g, double gain_b);
 int color_togray(IMAGE *img);
 int color_torgb565(IMAGE *img);
-double color_distance(RGB *c1, RGB *c2);
+double color_distance(RGBA_8888 *c1, RGBA_8888 *c2);
 
 int image_drawline(IMAGE *img, int r1, int c1, int r2, int c2, int color);  
 int image_drawrect(IMAGE *img, RECT *rect, int color, int fill);

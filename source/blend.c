@@ -70,6 +70,7 @@ static inline int __mask_4conn(IMAGE *mask, int i, int j)
 	return sum;
 }
 
+// Mask will clone point
 static inline int __mask_cloner(IMAGE *mask, int i, int j)
 {
   	return (mask->ie[i][j].g == 255);
@@ -127,7 +128,7 @@ static void __mask_finetune(IMAGE *mask, IMAGE *src, int debug)
 
 int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int debug)
 {
-	int i, j;
+	int i, j, mask_is_null = 0;
 	double d;
 
 	check_image(src);
@@ -138,8 +139,9 @@ int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int de
 	}
 
 	color_cluster(src, COLOR_CLUSTERS, 1);
-	// bug !!! xxxx8888
 	if (mask == NULL) {
+		mask_is_null = 1;
+		mask = image_create(src->height, src->width); check_image(mask);
 		image_foreach(mask,i,j) {
 			if (i == 0 || j == 0 || i == mask->height - 1 || j == mask->width - 1)
 				mask->ie[i][j].r = mask->ie[i][j].g = mask->ie[i][j].b = 0;
@@ -189,6 +191,9 @@ int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int de
 	if (debug) {
 		time_spend("Color cluster blending");
 	}
+
+	if (mask_is_null)
+		image_destroy(mask);
 
 	return RET_OK;
 }
@@ -504,3 +509,23 @@ IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b,
 
  	return mask;
 }
+
+// Mask is all you need
+#define MASK IMAGE
+
+// 
+int color_label(IMAGE *image, int n, int threshold) {
+	check_image(image);
+
+	color_cluster(image, n, 0);	// NO need update, because RGB will be used for label
+
+	// image trace connection
+
+	return RET_OK;
+}
+
+
+// int mask_finetune(IMAGE *semantic, MASK *color);
+
+// IMAGE *color_blocks(int n, RGB *colors); ==> grid blocks , 64x64 per blocks
+

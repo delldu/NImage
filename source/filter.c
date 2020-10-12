@@ -542,7 +542,6 @@ int matrix_fast_guided_filter(MATRIX *P, MATRIX *I, int radius, double eps, int 
 }
 
 
-// NO Lua interface
 // sigma = 0.5: convert kernel = 5x5
 // sigma = 1: convert kernel = 7x7
 // sigma = 2: convert kernel = 13x13

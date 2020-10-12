@@ -58,10 +58,15 @@ int cluster_main(int argc, char **argv)
 	    	}
 	}
 
-	if (input && output) {
+	if (input) {
 		IMAGE *image = image_load(input);
+		image_show(image, "rawimage");
+		
 		color_cluster(image, k, 1);	// Update.
-		image_save(image, output);
+		if (output)
+			image_save(image, output);
+		else
+			image_show(image, "cluster");
 	}
 
 	// MS -- Modify Section ?

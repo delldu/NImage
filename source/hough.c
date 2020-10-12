@@ -8,7 +8,7 @@
 ************************************************************************************/
 
 // Hough transform:
-// 	Line: r = y * cos(theta) + x * sin(theta) <==> (r, theta)
+// 	 Line: r = y * cos(theta) + x * sin(theta) <==> (r, theta)
 //   Circle:  x = x0 + r * cos(theta), y = y0 + r * sin(theta)
 //   Oval:  x = x0 + a * cos(theta), y = y0 + b * sin(theta)
 
