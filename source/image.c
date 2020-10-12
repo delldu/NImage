@@ -704,7 +704,6 @@ read_fail:
 static int image_savepng(IMAGE *img, const char * filename)
 {
 	FILE * outfile;
-	int i, j;
 	png_struct *png_ptr = NULL;
 	png_info *info_ptr = NULL;
 

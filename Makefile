@@ -31,7 +31,9 @@ SOURCE :=  \
 	source/blend.c \
 	source/filter.c \
 	source/hash64.c \
-	source/retinex.c
+	source/retinex.c \
+	source/histogram.c \
+	source/mask.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra

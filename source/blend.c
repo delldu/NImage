@@ -510,22 +510,3 @@ IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b,
  	return mask;
 }
 
-// Mask is all you need
-#define MASK IMAGE
-
-// 
-int color_label(IMAGE *image, int n, int threshold) {
-	check_image(image);
-
-	color_cluster(image, n, 0);	// NO need update, because RGB will be used for label
-
-	// image trace connection
-
-	return RET_OK;
-}
-
-
-// int mask_finetune(IMAGE *semantic, MASK *color);
-
-// IMAGE *color_blocks(int n, RGB *colors); ==> grid blocks , 64x64 per blocks
-

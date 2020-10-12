@@ -266,6 +266,10 @@ double histogram_likeness(HISTOGRAM *h1, HISTOGRAM *h2);
 void histogram_sum(HISTOGRAM *sum, HISTOGRAM *sub);
 int histogram_rect(HISTOGRAM *hist, IMAGE *img, RECT *rect);
 void histogram_dump(HISTOGRAM *h);
+
+// Mask is all you need
+#define MASK IMAGE
+
 	
 #if defined(__cplusplus)
 }
