@@ -803,6 +803,13 @@ IMAGE *image_copy(IMAGE *img)
 		return NULL;
 	}
 	memcpy(copy->base, img->base, img->height * img->width * sizeof(RGBA_8888));
+	if (img->format == IMAGE_MASK) {
+		copy->format = img->format;
+		copy->K = img->K;
+		memcpy(copy->KColors, img->KColors, ARRAY_SIZE(img->KColors)*sizeof(int));
+		copy->KRadius = img->KRadius;
+		copy->KInstance = img->KInstance;
+	}
 	return copy;
 }
 
@@ -1514,42 +1521,6 @@ int image_rect_mcenter(IMAGE *img, RECT *rect, char orgb, int *crow, int *ccol)
 	return RET_OK;
 }
 
-// r,g,b, w, class
-MATRIX *image_classmat(IMAGE *image)
-{
-	int i, j, k, n, weight[0xffff + 1];
-	int r, g, b;
-	MATRIX *mat;
-
-	memset(weight, 0, ARRAY_SIZE(weight) * sizeof(int));
-	image_foreach(image, i, j) {
-		k = RGB565_NO(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
-		weight[k]++;
-	}
-	
-	// Count no-zero colors
-	for (n = 0, i = 0; i < ARRAY_SIZE(weight); i++) {
-		if (weight[i])
-			n++;
-	}
-
-	mat = matrix_create(n, 5); CHECK_MATRIX(mat);
-	for (n = 0, i = 0; i < ARRAY_SIZE(weight); i++) {
-		if (weight[i]) {
-			r = RGB565_R(i);
-			g = RGB565_G(i);
-			b = RGB565_B(i);
-			
-			mat->me[n][0] = r;
-			mat->me[n][1] = g;
-			mat->me[n][2] = b;
-			mat->me[n][3] = weight[i];
-			n++;
-		}
-	}
-
-	return mat;
-}
 
 IMAGE *image_subimg(IMAGE *img, RECT *rect)
 {
@@ -1805,7 +1776,9 @@ int image_show(IMAGE *image, char *title)
 
 	snprintf(str, sizeof(str) - 1, "/tmp/%s.jpg", title);
 	image_save(image, str);
-	snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg; rm /tmp/%s.jpg", title, title);
+	// xxxx3333
+	// snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg; rm /tmp/%s.jpg", title, title);
+	snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg", title);
 
 	return system(str);
 }

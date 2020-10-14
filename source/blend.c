@@ -82,7 +82,7 @@ static void __mask_finetune(IMAGE *mask, IMAGE *src, int debug)
 
 	__mask_binary(mask, debug);
 
-	color_cluster(src, COLOR_CLUSTERS, 0);	// not update
+	color_cluster_(src, COLOR_CLUSTERS);	// not update
 
 	// Calculate border colors
 	memset(count, 0, COLOR_CLUSTERS * sizeof(int));
@@ -126,7 +126,7 @@ static void __mask_finetune(IMAGE *mask, IMAGE *src, int debug)
 	}
 }
 
-int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int debug)
+int image_blend(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int debug)
 {
 	int i, j, mask_is_null = 0;
 	double d;
@@ -138,7 +138,7 @@ int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int de
 		time_reset();
 	}
 
-	color_cluster(src, COLOR_CLUSTERS, 1);
+	color_cluster_(src, COLOR_CLUSTERS);
 	if (mask == NULL) {
 		mask_is_null = 1;
 		mask = image_create(src->height, src->width); check_image(mask);
@@ -337,7 +337,7 @@ int *seam_program(MATRIX *mat, int debug)
 // Seam a, b and return best seam line
 // -- make sure rect_a, rect_b size is same
 // mode: 0-3
-int *seam_bestpath(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode)
+int *image_seampath(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode)
 {
 	MATRIX *mat;						// seam matrix
 	IMAGE *mask;
@@ -469,7 +469,7 @@ int *seam_bestpath(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, i
 // Seam a, b and save result to mask
 // -- make sure rect_a, rect_b size is same
 // mode: 0-3
-IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode)
+IMAGE *image_seammask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode)
 {
 	IMAGE *mask;
 	int i, j, *line;		// seam line;
@@ -477,7 +477,7 @@ IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b,
 	CHECK_IMAGE(image_a);
 	CHECK_IMAGE(image_b);
 
-	line = seam_bestpath(image_a, rect_a, image_b, rect_b, mode);
+	line = image_seampath(image_a, rect_a, image_b, rect_b, mode);
 	if (! line)
 		return NULL;
 

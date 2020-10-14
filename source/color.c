@@ -85,6 +85,7 @@ extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *
 extern void color_luv2rgb(double L, double u, double v, BYTE *R, BYTE *G, BYTE *B);
 extern Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B);
 extern int color_prmgain(IMAGE *img, double *r_gain, double *g_gain, double *b_gain);
+extern int *color_count(IMAGE *image, int rows, int cols, int levs);
 
 static int __color_rgbcmp(const void *p1, const void *p2)
 {
@@ -389,7 +390,44 @@ int skin_detect(IMAGE *img)
 	return RET_OK;
 }
 
-int color_cluster(IMAGE *image, int num, int update)
+// r,g,b, w, class
+MATRIX *color_classmat(IMAGE *image)
+{
+	int i, j, k, n, weight[0xffff + 1];
+	int r, g, b;
+	MATRIX *mat;
+
+	memset(weight, 0, ARRAY_SIZE(weight) * sizeof(int));
+	image_foreach(image, i, j) {
+		k = RGB565_NO(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
+		weight[k]++;
+	}
+	
+	// Count no-zero colors
+	for (n = 0, i = 0; i < ARRAY_SIZE(weight); i++) {
+		if (weight[i])
+			n++;
+	}
+
+	mat = matrix_create(n, 5); CHECK_MATRIX(mat);
+	for (n = 0, i = 0; i < ARRAY_SIZE(weight); i++) {
+		if (weight[i]) {
+			r = RGB565_R(i);
+			g = RGB565_G(i);
+			b = RGB565_B(i);
+			
+			mat->me[n][0] = r;
+			mat->me[n][1] = g;
+			mat->me[n][2] = b;
+			mat->me[n][3] = weight[i];
+			n++;
+		}
+	}
+
+	return mat;
+}
+
+int color_cluster_(IMAGE *image, int num)
 {
 	int i, j, k, c;
 	MATRIX *mat, *ccmat;
@@ -397,7 +435,7 @@ int color_cluster(IMAGE *image, int num, int update)
 
 	check_image(image);
 
-	mat = image_classmat(image); check_matrix(mat);
+	mat = color_classmat(image); check_matrix(mat);
 
 	// Weight k-means
 	ccmat = matrix_wkmeans(mat, num, NULL); check_matrix(ccmat);
@@ -411,13 +449,20 @@ int color_cluster(IMAGE *image, int num, int update)
 	image_foreach(image,  i, j) {
 		k = RGB565_NO(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
 		c = classno[k];
-		
-		if (update) {
-			image->ie[i][j].r = (BYTE)ccmat->me[c][0];
-			image->ie[i][j].g = (BYTE)ccmat->me[c][1];
-			image->ie[i][j].b = (BYTE)ccmat->me[c][2];
-		}
-		image->ie[i][j].a = (BYTE)ccmat->me[c][5];	// Depths, Layers
+		image->ie[i][j].a = (BYTE)c;	// Class index
+
+        // if (update) {
+        //         image->ie[i][j].r = (BYTE)ccmat->me[c][0];
+        //         image->ie[i][j].g = (BYTE)ccmat->me[c][1];
+        //         image->ie[i][j].b = (BYTE)ccmat->me[c][2];
+        // }
+        // image->ie[i][j].d = (BYTE)ccmat->me[c][5];      // Depths, Layers
+	}
+
+	image->format = IMAGE_MASK;
+	image->K = num;
+	for (c = 0; c < num && c < ARRAY_SIZE(image->KColors); c++) {
+		image->KColors[c] = RGB_INT((BYTE)ccmat->me[c][0], (BYTE)ccmat->me[c][1], (BYTE)ccmat->me[c][2]);
 	}
 
 	matrix_destroy(ccmat);
@@ -442,7 +487,7 @@ int *color_count(IMAGE *image, int rows, int cols, int levs)
 		return NULL; 
 	}
 
-	color_cluster(image, levs, 0);
+	color_cluster_(image, levs);
 
 	// Statistics !!!
 	bh = (image->height + rows - 1)/rows;

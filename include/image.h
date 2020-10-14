@@ -27,6 +27,7 @@ typedef struct {
 #define RGB_R(x) ((BYTE)((x) >> 16) & 0xff)
 #define RGB_G(x) ((BYTE)((x) >> 8) & 0xff)
 #define RGB_B(x) ((BYTE)((x) & 0xff))
+#define RGB_INT(r, g, b) ((r) << 16 | (g) << 8 | (b))
 
 typedef struct {
 	double L, a, b;
@@ -39,13 +40,16 @@ typedef struct {
 typedef struct {
 	DWORD magic;				// IMAGE_MAGIC
 	int height, width, format;	// RGB, GRAY, BIT
-	RGBA_8888 **ie,*base; 
+	RGBA_8888 **ie,*base;
+
+	// Extentend for cluster & color mask
+	int K, KColors[256], KRadius, KInstance;
 } IMAGE;
 
 #define IMAGE_RGBA 0
-#define IMAGE_BITMAP 1
-#define IMAGE_GRAY 2
-#define IMAGE_RGB565 3
+#define IMAGE_GRAY 1
+#define IMAGE_RGB565 2
+#define IMAGE_MASK 3
 
 #define image_foreach(img, i, j) \
 	for (i = 0; i < img->height; i++) \
@@ -145,8 +149,7 @@ void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE *gray);
 int skin_detect(IMAGE *img);
 int skin_statics(IMAGE *img, RECT *rect);
 
-int color_cluster(IMAGE *image, int num, int update);
-int *color_count(IMAGE *image, int rows, int cols, int levs);
+int color_cluster_(IMAGE *image, int num);
 int color_picker();
 int color_balance(IMAGE *img, int method, int debug);
 
@@ -198,19 +201,17 @@ int object_fast_detect(IMAGE *fg);
 int image_mcenter(IMAGE *img, char orgb, int *crow, int *ccol);
 int image_rect_mcenter(IMAGE *img, RECT *rect, char orgb, int *crow, int *ccol);
 
-MATRIX *image_classmat(IMAGE *image);
-
 IMAGE *image_subimg(IMAGE *img, RECT *rect);
 
 void image_drawrects(IMAGE *img);
 MATRIX *image_gstatics(IMAGE *img, int rows, int cols);
 
 // Blending 
-int blend_cluster(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int debug);
+int image_blend(IMAGE *src, IMAGE *mask, IMAGE *dst, int top, int left, int debug);
 
 // Seaming
-int *seam_bestpath(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode);
-IMAGE *seam_bestmask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode);
+int *image_seampath(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode);
+IMAGE *image_seammask(IMAGE *image_a, RECT *rect_a, IMAGE *image_b, RECT *rect_b, int mode);
 
 // Retinex
 int image_retinex(IMAGE *image, int nscale);
@@ -269,6 +270,9 @@ void histogram_dump(HISTOGRAM *h);
 
 // Mask is all you need
 #define MASK IMAGE
+
+int color_instance_(MASK *image, int KRadius);
+int mask_show();
 
 	
 #if defined(__cplusplus)
