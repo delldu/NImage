@@ -9,7 +9,9 @@
 
 #include "image.h"
 
+#define MIN_STACK_ELEMENTS 1024
 #define MAX_STACK_ELEMENTS (4 * 1024 * 1024)
+#define NOISE_LABEL 0xffffff
 
 #define check_mask(img) \
 	do { \
@@ -21,44 +23,76 @@
 
 struct {
     int row[MAX_STACK_ELEMENTS], col[MAX_STACK_ELEMENTS], count;
-} temp_stack;
+} max_stack;
 
-inline void statck_reset()
+struct {
+    int row[MIN_STACK_ELEMENTS], col[MIN_STACK_ELEMENTS], count;
+} min_stack;
+
+inline void max_statck_reset()
 {
-    temp_stack.count = 0;
+    max_stack.count = 0;
 }
 
-inline void stack_push(int row, int col)
+inline void max_stack_push(int row, int col)
 {
-    if (temp_stack.count < MAX_STACK_ELEMENTS) {
-        temp_stack.row[temp_stack.count] = row;
-        temp_stack.col[temp_stack.count] = col;
-        temp_stack.count++;
+    if (max_stack.count < MAX_STACK_ELEMENTS) {
+        max_stack.row[max_stack.count] = row;
+        max_stack.col[max_stack.count] = col;
+        max_stack.count++;
     }
 }
 
-inline void stack_pop(int *row, int *col)
+inline void max_stack_pop(int *row, int *col)
 {
-    *row = temp_stack.row[temp_stack.count - 1];
-    *col = temp_stack.col[temp_stack.count - 1];
-    temp_stack.count--;
+    *row = max_stack.row[max_stack.count - 1];
+    *col = max_stack.col[max_stack.count - 1];
+    max_stack.count--;
 }
 
-inline int stack_empty()
+inline int max_stack_empty()
 {
-    return temp_stack.count < 1;
+    return max_stack.count < 1;
+}
+
+inline void min_statck_reset()
+{
+    min_stack.count = 0;
+}
+
+inline void min_stack_push(int row, int col)
+{
+    if (min_stack.count < MIN_STACK_ELEMENTS) {
+        min_stack.row[min_stack.count] = row;
+        min_stack.col[min_stack.count] = col;
+        min_stack.count++;
+    }
+}
+
+inline void min_stack_pop(int *row, int *col)
+{
+    *row = min_stack.row[min_stack.count - 1];
+    *col = min_stack.col[min_stack.count - 1];
+    min_stack.count--;
+}
+
+inline int min_stack_empty()
+{
+    return min_stack.count < 1;
 }
 
 #define start_tracking() \
 do { \
 	int i2, j2, row, col, start_row, start_col, stop_row, stop_col; \
-    statck_reset(); \
-    stack_push(i, j); \
-    while(! stack_empty()) { \
-        stack_pop(&row, &col); \
+    max_statck_reset(); \
+    min_statck_reset(); \
+    max_stack_push(i, j); \
+    while(! max_stack_empty()) { \
+        max_stack_pop(&row, &col); \
         image->ie[row][col].r = RGB_R(instance + 1); \
         image->ie[row][col].g = RGB_G(instance + 1); \
         image->ie[row][col].b = RGB_B(instance + 1); \
+        min_stack_push(row, col); \
         start_row = MAX(0, row - KRadius); \
         stop_row = MIN(H - 1, row + KRadius); \
         start_col = MAX(0, col - KRadius); \
@@ -67,7 +101,7 @@ do { \
             for (j2 = start_col; j2 <= stop_col; j2++) { \
                 if (image->ie[i2][j2].a == image->ie[row][col].a && \
                 	RGB_INT(image->ie[i2][j2].r, image->ie[i2][j2].g, image->ie[i2][j2].b) == 0) \
-                    stack_push(i2, j2); \
+                    max_stack_push(i2, j2); \
             } \
         } \
     } \
@@ -83,7 +117,7 @@ int mask_valid(MASK *img)
 int color_instance_(MASK *image, int KRadius)
 {
     // KRadius -- radius, define neighbours
-    int i, j, instance, H, W;
+    int i, j, instance, H, W, count, noise_row, noise_col;
 
     check_mask(image);
 
@@ -99,30 +133,70 @@ int color_instance_(MASK *image, int KRadius)
                 continue;
            // New tracking
             start_tracking();
-            instance++;
+            if (min_stack.count < (2 * KRadius + 1) * (2 * KRadius + 1)) {
+            	while(! min_stack_empty()) {
+			        min_stack_pop(&noise_row, &noise_col);
+			        image->ie[noise_row][noise_col].r = RGB_R(NOISE_LABEL);
+			        image->ie[noise_row][noise_col].g = RGB_G(NOISE_LABEL);
+			        image->ie[noise_row][noise_col].g = RGB_B(NOISE_LABEL);
+            	}
+            } else {
+            	instance++;
+            }
         }
     }
     image->KRadius = KRadius;
     image->KInstance = instance;
+    CheckPoint("image->KInstance: %d", instance);
 
     return RET_OK;
+}
+
+static inline int __label_border(IMAGE *mask, int i, int j)
+{
+	int k, label1, label2;
+	static int nb[4][2] = { {0, 1}, {1, 0}, {-1, 0}, {0, -1}};
+
+	if (i == 0 || i == mask->height - 1 || j == 0 || j == mask->width - 1)
+		return 0;
+
+	label1 = RGB_INT(mask->ie[i][j].r, mask->ie[i][j].g, mask->ie[i][j].b);
+	// current is 1
+	for (k = 0; k < 2; k++) {
+		label2 = RGB_INT(mask->ie[i + nb[k][0]][j + nb[k][1]].r,
+					mask->ie[i + nb[k][0]][j + nb[k][1]].g,
+					mask->ie[i + nb[k][0]][j + nb[k][1]].b);
+		if (label1 != label2)
+			return 1;
+	}
+	return 0;
 }
 
 int mask_show(MASK *mask)
 {
 	int i, j, color, label;
-	float alpha;
 	IMAGE *image;
 
 	check_mask(mask);
 	image = image_copy(mask); check_image(image);
 	image_foreach(image, i, j) {
 		label = RGB_INT(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
+		// if (__label_border(mask, i, j)) {
+		// 	color = 0xff0000;
+		// }
+		// else {
+		// 	color = image->KColors[image->ie[i][j].a];
+		// }
 		color = image->KColors[image->ie[i][j].a];
-		alpha = (label % 2 == 0)? 1.0 : 0.8;
-		image->ie[i][j].r = (BYTE)(RGB_R(color) * alpha);
-		image->ie[i][j].g = (BYTE)(RGB_G(color) * alpha);
-		image->ie[i][j].b = (BYTE)(RGB_B(color) * alpha);
+		if (label % 2 == 1) {
+			image->ie[i][j].r = (BYTE)(RGB_R(color));
+			image->ie[i][j].g = (BYTE)(RGB_G(color));
+			image->ie[i][j].b = (BYTE)(RGB_B(color));
+		} else {
+			image->ie[i][j].r = (BYTE)(255 - RGB_R(color));
+			image->ie[i][j].g = (BYTE)(255 - RGB_G(color));
+			image->ie[i][j].b = (BYTE)(255 - RGB_B(color));
+		}
 	}
 	image_show(image, "mask");
 
