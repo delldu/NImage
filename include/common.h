@@ -18,10 +18,9 @@ extern "C" {
 #include <stdint.h>
 #include <sys/time.h>
 
-#define BYTE unsigned char
-#define WORD unsigned short
-#define DWORD unsigned int
-#define LONG long //int
+#define BYTE uint8_t
+#define WORD uint16_t
+#define DWORD uint32_t
 #define TIME int64_t
 #define HASH64 uint64_t
 

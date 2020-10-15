@@ -1790,9 +1790,38 @@ ImageData header
 #define WORD_LOW(w) ((BYTE)((w & 0xff00) >> 8))
 #define WORD_FROM_BYTES(low, hi) (((hi & 0xff) << 8) | low)
 
+#define CRC_CCITT_POLY 0x1021 	//CRC-CCITT, polynormial 0x1021.
+// 0x31 0x32 0x33 0x34 0x35 0x36 ==> 0x20E4
 WORD image_data_head_crc(BYTE *buf, int length)
 {
-	return 0;
+    int i;
+    WORD crc;
+ 
+    crc = 0;
+    while(--length >= 0) {
+        crc = crc ^ ((WORD) (*buf++ << 8));
+        for(i = 0; i < 8; i++) {
+            if( crc & 0x8000 )
+                crc = (crc << 1) ^ CRC_CCITT_POLY;
+            else
+                crc = crc << 1;
+        }
+    }
+
+    return crc;
+}
+
+void test_crc16() {
+	BYTE buf[6] = {0x31, 0x32, 0x33, 0x34, 0x35, 0x36};
+	WORD crc = image_data_head_crc(buf, 6);
+
+	CheckPoint("crc == %X, expected %X", crc, 0x20E4);
+
+	if (crc != 0x20E4) {
+		syslog_error("Image header CRC bad.");
+	} else {
+		syslog_print("Image header CRC OK.");
+	}
 }
 
 int image_data_head_decode(BYTE *buf, ImageDataHead *head)
