@@ -161,11 +161,15 @@ static inline int __label_border(IMAGE *mask, int i, int j)
 		return 0;
 
 	label1 = RGB_INT(mask->ie[i][j].r, mask->ie[i][j].g, mask->ie[i][j].b);
+	if (label1 == NOISE_LABEL)
+		return 0;
 	// current is 1
 	for (k = 0; k < 2; k++) {
 		label2 = RGB_INT(mask->ie[i + nb[k][0]][j + nb[k][1]].r,
 					mask->ie[i + nb[k][0]][j + nb[k][1]].g,
 					mask->ie[i + nb[k][0]][j + nb[k][1]].b);
+		if (label2 == NOISE_LABEL)
+			return 0;
 		if (label1 != label2)
 			return 1;
 	}
@@ -174,29 +178,22 @@ static inline int __label_border(IMAGE *mask, int i, int j)
 
 int mask_show(MASK *mask)
 {
-	int i, j, color, label;
+	int i, j, color;
 	IMAGE *image;
 
 	check_mask(mask);
 	image = image_copy(mask); check_image(image);
 	image_foreach(image, i, j) {
-		label = RGB_INT(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
-		// if (__label_border(mask, i, j)) {
-		// 	color = 0xff0000;
-		// }
-		// else {
-		// 	color = image->KColors[image->ie[i][j].a];
-		// }
-		color = image->KColors[image->ie[i][j].a];
-		if (label % 2 == 1) {
-			image->ie[i][j].r = (BYTE)(RGB_R(color));
-			image->ie[i][j].g = (BYTE)(RGB_G(color));
-			image->ie[i][j].b = (BYTE)(RGB_B(color));
-		} else {
-			image->ie[i][j].r = (BYTE)(255 - RGB_R(color));
-			image->ie[i][j].g = (BYTE)(255 - RGB_G(color));
-			image->ie[i][j].b = (BYTE)(255 - RGB_B(color));
+		// label = RGB_INT(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
+		if (__label_border(mask, i, j)) {
+			color = 0x7f0000;
 		}
+		else {
+			color = image->KColors[image->ie[i][j].a];
+		}
+		image->ie[i][j].r = (BYTE)(RGB_R(color));
+		image->ie[i][j].g = (BYTE)(RGB_G(color));
+		image->ie[i][j].b = (BYTE)(RGB_B(color));
 	}
 	image_show(image, "mask");
 

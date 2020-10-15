@@ -1782,3 +1782,131 @@ int image_show(IMAGE *image, char *title)
 
 	return system(str);
 }
+
+/*
+ImageData header
+*/
+#define WORD_HI(w) ((BYTE)(w & 0xff))
+#define WORD_LOW(w) ((BYTE)((w & 0xff00) >> 8))
+#define WORD_FROM_BYTES(low, hi) (((hi & 0xff) << 8) | low)
+
+WORD image_data_head_crc(BYTE *buf, int length)
+{
+	return 0;
+}
+
+int image_data_head_decode(BYTE *buf, ImageDataHead *head)
+{
+	head->h = WORD_FROM_BYTES(buf[0], buf[1]);
+	head->w = WORD_FROM_BYTES(buf[2], buf[3]);
+	head->opc = WORD_FROM_BYTES(buf[4], buf[5]);
+	head->crc = WORD_FROM_BYTES(buf[6], buf[7]);
+
+	return (head->crc == image_data_head_crc(buf, 6))?RET_OK : RET_ERROR;
+}
+
+int image_data_head_encode(ImageDataHead *head, BYTE *buf)
+{
+	buf[0] = WORD_LOW(head->h);
+	buf[1] = WORD_HI(head->h);
+
+	buf[2] = WORD_LOW(head->w);
+	buf[3] = WORD_HI(head->w);
+
+	buf[4] = WORD_LOW(head->opc);
+	buf[5] = WORD_HI(head->opc);
+
+	head->crc = image_data_head_crc(buf, 6);
+	buf[6] = WORD_LOW(head->crc);
+	buf[7] = WORD_HI(head->crc);
+
+	return RET_OK;
+}
+
+BYTE *image_data_encode(IMAGE *image, int opcode)
+{
+	ssize_t length;
+	ImageDataHead head;
+
+	BYTE *arraybuffer;
+
+	CHECK_IMAGE(image);
+	length = 4 * image->height * image->width;
+	arraybuffer = (BYTE *)calloc((size_t)1, 8 + length);
+	if (! arraybuffer) {
+		syslog_error("Allocate memory.");
+		return NULL;
+	}
+
+	// Set arraybuffer;
+	head.h = image->height;
+	head.w = image->width;
+	head.opc = opcode;
+	image_data_head_encode(&head, arraybuffer);
+	memcpy(arraybuffer + 8, image->base, length);
+
+	return arraybuffer;
+}
+
+IMAGE *image_data_decode(ImageDataHead *head, BYTE *body)
+{
+	IMAGE *image;
+
+	image = image_create(head->h, head->w); CHECK_IMAGE(image);
+	memcpy(image->base, body, 4 * image->height * image->width);
+
+	return image;
+}
+
+int echo()
+{
+	BYTE headbuf[8];
+	BYTE *databuf;
+	ssize_t length;
+
+	ImageDataHead head;
+	
+	if (read(0, headbuf, sizeof(headbuf)) != 8) {
+		syslog_error("Reading image data head.");
+		return RET_ERROR;
+	}
+
+	if (image_data_head_decode(headbuf, &head) != RET_OK) {
+		syslog_error("Bad image data head.");
+		return RET_ERROR;
+	}
+	length = 4 * head.h * head.w * sizeof(BYTE);
+	databuf = calloc((size_t)1, length);
+	if (! databuf) {
+		syslog_error("Allocate memory.");
+		return RET_ERROR;
+	}
+
+	if (read(0, databuf, length) != length) {
+		syslog_error("Reading image data body.");
+		free(databuf);
+		return RET_ERROR;
+	}
+
+	IMAGE *image = image_data_decode(&head, databuf);
+	check_image(image);
+	// Process image with head->opc ...
+	// switch(head.opc) {
+	// 	case 1:
+	// 		break;
+	// 	case 2:
+	// 		break;
+	// 	default:
+	// 		break;
+	// }
+	BYTE *response = image_data_encode(image, head.opc);
+	length = 4 * image->height * image->width;
+	length = write(0, response, 8 + length);
+	free(response);
+	image_destroy(image);
+
+
+	free(databuf);
+
+	return RET_OK;
+}

@@ -274,7 +274,16 @@ void histogram_dump(HISTOGRAM *h);
 int color_instance_(MASK *image, int KRadius);
 int mask_show();
 
-	
+// ImageData
+typedef struct {
+	WORD h, w, opc, crc;
+} ImageDataHead;
+
+int image_data_head_decode(BYTE *buf, ImageDataHead *head);
+BYTE *image_data_encode(IMAGE *image, int opcode);
+IMAGE *image_data_decode(ImageDataHead *head, BYTE *body);
+
+
 #if defined(__cplusplus)
 }
 #endif

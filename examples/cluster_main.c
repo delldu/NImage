@@ -69,14 +69,17 @@ int cluster_main(int argc, char **argv)
 	if (input) {
 		IMAGE *image = image_load(input);
 		image_show(image, "orig");
-		
-		time_reset();
-		image_gauss_filter(image, 0.5);
-		color_cluster_(image, k);
-		color_instance_(image, r);	// widow size (2*r + 1)*(2*r + 1)
-		time_spend("Color instance");
+		shape_bestedge(image);
 
-		mask_show(image);
+		image_show(image, "shape");
+		
+		// time_reset();
+		// // image_gauss_filter(image, 2);
+		// color_cluster_(image, k);
+		// color_instance_(image, r);	// widow size (2*r + 1)*(2*r + 1)
+		// time_spend("Color instance");
+
+		// mask_show(image);
 	}
 
 	// MS -- Modify Section ?
