@@ -1,29 +1,28 @@
 #/************************************************************************************
 #***
-#***	Copyright 2010-2020 Dell(18588220928@163.com), All Rights Reserved.
+#***	Copyright 2020 Dell(18588220928g@163.com), All Rights Reserved.
 #***
-#***	File Author: Dell, Sun Feb  5 20:51:04 CST 2010
+#***	File Author: Dell, 2020-10-15 22:51:48
 #***
 #************************************************************************************/
 #
 
-# Configurations
-APPLETS := $(shell ./makebox --source)
-
-TARGET := imagebox
+TARGET := dataecho
 INSTALL_DIR := /usr/local
 
-SOURCE := main.c
-SOURCE += $(APPLETS)
+
+SOURCE :=  \
+	main.c
 
 INCS	:= -I../include
-LIBS	:= -L.. -lnimage -ljpeg -lpng -lm  
+	#  -I$(BUILD_DIR)/include
+LIBS	:= -L../ -lnimage
+	#-L$(BUILD_DIR)/lib -lstd... -lstdc++
 
-CFLAGS := -O2 -fPIC
+DEFINES :=
+
+CFLAGS := -O2 -fPIC -Wall -Wextra
 LDFLAGS := -fPIC
-
-# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:..
-
 
 #****************************************************************************
 # Makefile code common to all platforms
@@ -33,22 +32,16 @@ CXXFLAGS := ${CXXFLAGS} ${DEFINES}
 
 OBJECT := $(addsuffix .o,$(basename ${SOURCE}))
 
-all: ${TARGET} 
-# install
-
 #****************************************************************************
 # Compile block
 #****************************************************************************
-${TARGET}: applets.h ${OBJECT}
-	${CC} -o ${TARGET} ${LDFLAGS} ${OBJECT} ${LIBS}
+all: ${TARGET}
 
-applets.h: imagebox.config
-	./makebox --table > applets.h
+${TARGET}: ${OBJECT}
+	${CC} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
 
 install:
-	#${STRIP} ${TARGET}
 	install -m 755 ${TARGET} ${INSTALL_DIR}/bin
-	./makebox --links ${INSTALL_DIR}/bin
 
 #****************************************************************************
 # common rules
@@ -65,7 +58,4 @@ install:
 depend:
 
 clean:
-	rm -f core ${OBJECT}
-	rm -f core ${TARGET}
-	rm -f applets.h
-
+	rm -f core ${OBJECT} ${TARGET}

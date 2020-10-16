@@ -81,8 +81,8 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
-	sudo mkdir -p ${INSTALL_DIR}/include/vision
-	sudo cp include/*.h ${INSTALL_DIR}/include/vision 
+	sudo mkdir -p ${INSTALL_DIR}/include/nimage
+	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
 	sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
 	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 

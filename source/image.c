@@ -1786,8 +1786,8 @@ int image_show(IMAGE *image, char *title)
 /*
 ImageData header
 */
-#define WORD_HI(w) ((BYTE)(w & 0xff))
-#define WORD_LOW(w) ((BYTE)((w & 0xff00) >> 8))
+#define WORD_LOW(w) ((BYTE)(w & 0xff))
+#define WORD_HI(w) ((BYTE)((w & 0xff00) >> 8))
 #define WORD_FROM_BYTES(low, hi) (((hi & 0xff) << 8) | low)
 
 #define CRC_CCITT_POLY 0x1021 	//CRC-CCITT, polynormial 0x1021.
@@ -1811,19 +1811,6 @@ WORD image_data_head_crc(BYTE *buf, int length)
     return crc;
 }
 
-void test_crc16() {
-	BYTE buf[6] = {0x31, 0x32, 0x33, 0x34, 0x35, 0x36};
-	WORD crc = image_data_head_crc(buf, 6);
-
-	CheckPoint("crc == %X, expected %X", crc, 0x20E4);
-
-	if (crc != 0x20E4) {
-		syslog_error("Image header CRC bad.");
-	} else {
-		syslog_print("Image header CRC OK.");
-	}
-}
-
 int image_data_head_decode(BYTE *buf, ImageDataHead *head)
 {
 	head->h = WORD_FROM_BYTES(buf[0], buf[1]);
@@ -1831,7 +1818,7 @@ int image_data_head_decode(BYTE *buf, ImageDataHead *head)
 	head->opc = WORD_FROM_BYTES(buf[4], buf[5]);
 	head->crc = WORD_FROM_BYTES(buf[6], buf[7]);
 
-	return (head->crc == image_data_head_crc(buf, 6))?RET_OK : RET_ERROR;
+	return (head->h > 0 && head->w > 0 && head->crc == image_data_head_crc(buf, 6))?RET_OK : RET_ERROR;
 }
 
 int image_data_head_encode(ImageDataHead *head, BYTE *buf)
@@ -1887,55 +1874,3 @@ IMAGE *image_data_decode(ImageDataHead *head, BYTE *body)
 	return image;
 }
 
-int echo()
-{
-	BYTE headbuf[8];
-	BYTE *databuf;
-	ssize_t length;
-
-	ImageDataHead head;
-	
-	if (read(0, headbuf, sizeof(headbuf)) != 8) {
-		syslog_error("Reading image data head.");
-		return RET_ERROR;
-	}
-
-	if (image_data_head_decode(headbuf, &head) != RET_OK) {
-		syslog_error("Bad image data head.");
-		return RET_ERROR;
-	}
-	length = 4 * head.h * head.w * sizeof(BYTE);
-	databuf = calloc((size_t)1, length);
-	if (! databuf) {
-		syslog_error("Allocate memory.");
-		return RET_ERROR;
-	}
-
-	if (read(0, databuf, length) != length) {
-		syslog_error("Reading image data body.");
-		free(databuf);
-		return RET_ERROR;
-	}
-
-	IMAGE *image = image_data_decode(&head, databuf);
-	check_image(image);
-	// Process image with head->opc ...
-	// switch(head.opc) {
-	// 	case 1:
-	// 		break;
-	// 	case 2:
-	// 		break;
-	// 	default:
-	// 		break;
-	// }
-	BYTE *response = image_data_encode(image, head.opc);
-	length = 4 * image->height * image->width;
-	length = write(0, response, 8 + length);
-	free(response);
-	image_destroy(image);
-
-
-	free(databuf);
-
-	return RET_OK;
-}

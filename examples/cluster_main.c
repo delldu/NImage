@@ -67,8 +67,6 @@ int cluster_main(int argc, char **argv)
 	}
 
 	if (input) {
-		test_crc16();
-
 		IMAGE *image = image_load(input);
 		image_show(image, "orig");
 		shape_bestedge(image);
