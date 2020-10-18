@@ -27,10 +27,9 @@ typedef struct {
 	WORD h, w, c, opc;
 } ImageDataHead;
 
-int image_data_head_decode(BYTE *buf, ImageDataHead *head);
-BYTE *image_data_encode(IMAGE *image, int opcode);
-IMAGE *image_data_decode(ImageDataHead *head, BYTE *body);
-
+extern int image_data_head_decode(BYTE *buf, ImageDataHead *head);
+extern BYTE *image_data_encode(IMAGE *image, int opcode);
+extern IMAGE *image_data_decode(ImageDataHead *head, BYTE *body);
 
 #define CRC_CCITT_POLY 0x1021 	//CRC-CCITT, polynormial 0x1021.
 // 0x31 0x32 0x33 0x34 0x35 0x36 ==> 0x20E4
@@ -67,8 +66,8 @@ int ab_head_decode(BYTE *buf, AbHead *head)
 
 int ab_head_encode(AbHead *head, BYTE *buf)
 {
-	buf[0] = head[0];
-	buf[1] = head[1];
+	buf[0] = head->t[0];
+	buf[1] = head->t[1];
 	buf[2] = GET_FOURCC1(head->len);
 	buf[3] = GET_FOURCC2(head->len);
 	buf[4] = GET_FOURCC3(head->len);
@@ -125,9 +124,9 @@ BYTE *image_data_encode(IMAGE *image, int opcode)
 
 	// Set arraybuffer;
 	// 1. encode abhead
-	ab.head.t[0] = 'a';
-	ab.head.t[1] = 'b';
-	ab.len = 8 + length;
+	abhead.t[0] = 'a';
+	abhead.t[1] = 'b';
+	abhead.len = 8 + length;
 	ab_head_encode(&abhead, arraybuffer);
 
 	// 2. encode image head
@@ -164,33 +163,33 @@ void dataecho_help(char *cmd)
 
 IMAGE* get_request_image()
 {
-	int i;
 	BYTE headbuf[9], *databuf;
 	ssize_t n, length;
 	AbHead abhead;
 	ImageDataHead head;
-	
+	IMAGE *image;
+
 	if (read(0, headbuf, 8) != 8) {
 		syslog(LOG_DEBUG, "Reading array buffer head error.\n");
-		return RET_ERROR;
+		return NULL;
 	}
 	// 1. Get abhead ?
 	if (ab_head_decode(headbuf, &abhead) != RET_OK) {
 		syslog(LOG_DEBUG, "Bad AbHead: t = %c%c, len = %d, crc = %x .\n",
 			abhead.t[0], abhead.t[1], abhead.len, abhead.crc);
-		syslog(LOG_DEBUG, "AbHead detail informaton: %d,", headbuf[0], headbuf[1], headbuf[2], headbuf[3],
-			headbuf[4], headbuf[5], headbuf[6], headbuf[7]);
+		syslog(LOG_DEBUG, "AbHead detail informaton: %d,%d,%d,%d,%d,%d,%d,%d",
+			headbuf[0], headbuf[1], headbuf[2], headbuf[3], headbuf[4], headbuf[5], headbuf[6], headbuf[7]);
 		syslog(LOG_DEBUG, "\n");
-
 		while (read(0, headbuf, 8) > 0)
 			; // Skip left dirty data ...
-		return RET_ERROR;
+
+		return NULL;
 	}
 
 	// 2. Get image head ?
 	if (read(0, headbuf, 8) != 8) {
 		syslog(LOG_DEBUG, "Reading image head error.\n");
-		return RET_ERROR;
+		return NULL;
 	}
 	if (image_data_head_decode(headbuf, &head) != RET_OK) {
 		syslog(LOG_DEBUG, "Bad ImageHead.\n");
@@ -198,23 +197,17 @@ IMAGE* get_request_image()
 			 head.h, head.w, head.c, head.opc);
 		while (read(0, headbuf, 8) > 0)
 			; // Skip left dirty data ...
-		return RET_ERROR;
+		return NULL;
 	}
 	syslog(LOG_DEBUG, "Good ImageHead: HxWxC = %dx%dx%d, opc = %d.\n",
 		 head.h, head.w, head.c, head.opc);
 
 	// 3. Get image data
-	IMAGE *image = image_data_decode(&head, databuf);
-	CHECK_IMAGE(image);
-
+	image = image_create(head.h, head.w); CHECK_IMAGE(image);
+	image->opc = head.opc;	// Save RPC Method
 
 	length = 4 * head.h * head.w * sizeof(BYTE);
-	databuf = calloc((size_t)1, length);
-	if (! databuf) {
-		syslog(LOG_DEBUG, "Allocate memory error.\n");
-		return RET_ERROR;
-	}
-
+	databuf = (BYTE *)image->base;
 	n = 0;
 	while (n < length) {
 		n += read(0, databuf + n, length - n);
@@ -223,13 +216,11 @@ IMAGE* get_request_image()
 	}
 	if (n != length) {
 		syslog(LOG_DEBUG, "Error: Received %ld bytes image data -- expect %ld !!!\n", n, length);
-		free(databuf);
-		return RET_ERROR;
+		image_destroy(image);
+		return NULL;
 	}
 
-
 	return image;
-
 }
 
 int out_response_image(IMAGE *image)
@@ -252,8 +243,6 @@ int image_service()
 {
 	IMAGE *image;
 
-	syslog(LOG_DEBUG, "Start image service...\n");
-
 	image = get_request_image();
 	check_image(image);
 	// Process image ...
@@ -267,9 +256,7 @@ int image_service()
 	// }
 	out_response_image(image);
 
-
 	image_destroy(image);
-
 	return RET_OK;
 }
 
@@ -293,6 +280,8 @@ int main(int argc, char **argv)
     	}
 	}
 
+	// cat /var/log/syslog | grep -i dataecho ...
+	syslog(LOG_DEBUG, "Start image service now ... \n");
 	while(1)
 		image_service();
 
