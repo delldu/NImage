@@ -8,7 +8,7 @@
 #
 
 LIB_NAME := libnimage
-INSTALL_DIR := /usr/local/
+INSTALL_DIR := /usr/local
 #/usr/local/
 
 INCS	:= \
