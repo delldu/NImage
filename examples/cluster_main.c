@@ -69,10 +69,12 @@ int cluster_main(int argc, char **argv)
 	if (input) {
 		IMAGE *image = image_load(input);
 		image_show(image, "orig");
-		shape_bestedge(image);
+		// shape_bestedge(image);
 
-		image_show(image, "shape");
-		
+		// image_show(image, "shape");
+		color_togray(image);
+		image_show(image, "gray");
+
 		// time_reset();
 		// // image_gauss_filter(image, 2);
 		// color_cluster_(image, k);

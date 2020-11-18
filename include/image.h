@@ -50,6 +50,7 @@ typedef struct {
 #define IMAGE_GRAY 1
 #define IMAGE_RGB565 2
 #define IMAGE_MASK 3
+#define IMAGE_TENSOR 4
 
 #define image_foreach(img, i, j) \
 	for (i = 0; i < img->height; i++) \
@@ -274,6 +275,11 @@ void histogram_dump(HISTOGRAM *h);
 int color_instance_(MASK *image, int KRadius);
 int mask_show();
 
+// Support Tensor, CxHxW format
+
+#define TENSOR IMAGE
+int image_fromtensor(TENSOR *tensor);
+int image_totensor(IMAGE *image);
 
 #if defined(__cplusplus)
 }

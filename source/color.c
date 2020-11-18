@@ -706,7 +706,9 @@ int color_togray(IMAGE *img)
 		color_rgb2gray(img->ie[i][j].r, img->ie[i][j].g, img->ie[i][j].b, &n);
 		img->ie[i][j].r = img->ie[i][j].g = img->ie[i][j].b = n;
 	}
+
 	img->format = IMAGE_GRAY;
+
 	return RET_OK;
 }
 

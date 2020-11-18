@@ -1783,3 +1783,73 @@ int image_show(IMAGE *image, char *title)
 	return system(str);
 }
 
+int image_fromtensor(TENSOR *tensor)
+{
+	int i, j;
+	BYTE *data, *d;
+	size_t n;
+
+	check_image(tensor);
+	if (tensor->format != IMAGE_TENSOR)
+		return RET_OK;
+
+	// Save tensor data
+	n = tensor->height * tensor->width * sizeof(RGBA_8888);
+	data = (BYTE *)calloc((size_t)1, n);
+	if (data == NULL) {
+		syslog_error("Memory allocate.");
+		return RET_ERROR;
+	}
+	memcpy(data, tensor->base, n);
+
+	// Restore image normal data and format
+	d = data;
+	image_foreach(tensor, i, j)
+		tensor->ie[i][j].r = *d++;
+	image_foreach(tensor, i, j)
+		tensor->ie[i][j].g = *d++;
+	image_foreach(tensor, i, j)
+		tensor->ie[i][j].b = *d++;
+	image_foreach(tensor, i, j)
+		tensor->ie[i][j].a = *d++;
+
+	tensor->format = IMAGE_RGBA;
+	free(data);
+
+	return RET_OK;
+}
+
+int image_totensor(IMAGE *image)
+{
+	int i, j;
+	BYTE *data, *d;
+	size_t n;
+
+	check_image(image);
+	if (image->format == IMAGE_TENSOR)
+		return RET_OK;
+
+	// Start convert ...
+	n = image->height * image->width * sizeof(RGBA_8888);
+	data = (BYTE *)calloc((size_t)1, n);
+	if (data == NULL) {
+		syslog_error("Memory allocate.");
+		return RET_ERROR;
+	}
+
+	d = data;
+	image_foreach(image, i, j)
+		*d++ = image->ie[i][j].r;
+	image_foreach(image, i, j)
+		*d++ = image->ie[i][j].g;
+	image_foreach(image, i, j)
+		*d++ = image->ie[i][j].b;
+	image_foreach(image, i, j)
+		*d++ = image->ie[i][j].a;
+	memcpy(image->base, data, n);
+	
+	image->format = IMAGE_TENSOR;
+	free(data);
+
+	return RET_OK;
+}

@@ -52,7 +52,7 @@ OBJECTS := $(addsuffix .o,$(basename ${SOURCE}))
 #****************************************************************************
 # Compile block
 #****************************************************************************
-all: sharelib staticlib
+all: staticlib
 
 sharelib: $(OBJECTS)
 	$(LD) $(LDFLAGS) -shared -soname $(LIB_NAME).so -o $(LIB_NAME).so $(OBJECTS)
