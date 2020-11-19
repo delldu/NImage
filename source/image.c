@@ -545,7 +545,7 @@ IMAGE *image_loadpng(char *fname)
 		syslog_error("Loading PNG file (%s). error no: %d", fname, errno);
 		goto read_fail;
 	}
-	
+
 	/* read and check signature in PNG file */
 	ret = fread(buf, 1, 8, fp);
 	if (ret != 8 || ! png_check_sig(buf, 8)) {
@@ -629,6 +629,7 @@ IMAGE *image_loadpng(char *fname)
 		channels = 4;
 	else
 		channels = 0;	/* should never happen */
+
 	alpha_present = (channels - 1) % 2;
 
 	/* row_bytes is the width x number of channels x (bit-depth / 8) */
@@ -664,7 +665,7 @@ IMAGE *image_loadpng(char *fname)
 	/* write data to PNM file */
 	pix_ptr = png_pixels;
 
-	image = image_create(width, height);
+	image = image_create(height, width);
 
 	for (row = 0; row < height; row++) {
 		for (col = 0; col < width; col++) {
@@ -703,6 +704,7 @@ read_fail:
 
 static int image_savepng(IMAGE *img, const char * filename)
 {
+	int i, j;
 	FILE * outfile;
 	png_struct *png_ptr = NULL;
 	png_info *info_ptr = NULL;
@@ -710,6 +712,12 @@ static int image_savepng(IMAGE *img, const char * filename)
 	if (! image_valid(img)) {
 		syslog_error("Bad image.");
 		return RET_ERROR;
+	}
+
+	// Save png alpha channel for display
+	if (img->format != IMAGE_MASK) {
+		image_foreach(img, i, j)
+			img->ie[i][j].a = 255;
 	}
 
 	if ((outfile = fopen(filename, "wb")) == NULL) {
@@ -1774,11 +1782,11 @@ int image_show(IMAGE *image, char *title)
 
 	check_image(image);
 
-	snprintf(str, sizeof(str) - 1, "/tmp/%s.jpg", title);
+	snprintf(str, sizeof(str) - 1, "/tmp/%s.png", title);
 	image_save(image, str);
 	// xxxx3333
 	// snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg; rm /tmp/%s.jpg", title, title);
-	snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg", title);
+	snprintf(str, sizeof(str)-1, "display /tmp/%s.png", title);
 
 	return system(str);
 }
