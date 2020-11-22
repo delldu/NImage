@@ -16,6 +16,7 @@ INCS	:= \
 	-I/usr/local/include
 
 SOURCE :=  \
+	source/codec.c \
 	source/color.c \
 	source/frame.c \
 	source/hough.c \

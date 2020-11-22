@@ -39,7 +39,7 @@ typedef struct {
 
 typedef struct {
 	DWORD magic;	// IMAGE_MAGIC
-	int height, width, format, opc;	// opc is for RPC
+	int height, width, format, opc;	// opc is for RPC request/response
 	RGBA_8888 **ie,*base;
 
 	// Extentend for cluster & color mask
@@ -274,6 +274,11 @@ void histogram_dump(HISTOGRAM *h);
 int color_instance_(MASK *image, int KRadius);
 int mask_show();
 
+// Array Buffer
+BYTE *image_encode(IMAGE *image);
+IMAGE *image_decode(BYTE *buffer);
+int image_send(int fd, IMAGE *image);
+IMAGE* image_recv(int fd);
 
 #if defined(__cplusplus)
 }

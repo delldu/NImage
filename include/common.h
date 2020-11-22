@@ -17,6 +17,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <syslog.h> // syslog, RFC3164 ?
 
 #define BYTE uint8_t
 #define WORD uint16_t
@@ -44,11 +45,10 @@ extern "C" {
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 #define syslog_print(fmt, arg...) fprintf(stderr, fmt, ##arg)
 #define syslog_debug(fmt, arg...)  do { \
-		fprintf(stdout, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+		syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)
 #define syslog_error(fmt, arg...)  do { \
-		fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-		exit(0); \
+		syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)
 
 #define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
