@@ -116,14 +116,14 @@ BYTE *image_encode(IMAGE * image)
 	abhead.t[0] = 'a';
 	abhead.t[1] = 'b';
 	abhead.len = sizeof(ImgHead) + image_data_size;
-	_abhead_encode(&abhead, arraybuffer);
+	__abhead_encode(&abhead, arraybuffer);
 
 	// 2. encode image head
 	imghead.h = image->height;
 	imghead.w = image->width;
 	imghead.c = sizeof(RGBA_8888);	// Channels
 	imghead.opc = image->opc;
-	_imghead_encode(&imghead, arraybuffer + sizeof(AbHead));	// skip AbHead
+	__imghead_encode(&imghead, arraybuffer + sizeof(AbHead));	// skip AbHead
 
 	// 3. encode image data
 	memcpy(arraybuffer + sizeof(AbHead) + sizeof(ImgHead), image->base, image_data_size);	// skip AbHead, ImgHead
@@ -139,12 +139,12 @@ IMAGE *image_decode(BYTE * buffer)
 	IMAGE *image;
 	int image_data_size;
 
-	if (_abhead_decode(buffer, &abhead) != RET_OK) {
+	if (__abhead_decode(buffer, &abhead) != RET_OK) {
 		syslog_error("Bad Array Buffer Head.\n");
 		return NULL;
 	}
 
-	if (_imghead_decode(buffer + sizeof(AbHead), &imghead) != RET_OK) {
+	if (__imghead_decode(buffer + sizeof(AbHead), &imghead) != RET_OK) {
 		syslog_error("Bad Image Head.\n");
 		return NULL;
 	}
@@ -176,7 +176,7 @@ IMAGE *image_recv(int fd)
 		return NULL;
 	}
 	// 1. Get abhead ?
-	if (_abhead_decode(headbuf, &abhead) != RET_OK) {
+	if (__abhead_decode(headbuf, &abhead) != RET_OK) {
 		syslog_error("Bad AbHead: t = %c%c, len = %d, crc = %x .\n", abhead.t[0], abhead.t[1], abhead.len, abhead.crc);
 
 		while (read(fd, headbuf, sizeof(headbuf)) > 0);	// Skip left dirty data ...
@@ -188,7 +188,7 @@ IMAGE *image_recv(int fd)
 		syslog_error("Reading image head.\n");
 		return NULL;
 	}
-	if (_imghead_decode(headbuf, &imghead) != RET_OK) {
+	if (__imghead_decode(headbuf, &imghead) != RET_OK) {
 		syslog_error("Bad ImgHead.\n");
 		syslog_debug("ImgHead detail informatoin: HxWxC = %dx%dx%d, opc = %d.\n",
 					 imghead.h, imghead.w, imghead.c, imghead.opc);
@@ -234,7 +234,7 @@ int image_send(int fd, IMAGE * image)
 	abhead.t[0] = 'a';
 	abhead.t[1] = 'b';
 	abhead.len = sizeof(ImgHead) + image_data_size;
-	_abhead_encode(&abhead, buffer);
+	__abhead_encode(&abhead, buffer);
 	if (write(fd, buffer, sizeof(AbHead)) != sizeof(AbHead)) {
 		syslog_error("Write AbHead.");
 		return RET_ERROR;
@@ -244,7 +244,7 @@ int image_send(int fd, IMAGE * image)
 	imghead.w = image->width;
 	imghead.c = sizeof(RGBA_8888);	// Channels
 	imghead.opc = image->opc;
-	_imghead_encode(&imghead, buffer);
+	__imghead_encode(&imghead, buffer);
 	if (write(fd, buffer, sizeof(ImgHead)) != sizeof(AbHead)) {
 		syslog_error("Write ImgHead.");
 		return RET_ERROR;
