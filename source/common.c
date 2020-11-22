@@ -16,9 +16,9 @@ TIME get_time()
 {
 	TIME ms;
 	struct timeval t;
-	
+
 	gettimeofday(&t, NULL);
-	ms = t.tv_sec * 1000 + t.tv_usec/1000;
+	ms = t.tv_sec * 1000 + t.tv_usec / 1000;
 
 	return ms;
 }

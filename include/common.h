@@ -17,7 +17,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/time.h>
-#include <syslog.h> // syslog, RFC3164 ?
+#include <syslog.h>				// syslog, RFC3164 ?
 
 #define BYTE uint8_t
 #define WORD uint16_t
@@ -60,20 +60,19 @@ extern "C" {
 #define GET_FOURCC4(a) ((BYTE)(((a)>>24) & 0xff))
 
 
-typedef struct { int r, c, h, w; } RECT;
+	typedef struct {
+		int r, c, h, w;
+	} RECT;
 #define rect_foreach(rect, i, j) \
 	for (i = 0; i < (rect)->h; i++) \
 		for (j = 0; j < (rect)->w; j++)
 
 // Time
-void time_reset();
-void time_spend(char *prompt);
+	void time_reset();
+	void time_spend(char *prompt);
 
 
 #if defined(__cplusplus)
 }
 #endif
-
-#endif	// _COMMON_H
-
-
+#endif							// _COMMON_H

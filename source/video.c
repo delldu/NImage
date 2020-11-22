@@ -16,19 +16,19 @@
 static double __math_snr(int m, char *orig, char *now)
 {
 	int i, k;
-	long long s = 0, n = 0;			// signal/noise
+	long long s = 0, n = 0;		// signal/noise
 	double d;
 
-	for (i = 0; i < m; i++)  {
+	for (i = 0; i < m; i++) {
 		s += orig[i] * orig[i];
 		k = orig[i] - now[i];
 		n += k * k;
 	}
-	
-	if (n == 0)	// force !!!
+
+	if (n == 0)					// force !!!
 		n = 1;
-	d = s/n;
-	
+	d = s / n;
+
 	return 10.0f * log(d);
 }
 
@@ -43,29 +43,29 @@ height=288
 pix_fmt=yuv420p
 avg_frame_rate=25/1
 */
-static int __video_probe(char *filename, VIDEO *v)
+static int __video_probe(char *filename, VIDEO * v)
 {
 	FILE *fp;
 	char cmd[256], buf[256];
 
 	snprintf(cmd, sizeof(cmd) - 1, "ffprobe -show_streams %s 2>/dev/null", filename);
 	fp = popen(cmd, "r");
-	if (! fp) {
+	if (!fp) {
 		syslog_error("Run %s", cmd);
 		return RET_ERROR;
 	}
-	
-	while(fgets(buf, sizeof(buf) - 1, fp)) {
+
+	while (fgets(buf, sizeof(buf) - 1, fp)) {
 		if (strlen(buf) > 0)
 			buf[strlen(buf) - 1] = '\0';
-		if (__simple_match(buf,  "width="))
+		if (__simple_match(buf, "width="))
 			v->width = atoi(buf + sizeof("width=") - 1);
-		else if (__simple_match(buf,  "height="))
+		else if (__simple_match(buf, "height="))
 			v->height = atoi(buf + sizeof("height=") - 1);
-		else if (__simple_match(buf,  "pix_fmt="))
+		else if (__simple_match(buf, "pix_fmt="))
 			v->format = frame_format(buf + sizeof("pix_fmt=") - 1);
-		else if (__simple_match(buf,  "avg_frame_rate="))
-			v->frame_speed = atoi(buf + sizeof("avg_frame_rate=") -1);
+		else if (__simple_match(buf, "avg_frame_rate="))
+			v->frame_speed = atoi(buf + sizeof("avg_frame_rate=") - 1);
 	}
 	pclose(fp);
 
@@ -79,25 +79,25 @@ static VIDEO *__yuv420_open(char *filename, int width, int height)
 	VIDEO *v = NULL;
 
 	// Allocate video 
-	v = (VIDEO *)calloc((size_t)1, sizeof(VIDEO)); 
-	if (! v) { 
+	v = (VIDEO *) calloc((size_t) 1, sizeof(VIDEO));
+	if (!v) {
 		syslog_error("Allocate memeory.");
-		return NULL; 
+		return NULL;
 	}
 	v->frame_speed = 25;
-	v->format = MAKE_FOURCC('4','2','0','P');
+	v->format = MAKE_FOURCC('4', '2', '0', 'P');
 	v->width = width;
 	v->height = height;
-	
+
 	if ((fp = fopen(filename, "r")) == NULL) {
 		syslog_error("Open %s\n", filename);
-		return NULL; 
+		return NULL;
 	}
 	v->_fp = fp;
 
 	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 		v->frames[i] = frame_create(v->format, v->width, v->height);
-		if (! v->frames[i]) {
+		if (!v->frames[i]) {
 			syslog_error("Allocate memory");
 			return NULL;
 		}
@@ -106,13 +106,12 @@ static VIDEO *__yuv420_open(char *filename, int width, int height)
 	v->frame_size = frame_size(v->format, v->width, v->height);
 	// Allocate memory
 	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
-		v->_frame_buffer[i].startmap = (BYTE *)calloc((size_t)v->frame_size, sizeof(BYTE));
+		v->_frame_buffer[i].startmap = (BYTE *) calloc((size_t) v->frame_size, sizeof(BYTE));
 		if (v->_frame_buffer[i].startmap == NULL) {
 			syslog_error("Allocate memory");
 			goto fail;
-		}
-		else
-			frame_binding(v->frames[i], (BYTE *)v->_frame_buffer[i].startmap);
+		} else
+			frame_binding(v->frames[i], (BYTE *) v->_frame_buffer[i].startmap);
 	}
 
 	v->frame_index = 0;
@@ -120,9 +119,9 @@ static VIDEO *__yuv420_open(char *filename, int width, int height)
 	v->magic = VIDEO_MAGIC;
 
 	return v;
-fail:
+  fail:
 	video_close(v);
-	
+
 	return NULL;
 }
 
@@ -134,28 +133,30 @@ static int __video_play(VIDEO * video)
 	FRAME *f;
 	IMAGE *image, *edge;
 	char filename[256];
-	
+
 	image = image_create(video->height, video->width);
-	if (! image_valid(image)) {
+	if (!image_valid(image)) {
 		syslog_error("Create image.");
 		return RET_ERROR;
 	}
 	edge = image_create(video->height, video->width);
-	if (! image_valid(edge)) {
+	if (!image_valid(edge)) {
 		syslog_error("Create image.");
 		return RET_ERROR;
 	}
 
 	n = 0;
-	while((f = video_read(video)) != NULL && n < 25) {
+	while ((f = video_read(video)) != NULL && n < 25) {
 		frame_toimage(f, edge);
-		
+
 		shape_bestedge(edge);
-		image_mcenter(edge,'R', &r, &c);
-		rect.w = rect.h = 20; rect.r = r - 10; 	rect.c = c - 10;
+		image_mcenter(edge, 'R', &r, &c);
+		rect.w = rect.h = 20;
+		rect.r = r - 10;
+		rect.c = c - 10;
 		// sprintf(filename, "edge-%03d.jpg", n);
 		// image_save(edge, filename);
-		
+
 		frame_toimage(f, image);
 		image_foreach(edge, r, c) {
 			if (edge->ie[r][c].r == 255) {
@@ -179,12 +180,13 @@ static int __video_mds(VIDEO * video)
 	int page;
 	IMAGE *C;
 
-	C = image_create(video->height, video->width); check_image(C);
+	C = image_create(video->height, video->width);
+	check_image(C);
 
-	srandom((unsigned int)time(NULL));
-	page = random() % 300;  // 144, 331
+	srandom((unsigned int) time(NULL));
+	page = random() % 300;		// 144, 331
 
-	while(page > 0 && ! feof(video->_fp)) {
+	while (page > 0 && !feof(video->_fp)) {
 		frame_toimage(video_read(video), C);
 		page--;
 	}
@@ -197,22 +199,23 @@ static int __video_mds(VIDEO * video)
 	return RET_OK;
 }
 
-int video_valid(VIDEO *v)
+int video_valid(VIDEO * v)
 {
-	if (! v || v->height < 1 || v->width < 1 || v->frame_size < 1 || v->magic != VIDEO_MAGIC)
+	if (!v || v->height < 1 || v->width < 1 || v->frame_size < 1 || v->magic != VIDEO_MAGIC)
 		return 0;
 
 	return frame_goodfmt(v->format);
 }
 
-void video_info(VIDEO *v)
+void video_info(VIDEO * v)
 {
-	if (! v)
+	if (!v)
 		return;
-	
+
 	printf("Video information:");
 	printf("frame size  : %d (%d x %d) pixels\n", v->frame_size, v->width, v->height);
-	printf("frame format: %c%c%c%c\n", GET_FOURCC1(v->format), GET_FOURCC2(v->format), GET_FOURCC3(v->format), GET_FOURCC4(v->format));
+	printf("frame format: %c%c%c%c\n", GET_FOURCC1(v->format), GET_FOURCC2(v->format), GET_FOURCC3(v->format),
+		   GET_FOURCC4(v->format));
 }
 
 // Default camera device is /dev/video0
@@ -229,13 +232,13 @@ VIDEO *video_open(char *filename, int start)
 	char cmdline[FILENAME_MAXLEN];
 
 	// Allocate video 
-	v = (VIDEO *)calloc((size_t)1, sizeof(VIDEO)); 
-	if (! v) { 
+	v = (VIDEO *) calloc((size_t) 1, sizeof(VIDEO));
+	if (!v) {
 		syslog_error("Allocate memeory.");
-		return NULL; 
+		return NULL;
 	}
 	v->frame_speed = 25;
-	
+
 	if (strncmp(filename, "/dev/video", 10) == 0) {
 		if ((fp = fopen(filename, "r")) == NULL) {
 			syslog_error("Open %s\n", filename);
@@ -248,7 +251,7 @@ VIDEO *video_open(char *filename, int start)
 		// Set/Get camera parameters.
 		parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		parm.parm.capture.timeperframe.numerator = 1;
-		parm.parm.capture.timeperframe.denominator = 30;  // frames/1 second
+		parm.parm.capture.timeperframe.denominator = 30;	// frames/1 second
 		parm.parm.capture.capturemode = 0;
 		if (ioctl(fileno(fp), VIDIOC_S_PARM, &parm) < 0) {
 			syslog_error("Set video parameter.");
@@ -266,7 +269,7 @@ VIDEO *video_open(char *filename, int start)
 		}
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 			v->frames[i] = frame_create(v4l2fmt.fmt.pix.pixelformat, v4l2fmt.fmt.pix.width, v4l2fmt.fmt.pix.height);
-			if (! v->frames[i]) {
+			if (!v->frames[i]) {
 				syslog_error("Allocate memory");
 				return NULL;
 			}
@@ -292,19 +295,17 @@ VIDEO *video_open(char *filename, int start)
 			}
 			v->_frame_buffer[i].length = buf.length;
 			v->_frame_buffer[i].offset = (size_t) buf.m.offset;
-			v->_frame_buffer[i].startmap = mmap (NULL /* start anywhere */,
-	                              buf.length,
-	                              PROT_READ | PROT_WRITE /* required */,
-	                              MAP_SHARED /* recommended */,
-	                              fileno(fp), buf.m.offset);
+			v->_frame_buffer[i].startmap = mmap(NULL /* start anywhere */ ,
+												buf.length, PROT_READ | PROT_WRITE /* required */ ,
+												MAP_SHARED /* recommended */ ,
+												fileno(fp), buf.m.offset);
 
-	        if (v->_frame_buffer[i].startmap == MAP_FAILED) {
+			if (v->_frame_buffer[i].startmap == MAP_FAILED) {
 				syslog_error("mmap.");
 				goto fail;
-	        }
-			else
-				frame_binding(v->frames[i], (BYTE *)v->_frame_buffer[i].startmap);
-			
+			} else
+				frame_binding(v->frames[i], (BYTE *) v->_frame_buffer[i].startmap);
+
 		}
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 			memset(&buf, 0, sizeof(buf));
@@ -323,8 +324,7 @@ VIDEO *video_open(char *filename, int start)
 			goto fail;
 		}
 		v->frame_size = frame_size(v->format, v->width, v->height);
-	}
-	else {
+	} else {
 		// ...
 		if (__video_probe(filename, v) != RET_OK)
 			goto fail;
@@ -338,7 +338,7 @@ VIDEO *video_open(char *filename, int start)
 
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 			v->frames[i] = frame_create(v->format, v->width, v->height);
-			if (! v->frames[i]) {
+			if (!v->frames[i]) {
 				syslog_error("Allocate memory");
 				return NULL;
 			}
@@ -347,13 +347,12 @@ VIDEO *video_open(char *filename, int start)
 		v->frame_size = frame_size(v->format, v->width, v->height);
 		// Allocate memory
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
-			v->_frame_buffer[i].startmap = (BYTE *)calloc((size_t)v->frame_size, sizeof(BYTE));
+			v->_frame_buffer[i].startmap = (BYTE *) calloc((size_t) v->frame_size, sizeof(BYTE));
 			if (v->_frame_buffer[i].startmap == NULL) {
 				syslog_error("Allocate memory");
 				goto fail;
-			}
-			else
-				frame_binding(v->frames[i], (BYTE *)v->_frame_buffer[i].startmap);
+			} else
+				frame_binding(v->frames[i], (BYTE *) v->_frame_buffer[i].startmap);
 		}
 	}
 	v->frame_index = 0;
@@ -361,17 +360,17 @@ VIDEO *video_open(char *filename, int start)
 	v->magic = VIDEO_MAGIC;
 
 	return v;
-fail:
+  fail:
 	video_close(v);
-	
+
 	return NULL;
 }
 
-void video_close(VIDEO *v)
+void video_close(VIDEO * v)
 {
 	int i, type;
 
-	if (! v)
+	if (!v)
 		return;
 
 	if (v->video_source == VIDEO_FROM_CAMERA) {
@@ -379,9 +378,8 @@ void video_close(VIDEO *v)
 		ioctl(fileno(v->_fp), VIDIOC_STREAMOFF, &type);
 
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++)
-			munmap (v->_frame_buffer[i].startmap, v->_frame_buffer[i].length);
-	}
-	else {
+			munmap(v->_frame_buffer[i].startmap, v->_frame_buffer[i].length);
+	} else {
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++)
 			free(v->_frame_buffer[i].startmap);
 	}
@@ -393,12 +391,12 @@ void video_close(VIDEO *v)
 }
 
 
-FRAME *video_read(VIDEO *v)
+FRAME *video_read(VIDEO * v)
 {
 	int n = v->frame_size;
 	struct v4l2_buffer v4l2buf;
 	FRAME *f = NULL;
-	
+
 	if (v->video_source == VIDEO_FROM_CAMERA) {
 		memset(&v4l2buf, 0, sizeof(struct v4l2_buffer));
 		v4l2buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -409,8 +407,7 @@ FRAME *video_read(VIDEO *v)
 		}
 		f = v->frames[v4l2buf.index];
 		ioctl(fileno(v->_fp), VIDIOC_QBUF, &v4l2buf);
-	}
-	else {
+	} else {
 		v->_buffer_index++;
 		v->_buffer_index %= VIDEO_BUFFER_NUMS;
 		f = v->frames[v->_buffer_index];
@@ -419,7 +416,7 @@ FRAME *video_read(VIDEO *v)
 	}
 
 	v->frame_index++;
-	return (n == 0)? NULL : f;		// n==0 ==> end of file
+	return (n == 0) ? NULL : f;	// n==0 ==> end of file
 }
 
 int video_play(char *filename, int start)
@@ -431,7 +428,7 @@ int video_play(char *filename, int start)
 
 	video_info(video);
 	__video_play(video);
- 	video_close(video);
+	video_close(video);
 
 	return RET_OK;
 }
@@ -446,7 +443,7 @@ int video_mds(char *filename, int start)
 
 	video_info(video);
 	__video_mds(video);
- 	video_close(video);
+	video_close(video);
 
 	return RET_OK;
 }
@@ -460,9 +457,9 @@ int video_ids(char *filename, int start, double threshold)
 	check_video(video);
 
 	bg = video_read(video);
-	while(1) {
+	while (1) {
 		fg = video_read(video);
-		d = __math_snr(video->frame_size, (char *)bg->Y, (char *)fg->Y);
+		d = __math_snr(video->frame_size, (char *) bg->Y, (char *) fg->Y);
 		if (d < threshold) {
 			printf("Video IDS: Some object has been detected !!!\n");
 		}
@@ -482,7 +479,7 @@ int yuv420_play(char *filename, int width, int height)
 
 	video_info(video);
 	__video_play(video);
- 	video_close(video);
+	video_close(video);
 
 	return RET_OK;
 }

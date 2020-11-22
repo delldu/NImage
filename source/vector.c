@@ -26,15 +26,15 @@ VECTOR *vector_create(int m)
 		return NULL;
 	}
 
-	vec = (VECTOR *)calloc((size_t)1, sizeof(VECTOR));
-	if (! vec) {
+	vec = (VECTOR *) calloc((size_t) 1, sizeof(VECTOR));
+	if (!vec) {
 		syslog_error("Allocate memeory.");
 		return NULL;
 	}
 
 	vec->m = m;
-	vec->ve = (double *)calloc((size_t)m, sizeof(double));
-	if (! vec->ve) {
+	vec->ve = (double *) calloc((size_t) m, sizeof(double));
+	if (!vec->ve) {
 		syslog_error("Allocate memeory.");
 		free(vec);
 		return NULL;
@@ -46,29 +46,29 @@ VECTOR *vector_create(int m)
 }
 
 
-int vector_clear(VECTOR *vec)
+int vector_clear(VECTOR * vec)
 {
 	check_vector(vec);
 	memset(vec->ve, 0, sizeof(double) * vec->m);
 	return RET_OK;
 }
 
-void vector_destroy(VECTOR *v)
+void vector_destroy(VECTOR * v)
 {
-	if (! vector_valid(v))
+	if (!vector_valid(v))
 		return;
-	
+
 	// FIX: Bug, Memorary leak !
 	if (v->ve)
 		free(v->ve);
-	
+
 	free(v);
 }
 
-void vector_print(VECTOR *v, char *format)
+void vector_print(VECTOR * v, char *format)
 {
 	int i, k;
-	if (! vector_valid(v)) {
+	if (!vector_valid(v)) {
 		syslog_error("Bad vector.");
 		return;
 	}
@@ -77,31 +77,32 @@ void vector_print(VECTOR *v, char *format)
 		if (strchr(format, 'f'))	// double
 			printf(format, v->ve[i]);
 		else {
-			k = (int)v->ve[i];
+			k = (int) v->ve[i];
 			printf(format, k);	// integer
 		}
-		printf("%s", (i < v->m - 1)?", " : "\n");
+		printf("%s", (i < v->m - 1) ? ", " : "\n");
 		// Too many data output on one line is not good idea !
 		if ((i + 1) % 10 == 0)
 			printf("\n");
 	}
 }
 
-int vector_valid(VECTOR *v)
+int vector_valid(VECTOR * v)
 {
 	return (v && v->m >= 1 && v->ve && v->magic == VECTOR_MAGIC);
 }
 
-int vector_cosine(VECTOR *v1, VECTOR *v2, double *res)
+int vector_cosine(VECTOR * v1, VECTOR * v2, double *res)
 {
 	int i;
 	double s1, s2, s;
 
-	if (! res) {
+	if (!res) {
 		syslog_error("Result pointer is null.");
 		return RET_ERROR;
 	}
-	check_vector(v1); check_vector(v2);
+	check_vector(v1);
+	check_vector(v2);
 
 	if (v1->m != v2->m) {
 		syslog_error("Dimension of two vectors is not same.");
@@ -120,12 +121,12 @@ int vector_cosine(VECTOR *v1, VECTOR *v2, double *res)
 		return RET_OK;
 	}
 
-	*res = (double)(s/(sqrt(s1) * sqrt(s2)));
-	
+	*res = (double) (s / (sqrt(s1) * sqrt(s2)));
+
 	return RET_OK;
 }
 
-int vector_normal(VECTOR *v)
+int vector_normal(VECTOR * v)
 {
 	int i;
 	double sum;
@@ -133,56 +134,57 @@ int vector_normal(VECTOR *v)
 	check_vector(v);
 
 	sum = vector_sum(v);
-	if (ABS(sum) < MIN_DOUBLE_NUMBER)  // NO Need calculation more
- 		return RET_OK;
-	
+	if (ABS(sum) < MIN_DOUBLE_NUMBER)	// NO Need calculation more
+		return RET_OK;
+
 	vector_foreach(v, i)
 		v->ve[i] /= sum;
 
 	return RET_OK;
 }
 
-double vector_likeness(VECTOR *v1, VECTOR *v2)
+double vector_likeness(VECTOR * v1, VECTOR * v2)
 {
 	double d;
 	vector_cosine(v1, v2, &d);
 	return d;
 }
 
-double vector_sum(VECTOR *v)
+double vector_sum(VECTOR * v)
 {
 	int i;
 	double sum;
 
-	if (! vector_valid(v)) {
+	if (!vector_valid(v)) {
 		syslog_error("Bad vector.");
 		return 0.0f;
 	}
 
 	sum = 0.0f;
-	vector_foreach(v, i) 
+	vector_foreach(v, i)
 		sum += v->ve[i];
 
 	return sum;
 }
 
-double vector_mean(VECTOR *v)
+double vector_mean(VECTOR * v)
 {
-	return vector_sum(v)/v->m;
+	return vector_sum(v) / v->m;
 }
 
 // Guass 1D kernel
 VECTOR *vector_gskernel(double sigma)
 {
-	int  j, dim;
+	int j, dim;
 	double d, g;
 	VECTOR *vec;
 
-	dim = math_gsbw(sigma)/2;
-	vec = vector_create(2 * dim + 1); CHECK_VECTOR(vec);
-	d = sigma * sigma * 2.0f; 
+	dim = math_gsbw(sigma) / 2;
+	vec = vector_create(2 * dim + 1);
+	CHECK_VECTOR(vec);
+	d = sigma * sigma * 2.0f;
 	for (j = 0; j <= dim; j++) {
-		g = exp(-(1.0f * j *j)/d);
+		g = exp(-(1.0f * j * j) / d);
 		vec->ve[dim + j] = g;
 		vec->ve[dim - j] = g;
 	}

@@ -7,7 +7,6 @@
 ***
 ************************************************************************************/
 
-
 #ifndef _VECTOR_H
 #define _VECTOR_H
 
@@ -18,11 +17,11 @@ extern "C" {
 #include "common.h"
 
 // double Vector
-typedef struct {
-	DWORD magic;
-	int m;
-	double *ve;
-} VECTOR;
+	typedef struct {
+		DWORD magic;
+		int m;
+		double *ve;
+	} VECTOR;
 
 
 #define vector_foreach(vec, i) \
@@ -45,26 +44,24 @@ typedef struct {
 	} while(0)
 
 
-VECTOR *vector_create(int m);
+	VECTOR *vector_create(int m);
 
-int vector_valid(VECTOR *v);
-int vector_clear(VECTOR *vec);
-double vector_sum(VECTOR *v);
-double vector_mean(VECTOR *v);
-int vector_normal(VECTOR *v);
+	int vector_valid(VECTOR * v);
+	int vector_clear(VECTOR * vec);
+	double vector_sum(VECTOR * v);
+	double vector_mean(VECTOR * v);
+	int vector_normal(VECTOR * v);
 
-int vector_cosine(VECTOR *v1, VECTOR *v2, double *res);
-double vector_likeness(VECTOR *v1, VECTOR *v2);
+	int vector_cosine(VECTOR * v1, VECTOR * v2, double *res);
+	double vector_likeness(VECTOR * v1, VECTOR * v2);
 
-VECTOR *vector_gskernel(double sigma);
+	VECTOR *vector_gskernel(double sigma);
 
-void vector_print(VECTOR *v, char *format);
-void vector_destroy(VECTOR *v);
+	void vector_print(VECTOR * v, char *format);
+	void vector_destroy(VECTOR * v);
 
 
 #if defined(__cplusplus)
 }
 #endif
-
-#endif	// _VECTOR_H
-
+#endif							// _VECTOR_H

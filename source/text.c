@@ -524,7 +524,7 @@ static unsigned char fontdata_8x16[FONT_SIZE_8x16] = {
 };
 
 
-static void text_putc(IMAGE *image, int r, int c, char ch, BYTE r2, BYTE g2, BYTE b2)
+static void text_putc(IMAGE * image, int r, int c, char ch, BYTE r2, BYTE g2, BYTE b2)
 {
 	int i, j, dot, bits;
 
@@ -535,7 +535,7 @@ static void text_putc(IMAGE *image, int r, int c, char ch, BYTE r2, BYTE g2, BYT
 	for (i = 0; i < FONT_HEIGHT; i++) {
 		bits = fontdata_8x16[dot++];
 		for (j = 0; j < FONT_HEIGHT; j++) {
-			if (bits & ( 1 << (FONT_HEIGHT - 1 - j))) {
+			if (bits & (1 << (FONT_HEIGHT - 1 - j))) {
 				image->ie[r + i][j + c].r = r2;
 				image->ie[r + i][j + c].g = g2;
 				image->ie[r + i][j + c].b = b2;
@@ -544,7 +544,7 @@ static void text_putc(IMAGE *image, int r, int c, char ch, BYTE r2, BYTE g2, BYT
 	}
 }
 
-int text_puts(IMAGE *image, int r, int c, char *text, int color)
+int text_puts(IMAGE * image, int r, int c, char *text, int color)
 {
 	BYTE r2, g2, b2;
 
@@ -552,7 +552,7 @@ int text_puts(IMAGE *image, int r, int c, char *text, int color)
 	r2 = RGB_R(color);
 	g2 = RGB_G(color);
 	b2 = RGB_B(color);
-	
+
 	while (*text) {
 		if (*text == '\n' || *text == '\r') {
 			c = 0;
@@ -563,8 +563,7 @@ int text_puts(IMAGE *image, int r, int c, char *text, int color)
 			c /= TAB_SIZE;
 			c *= TAB_SIZE;
 			text++;
-		}
-		else {
+		} else {
 			text_putc(image, r, c, *(text++), r2, g2, b2);
 			c += FONT_WIDTH;
 		}
@@ -572,4 +571,3 @@ int text_puts(IMAGE *image, int r, int c, char *text, int color)
 
 	return c;
 }
-

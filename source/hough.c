@@ -8,7 +8,7 @@
 ************************************************************************************/
 
 // Hough transform:
-// 	 Line: r = y * cos(theta) + x * sin(theta) <==> (r, theta)
+//   Line: r = y * cos(theta) + x * sin(theta) <==> (r, theta)
 //   Circle:  x = x0 + r * cos(theta), y = y0 + r * sin(theta)
 //   Oval:  x = x0 + a * cos(theta), y = y0 + b * sin(theta)
 
@@ -19,8 +19,13 @@
 
 #define MAX_LINE_NO 2048
 
-typedef struct { int r1, c1, r2, c2; } LINE;
-typedef struct { int count; LINE line[MAX_LINE_NO]; } LINES;
+typedef struct {
+	int r1, c1, r2, c2;
+} LINE;
+typedef struct {
+	int count;
+	LINE line[MAX_LINE_NO];
+} LINES;
 
 static LINES __global_line_set;
 
@@ -42,7 +47,7 @@ void line_put(int r1, int c1, int r2, int c2)
 	}
 }
 
-static int __hough_line(IMAGE *image, int threshold, int debug)
+static int __hough_line(IMAGE * image, int threshold, int debug)
 {
 #define MAX_ANGLES 180
 	int i, j, n, r, rmax;
@@ -52,22 +57,29 @@ static int __hough_line(IMAGE *image, int threshold, int debug)
 	LINES *lines = line_set();
 
 	lines->count = 0;
-	
+
 	check_image(image);
-	cosv = vector_create(180); check_vector(cosv);
-	sinv = vector_create(180);  check_vector(sinv);
+	cosv = vector_create(180);
+	check_vector(cosv);
+	sinv = vector_create(180);
+	check_vector(sinv);
 	for (i = 0; i < 180; i++) {
-		sinv->ve[i] = sin(i * MATH_PI/180);
-		cosv->ve[i] = cos(i * MATH_PI/180);
+		sinv->ve[i] = sin(i * MATH_PI / 180);
+		cosv->ve[i] = cos(i * MATH_PI / 180);
 	}
 
-	rmax = (int)sqrt(image->height * image->height + image->width * image->width) + 1;
-	hough = matrix_create(2 * rmax, MAX_ANGLES); check_matrix(hough);
-	begrow = matrix_create(2 * rmax, MAX_ANGLES); check_matrix(begrow);
-	endrow = matrix_create(2 * rmax, MAX_ANGLES); check_matrix(endrow);
-	begcol = matrix_create(2 * rmax, MAX_ANGLES); check_matrix(begcol);
-	endcol = matrix_create(2 * rmax, MAX_ANGLES); check_matrix(endcol);
-//	shape_midedge(image);
+	rmax = (int) sqrt(image->height * image->height + image->width * image->width) + 1;
+	hough = matrix_create(2 * rmax, MAX_ANGLES);
+	check_matrix(hough);
+	begrow = matrix_create(2 * rmax, MAX_ANGLES);
+	check_matrix(begrow);
+	endrow = matrix_create(2 * rmax, MAX_ANGLES);
+	check_matrix(endrow);
+	begcol = matrix_create(2 * rmax, MAX_ANGLES);
+	check_matrix(begcol);
+	endcol = matrix_create(2 * rmax, MAX_ANGLES);
+	check_matrix(endcol);
+//  shape_midedge(image);
 	shape_bestedge(image);
 
 	image_foreach(image, i, j) {
@@ -75,9 +87,9 @@ static int __hough_line(IMAGE *image, int threshold, int debug)
 			continue;
 		for (n = 0; n < MAX_ANGLES; n++) {
 			d = i * cosv->ve[n] + j * sinv->ve[n];
-			r = (int)(d + rmax);
+			r = (int) (d + rmax);
 			hough->me[r][n]++;
-			if ((int)hough->me[r][n] == 1) {
+			if ((int) hough->me[r][n] == 1) {
 				begrow->me[r][n] = i;
 				begcol->me[r][n] = j;
 			}
@@ -87,10 +99,11 @@ static int __hough_line(IMAGE *image, int threshold, int debug)
 	}
 
 	matrix_foreach(hough, i, j) {
-		if ((int)hough->me[i][j] >=  threshold) {
-			line_put((int)begrow->me[i][j], (int)begcol->me[i][j], (int)endrow->me[i][j], (int)endcol->me[i][j]);
+		if ((int) hough->me[i][j] >= threshold) {
+			line_put((int) begrow->me[i][j], (int) begcol->me[i][j], (int) endrow->me[i][j], (int) endcol->me[i][j]);
 			if (debug)
-				image_drawline(image, (int)begrow->me[i][j], (int)begcol->me[i][j], (int)endrow->me[i][j], (int)endcol->me[i][j], 0x00ffff);
+				image_drawline(image, (int) begrow->me[i][j], (int) begcol->me[i][j], (int) endrow->me[i][j],
+							   (int) endcol->me[i][j], 0x00ffff);
 		}
 	}
 
@@ -103,15 +116,15 @@ static int __hough_line(IMAGE *image, int threshold, int debug)
 	return RET_OK;
 }
 
-int  line_detect(IMAGE *img, int debug)
+int line_detect(IMAGE * img, int debug)
 {
-	return __hough_line(img, MIN(img->height, img->width)/10, debug);
+	return __hough_line(img, MIN(img->height, img->width) / 10, debug);
 }
 
-int line_lsm(IMAGE *image, RECT *rect, double *k, double *b, int debug)
+int line_lsm(IMAGE * image, RECT * rect, double *k, double *b, int debug)
 {
-    int i, j, n, x[4096], y[4096];
-    double avg_xy, avg_x, avg_y, avg_xx, t;
+	int i, j, n, x[4096], y[4096];
+	double avg_xy, avg_x, avg_y, avg_xx, t;
 
 	check_image(image);
 
@@ -131,29 +144,28 @@ int line_lsm(IMAGE *image, RECT *rect, double *k, double *b, int debug)
 		return RET_ERROR;
 	}
 
-    avg_xy = avg_x = avg_y = avg_xx = 0.0f;
-    for (i = 0; i < n; i++) {
-            avg_xy += x[i] * y[i];
-            avg_x += x[i];
-            avg_y += y[i];
-            avg_xx += x[i]*x[i];
-    }
-    avg_xy /= n;
-    avg_x /= n;
-    avg_y /= n;
-    avg_xx /= n;
-    t = avg_xx - (avg_x)*(avg_x);
+	avg_xy = avg_x = avg_y = avg_xx = 0.0f;
+	for (i = 0; i < n; i++) {
+		avg_xy += x[i] * y[i];
+		avg_x += x[i];
+		avg_y += y[i];
+		avg_xx += x[i] * x[i];
+	}
+	avg_xy /= n;
+	avg_x /= n;
+	avg_y /= n;
+	avg_xx /= n;
+	t = avg_xx - (avg_x) * (avg_x);
 
-    if (t < MIN_DOUBLE_NUMBER)
-            return RET_ERROR;
+	if (t < MIN_DOUBLE_NUMBER)
+		return RET_ERROR;
 
-    *k = (avg_xy - avg_x * avg_y)/t;
-    *b = avg_y - (*k)*avg_x;
+	*k = (avg_xy - avg_x * avg_y) / t;
+	*b = avg_y - (*k) * avg_x;
 
 	if (debug) {
 		image_drawkxb(image, *k, *b, color_picker());
 	}
 
-    return RET_OK;
+	return RET_OK;
 }
-

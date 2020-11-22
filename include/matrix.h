@@ -16,11 +16,11 @@ extern "C" {
 
 #include "common.h"
 
-typedef struct {
-	DWORD magic;
-	int m, n, _m; 			// _m is internal rows
-	double **me,*base; 
-} MATRIX;
+	typedef struct {
+		DWORD magic;
+		int m, n, _m;			// _m is internal rows
+		double **me, *base;
+	} MATRIX;
 
 #define matrix_rect(rect, mat) \
 	do { (rect)->r = 0; (rect)->c = 0; (rect)->h = mat->m; (rect)->w = mat->n; } while(0)
@@ -45,53 +45,51 @@ typedef struct {
 		} \
 	} while(0)
 
-typedef double (*distancef_t)(double *a, double *b, int n);
+	typedef double (*distancef_t) (double *a, double *b, int n);
 
-MATRIX *matrix_create(int m, int n);
+	MATRIX *matrix_create(int m, int n);
 
-MATRIX *matrix_copy(MATRIX *src);
-MATRIX *matrix_zoom(MATRIX *mat, int nm, int nn, int method);
-MATRIX *matrix_gskernel(double sigma);
-MATRIX *matrix_wkmeans(MATRIX *mat, int k, distancef_t distance);
-int matrix_clean(MATRIX *mat);
+	MATRIX *matrix_copy(MATRIX * src);
+	MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method);
+	MATRIX *matrix_gskernel(double sigma);
+	MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance);
+	int matrix_clean(MATRIX * mat);
 
-int matrix_valid(MATRIX *M);
-int matrix_pattern(MATRIX *M, char *name);
-int matrix_outdoor(MATRIX *M, int i, int di, int j, int dj);
+	int matrix_valid(MATRIX * M);
+	int matrix_pattern(MATRIX * M, char *name);
+	int matrix_outdoor(MATRIX * M, int i, int di, int j, int dj);
 
-int matrix_integrate(MATRIX *mat);
-double matrix_difference(MATRIX *mat, int r1, int c1, int r2, int c2);
-int matrix_weight(MATRIX *mat, RECT *rect);
+	int matrix_integrate(MATRIX * mat);
+	double matrix_difference(MATRIX * mat, int r1, int c1, int r2, int c2);
+	int matrix_weight(MATRIX * mat, RECT * rect);
 
-int matrix_clear(MATRIX *mat);
-int matrix_normal(MATRIX *mat);
+	int matrix_clear(MATRIX * mat);
+	int matrix_normal(MATRIX * mat);
 
-int matrix_localmax(MATRIX *mat, int r, int c);
+	int matrix_localmax(MATRIX * mat, int r, int c);
 
 // sort
-int matrix_sort(MATRIX *A, int cols, int descend);
+	int matrix_sort(MATRIX * A, int cols, int descend);
 
 
-void matrix_print(MATRIX *m, char *format);
+	void matrix_print(MATRIX * m, char *format);
 
-MATRIX *matrix_transpose(MATRIX *matrix);
+	MATRIX *matrix_transpose(MATRIX * matrix);
 
 // Dot add/sub/mul/div
-int matrix_add(MATRIX *A, MATRIX *B);
-int matrix_sub(MATRIX *A, MATRIX *B);
-int matrix_dotmul(MATRIX *A, MATRIX *B);
-int matrix_dotdiv(MATRIX *A, MATRIX *B);
-int matrix_multi(MATRIX *C, MATRIX *A, MATRIX *B);
+	int matrix_add(MATRIX * A, MATRIX * B);
+	int matrix_sub(MATRIX * A, MATRIX * B);
+	int matrix_dotmul(MATRIX * A, MATRIX * B);
+	int matrix_dotdiv(MATRIX * A, MATRIX * B);
+	int matrix_multi(MATRIX * C, MATRIX * A, MATRIX * B);
 
-double matrix_median(MATRIX *mat);
+	double matrix_median(MATRIX * mat);
 
 
-void matrix_destroy(MATRIX *m);
+	void matrix_destroy(MATRIX * m);
 
 
 #if defined(__cplusplus)
 }
 #endif
-
-#endif	// _MATRIX_H
-
+#endif							// _MATRIX_H
