@@ -18,6 +18,8 @@ extern "C" {
 #include "matrix.h"
 #include "vector.h"
 
+#define IMAGE_VERSION "1.0.0"
+
 #define CONFIG_JPEG 1
 #define CONFIG_PNG 1
 
