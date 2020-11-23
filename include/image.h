@@ -277,11 +277,17 @@ extern "C" {
 	int mask_show();
 
 // Array Buffer
-	BYTE *image_encode(IMAGE * image);
-	IMAGE *image_decode(BYTE * buffer);
+	typedef struct {
+		BYTE t[2];					// 2 bytes
+		DWORD len;					// 4 bytes, image data size
+		WORD h, w, c, opc;			// 8 bytes
+		WORD crc;					// 2 bytes
+	} AbHead;						// ArrayBuffer Head
+	int image_data_size(IMAGE *image);
 	int image_send(int fd, IMAGE * image);
 	IMAGE *image_recv(int fd);
-	int image_encode_size(IMAGE * image);
+	int image_abhead_encode(IMAGE *image, AbHead *abhead);
+	int image_abhead_decode(BYTE *buffer, AbHead *abhead);
 
 #if defined(__cplusplus)
 }
