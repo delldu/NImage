@@ -281,6 +281,7 @@ extern "C" {
 	IMAGE *image_decode(BYTE * buffer);
 	int image_send(int fd, IMAGE * image);
 	IMAGE *image_recv(int fd);
+	int image_encode_size(IMAGE * image);
 
 #if defined(__cplusplus)
 }

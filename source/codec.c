@@ -97,6 +97,12 @@ int __imghead_encode(ImgHead * head, BYTE * buf)
 	return RET_OK;
 }
 
+int image_encode_size(IMAGE * image)
+{
+	check_image(image);
+	return sizeof(AbHead) + sizeof(ImgHead) + image->height * image->width * sizeof(RGBA_8888);
+}
+
 BYTE *image_encode(IMAGE * image)
 {
 	// Array Buffer == AbHead + ImgHead + Image Data
