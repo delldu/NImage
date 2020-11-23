@@ -126,7 +126,7 @@ int image_send(int fd, IMAGE * image)
 	data_size = image_data_size(image);
 
 	// 1. encode abhead and send
-	if (image_abhead_encode(image, (AbHead *)buffer) != RET_OK) {
+	if (image_abhead_encode(image, buffer) != RET_OK) {
 		syslog_error("Image AbHead encode.");
 	}
 	if (write(fd, buffer, sizeof(AbHead)) != sizeof(AbHead)) {
@@ -143,7 +143,7 @@ int image_send(int fd, IMAGE * image)
 	return RET_OK;
 }
 
-int image_abhead_encode(IMAGE *image, AbHead *abhead)
+int image_abhead_encode(IMAGE *image, BYTE *buffer)
 {
 	AbHead t;
 	ssize_t data_size;
@@ -160,7 +160,7 @@ int image_abhead_encode(IMAGE *image, AbHead *abhead)
 	t.c = 4;
 	t.opc = image->opc;
 
-	return __abhead_encode(&t, (BYTE *)abhead);
+	return __abhead_encode(&t, buffer);
 }
 
 int image_abhead_decode(BYTE * buffer, AbHead *abhead)
