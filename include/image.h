@@ -288,12 +288,14 @@ extern "C" {
 	int abhead_decode(BYTE *buf, AbHead *head);
 	int abhead_encode(AbHead *head, BYTE *buf);
 	int valid_ab(BYTE *buf, size_t size);
+	int image_data_size(IMAGE *image);
 
-	// For Test AB, general AB = AbHead + CxHxW format, but image is HxWxC, so image is just container
+	// For Test AB !!!
+	// Because general AB = AbHead + CxHxW format, but our image is HxWxC, so here 
+	// image is just temperal container, Semantic IS NOT not exactly !!!
 	int image_send(int fd, IMAGE * image);
 	IMAGE *image_recv(int fd);
-	int image_data_size(IMAGE *image);
-	int image_abhead_encode(IMAGE *image, BYTE *buffer);
+	int image_abhead(IMAGE *image, BYTE *buffer);
 	IMAGE *image_fromab(BYTE *buf);
 	BYTE *image_toab(IMAGE *image);
 

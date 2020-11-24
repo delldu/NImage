@@ -44,13 +44,22 @@ extern "C" {
 
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 #define syslog_print(fmt, arg...) fprintf(stderr, fmt, ##arg)
+#if 0
 #define syslog_debug(fmt, arg...)  do { \
 		syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)
 #define syslog_error(fmt, arg...)  do { \
 		syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)
-
+#else
+#define syslog_debug(fmt, arg...)  do { \
+		fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+	} while (0)
+#define syslog_error(fmt, arg...)  do { \
+		fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+	} while (0)
+#endif
+	
 #define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
 
 #define MAKE_FOURCC(a,b,c,d) (((DWORD)(a) << 0) | ((DWORD)(b) << 8) | ((DWORD)(c) << 16) | ((DWORD)(d) << 24))

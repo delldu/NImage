@@ -33,6 +33,14 @@ WORD __abhead_crc16(BYTE * buf, int size)
 	return crc;
 }
 
+inline void __abhead_init(AbHead *abhead)
+{
+	memset(abhead, 0, sizeof(AbHead));
+	abhead->t[0] = 'a';
+	abhead->t[1] = 'b';
+	abhead->c = sizeof(RGBA_8888);
+}
+
 int abhead_decode(BYTE *buf, AbHead *head)
 {
 	// t[2], len-32, crc --16
@@ -132,7 +140,7 @@ int image_send(int fd, IMAGE * image)
 	data_size = image_data_size(image);
 
 	// 1. encode abhead and send
-	if (image_abhead_encode(image, buffer) != RET_OK) {
+	if (image_abhead(image, buffer) != RET_OK) {
 		syslog_error("Image AbHead encode.");
 	}
 	if (write(fd, buffer, sizeof(AbHead)) != sizeof(AbHead)) {
@@ -149,7 +157,7 @@ int image_send(int fd, IMAGE * image)
 	return RET_OK;
 }
 
-int image_abhead_encode(IMAGE *image, BYTE *buffer)
+int image_abhead(IMAGE *image, BYTE *buffer)
 {
 	AbHead t;
 	ssize_t data_size;
@@ -158,8 +166,7 @@ int image_abhead_encode(IMAGE *image, BYTE *buffer)
 	data_size = image_data_size(image);
 
 	// encode abhead
-	t.t[0] = 'a';
-	t.t[1] = 'b';
+	__abhead_init(&t);
 	t.len = data_size;
 	t.h = image->height;
 	t.w = image->width;
@@ -200,7 +207,7 @@ BYTE *image_toab(IMAGE *image)
 		return NULL;
 	}
 
-	image_abhead_encode(image, buf);
+	image_abhead(image, buf);
 	memcpy(buf + sizeof(AbHead), image->base, data_size);
 
 	return buf;

@@ -813,6 +813,7 @@ IMAGE *image_copy(IMAGE * img)
 		memcpy(copy->KColors, img->KColors, ARRAY_SIZE(img->KColors) * sizeof(int));
 		copy->KRadius = img->KRadius;
 		copy->KInstance = img->KInstance;
+		copy->opc = img->opc;
 	}
 	return copy;
 }
