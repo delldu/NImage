@@ -276,18 +276,26 @@ extern "C" {
 	int color_instance_(MASK * image, int KRadius);
 	int mask_show();
 
-// Array Buffer
+//  Array Buffer
+//  Array Buffer == AbHead + Data (CxHxW format)
 	typedef struct {
 		BYTE t[2];					// 2 bytes
-		DWORD len;					// 4 bytes, image data size
+		DWORD len;					// 4 bytes, data size
 		WORD h, w, c, opc;			// 8 bytes
 		WORD crc;					// 2 bytes
 	} AbHead;						// ArrayBuffer Head
-	int image_data_size(IMAGE *image);
+
+	int abhead_decode(BYTE *buf, AbHead *head);
+	int abhead_encode(AbHead *head, BYTE *buf);
+	int valid_ab(BYTE *buf, size_t size);
+
+	// For Test AB, general AB = AbHead + CxHxW format, but image is HxWxC, so image is just container
 	int image_send(int fd, IMAGE * image);
 	IMAGE *image_recv(int fd);
+	int image_data_size(IMAGE *image);
 	int image_abhead_encode(IMAGE *image, BYTE *buffer);
-	int image_abhead_decode(BYTE *buffer, AbHead *abhead);
+	IMAGE *image_fromab(BYTE *buf);
+	BYTE *image_toab(IMAGE *image);
 
 #if defined(__cplusplus)
 }

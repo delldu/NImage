@@ -33,7 +33,7 @@ WORD __abhead_crc16(BYTE * buf, int size)
 	return crc;
 }
 
-int __abhead_decode(BYTE * buf, AbHead *head)
+int abhead_decode(BYTE *buf, AbHead *head)
 {
 	// t[2], len-32, crc --16
 	head->t[0] = buf[0];
@@ -49,7 +49,7 @@ int __abhead_decode(BYTE * buf, AbHead *head)
 			head->crc == __abhead_crc16(buf, 14)) ? RET_OK : RET_ERROR;
 }
 
-int __abhead_encode(AbHead * head, BYTE * buf)
+int abhead_encode(AbHead *head, BYTE *buf)
 {
 	buf[0] = head->t[0];
 	buf[1] = head->t[1];
@@ -72,6 +72,12 @@ int __abhead_encode(AbHead * head, BYTE * buf)
 	return RET_OK;
 }
 
+int valid_ab(BYTE *buf, size_t size)
+{
+	AbHead abhead;
+	return abhead_decode(buf, &abhead) == RET_OK && (abhead.len + sizeof(AbHead) == size)?1 : 0;
+}
+
 int image_data_size(IMAGE *image)
 {
 	return image->height * image->width * sizeof(RGBA_8888);
@@ -89,7 +95,7 @@ IMAGE *image_recv(int fd)
 		return NULL;
 	}
 	// 1. Get abhead ?
-	if (__abhead_decode(headbuf, &abhead) != RET_OK) {
+	if (abhead_decode(headbuf, &abhead) != RET_OK) {
 		syslog_error("Bad AbHead: t = %c%c, len = %d, crc = %x .\n", 
 			abhead.t[0], abhead.t[1], abhead.len, abhead.crc);
 		while (read(fd, headbuf, sizeof(headbuf)) > 0);	// Skip left dirty data ...
@@ -157,14 +163,45 @@ int image_abhead_encode(IMAGE *image, BYTE *buffer)
 	t.len = data_size;
 	t.h = image->height;
 	t.w = image->width;
-	t.c = 4;
+	t.c = sizeof(RGBA_8888);
 	t.opc = image->opc;
 
-	return __abhead_encode(&t, buffer);
+	return abhead_encode(&t, buffer);
 }
 
-int image_abhead_decode(BYTE * buffer, AbHead *abhead)
+IMAGE *image_fromab(BYTE *buf)
 {
-	// Array Buffer == AbHead + Image Data
-	return __abhead_decode(buffer, abhead);
+	IMAGE *image;
+	AbHead abhead;
+
+	if (abhead_decode(buf, &abhead) != RET_OK) {
+		syslog_error("Bad Ab Head.");
+		return NULL;
+	}
+
+	image = image_create(abhead.h, abhead.w); CHECK_IMAGE(image);
+	image->opc = abhead.opc;
+	memcpy(image->base, buf + sizeof(AbHead), abhead.len);
+
+	return image;
+}
+
+BYTE *image_toab(IMAGE *image)
+{
+	BYTE *buf;
+	int data_size;
+
+	CHECK_IMAGE(image);
+
+	data_size = image_data_size(image);
+	buf = (BYTE *)malloc(sizeof(AbHead) + data_size);
+	if (! buf) {
+		syslog_error("Memory allocate.");
+		return NULL;
+	}
+
+	image_abhead_encode(image, buf);
+	memcpy(buf + sizeof(AbHead), image->base, data_size);
+
+	return buf;
 }
