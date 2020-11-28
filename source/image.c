@@ -145,6 +145,9 @@ void image_membind(IMAGE * img, WORD h, WORD w)
 	img->ie = (RGBA_8888 **) (base + sizeof(IMAGE) + (h * w) * sizeof(RGBA_8888));	// Skip head and data
 	for (i = 0; i < h; i++)
 		img->ie[i] = &(img->base[i * w]);
+
+	// Blank image, for png is more import
+	memset(img->base, 255, (h * w) * sizeof(RGBA_8888));
 }
 
 IMAGE *image_create(WORD h, WORD w)
@@ -1788,8 +1791,6 @@ int image_show(IMAGE * image, char *title)
 
 	snprintf(str, sizeof(str) - 1, "/tmp/%s.png", title);
 	image_save(image, str);
-	// xxxx3333
-	// snprintf(str, sizeof(str)-1, "display /tmp/%s.jpg; rm /tmp/%s.jpg", title, title);
 	snprintf(str, sizeof(str) - 1, "display /tmp/%s.png", title);
 
 	return system(str);
