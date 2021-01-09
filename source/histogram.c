@@ -186,7 +186,7 @@ void histogram_dump(HISTOGRAM * h)
 			continue;
 
 		printf("%3d, count: %6d(%10.4f %%), cdf: %10.4f(%5d), map: %3d\n",
-			 i, h->count[i], (double) (100.0 * h->count[i]) / (double) h->total, h->cdf[i],
-			 (int) (h->cdf[i] * h->total), h->map[i]);
+			   i, h->count[i], (double) (100.0 * h->count[i]) / (double) h->total, h->cdf[i],
+			   (int) (h->cdf[i] * h->total), h->map[i]);
 	}
 }

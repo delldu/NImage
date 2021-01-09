@@ -18,22 +18,20 @@ extern "C" {
 
 //  Array Buffer
 //  Array Buffer == AbHead + Data (BxCxHxW format)
-typedef struct {
-	BYTE t[2];					// 2 bytes
-	DWORD len;					// 4 bytes, data size
-	WORD b, c, h, w;			// 8 bytes
-	WORD opc;					// 2 bytes
-	WORD crc;					// 2 bytes
-} AbHead;						// ArrayBuffer Head
+	typedef struct {
+		BYTE t[2];				// 2 bytes
+		DWORD len;				// 4 bytes, data size
+		WORD b, c, h, w;		// 8 bytes
+		WORD opc;				// 2 bytes
+		WORD crc;				// 2 bytes
+	} AbHead;					// ArrayBuffer Head
 
-void abhead_init(AbHead *abhead);
-int valid_ab(BYTE *buf, size_t size);
-int abhead_decode(BYTE *buf, AbHead *head);
-int abhead_encode(AbHead *head, BYTE *buf);
+	void abhead_init(AbHead * abhead);
+	int valid_ab(BYTE * buf, size_t size);
+	int abhead_decode(BYTE * buf, AbHead * head);
+	int abhead_encode(AbHead * head, BYTE * buf);
 
 #if defined(__cplusplus)
 }
 #endif
-
-#endif	// _ABHEAD_H
-
+#endif							// _ABHEAD_H

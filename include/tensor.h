@@ -35,24 +35,21 @@ extern "C" {
 
 	// Support Tensor
 	typedef struct {
-		DWORD magic;		// TENSOR_MAGIC
+		DWORD magic;			// TENSOR_MAGIC
 		WORD batch, chan, height, width;
-		DWORD opc;			// 4 bytes, opc is for RPC request/response
+		WORD opc;				// 2 bytes, opc is for RPC request/response
 		BYTE *base;
 	} TENSOR;
 
-int tensor_valid(TENSOR *tensor);
-TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
-void tensor_destroy(TENSOR *tensor);
+	int tensor_valid(TENSOR * tensor);
+	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
+	void tensor_destroy(TENSOR * tensor);
 
-// xxxx8888
-int tensor_abhead(TENSOR *tensor, BYTE *buffer);
-TENSOR *tensor_fromab(BYTE *buf);
-BYTE *tensor_toab(TENSOR *tensor);
+	int tensor_abhead(TENSOR * tensor, BYTE * buffer);
+	TENSOR *tensor_fromab(BYTE * buf);
+	BYTE *tensor_toab(TENSOR * tensor);
 
 #if defined(__cplusplus)
 }
 #endif
-
-#endif	// _TENSOR_H
-
+#endif							// _TENSOR_H

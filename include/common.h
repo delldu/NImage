@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include <arpa/inet.h>		// Suppot htonl, ntohl etc ...
+#include <arpa/inet.h>			// Suppot htonl, ntohl etc ...
 #include <stdlib.h>
 #include <syslog.h>
 #include <stdarg.h>
@@ -23,9 +23,9 @@ extern "C" {
 #define CONFIG_NNG 1
 
 #ifdef CONFIG_NNG
-	#include <nng/nng.h>
-	#include <nng/protocol/reqrep0/rep.h>
-	#include <nng/protocol/reqrep0/req.h>
+#include <nng/nng.h>
+#include <nng/protocol/reqrep0/rep.h>
+#include <nng/protocol/reqrep0/req.h>
 #endif
 
 
@@ -54,11 +54,11 @@ extern "C" {
 
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 #if 1
-	#define syslog_debug(fmt, arg...)  do { \
-			syslog(LOG_DEBUG, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+#define syslog_debug(fmt, arg...)  do { \
+			syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 		} while (0)
-	#define syslog_error(fmt, arg...)  do { \
-			syslog(LOG_ERR, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+#define syslog_error(fmt, arg...)  do { \
+			syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 		} while (0)
 #else
 #define syslog_debug(fmt, arg...)  do { \
@@ -68,7 +68,7 @@ extern "C" {
 		fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)
 #endif
-	
+
 #define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
 
 // Big Enddian ..

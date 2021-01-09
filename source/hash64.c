@@ -175,7 +175,7 @@ HASH64 image_ahash(IMAGE * image, char oargb, RECT * rect)
 			i2 = (int) (i / bh);
 			j2 = (int) (j / bw);
 			color_rgb2gray(image->ie[i + rect->r][j + rect->c].r,
-			   image->ie[i + rect->r][j + rect->c].g, image->ie[i + rect->r][j + rect->c].b, &n);
+						   image->ie[i + rect->r][j + rect->c].g, image->ie[i + rect->r][j + rect->c].b, &n);
 			n /= 4;				// 64 Level Gray
 			count[i2][j2] += n;
 			avg += n;

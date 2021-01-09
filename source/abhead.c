@@ -29,7 +29,7 @@ WORD __abhead_crc16(BYTE * buf, int size)
 	return crc;
 }
 
-void abhead_init(AbHead *abhead)
+void abhead_init(AbHead * abhead)
 {
 	memset(abhead, 0, sizeof(AbHead));
 	abhead->t[0] = 'a';
@@ -37,13 +37,13 @@ void abhead_init(AbHead *abhead)
 	abhead->c = sizeof(RGBA_8888);
 }
 
-int valid_ab(BYTE *buf, size_t size)
+int valid_ab(BYTE * buf, size_t size)
 {
 	AbHead abhead;
-	return abhead_decode(buf, &abhead) == RET_OK && (abhead.len + sizeof(AbHead) == size)?1 : 0;
+	return abhead_decode(buf, &abhead) == RET_OK && (abhead.len + sizeof(AbHead) == size) ? 1 : 0;
 }
 
-int abhead_decode(BYTE *buf, AbHead *head)
+int abhead_decode(BYTE * buf, AbHead * head)
 {
 	// t[2], len-32, crc --16
 	head->t[0] = buf[0];
@@ -57,13 +57,12 @@ int abhead_decode(BYTE *buf, AbHead *head)
 	head->opc = MAKE_TWOCC(buf[14], buf[15]);
 	head->crc = MAKE_TWOCC(buf[16], buf[17]);
 
-	return (head->t[0] == 'a' && head->t[1] == 'b' && head->len > 0 && 
+	return (head->t[0] == 'a' && head->t[1] == 'b' && head->len > 0 &&
 			head->b > 0 && head->c > 0 && head->c <= 4 &&
-			head->h > 0 && head->w > 0 && 
-			head->crc == __abhead_crc16(buf, 16)) ? RET_OK : RET_ERROR;
+			head->h > 0 && head->w > 0 && head->crc == __abhead_crc16(buf, 16)) ? RET_OK : RET_ERROR;
 }
 
-int abhead_encode(AbHead *head, BYTE *buf)
+int abhead_encode(AbHead * head, BYTE * buf)
 {
 	buf[0] = head->t[0];
 	buf[1] = head->t[1];
@@ -72,7 +71,7 @@ int abhead_encode(AbHead *head, BYTE *buf)
 	buf[3] = GET_FOURCC2(head->len);
 	buf[4] = GET_FOURCC3(head->len);
 	buf[5] = GET_FOURCC4(head->len);
-	
+
 	buf[6] = GET_TWOCC1(head->b);
 	buf[7] = GET_TWOCC2(head->b);
 

@@ -11,10 +11,10 @@
 
 #define TENSOR_MAGIC MAKE_FOURCC('T', 'E', 'N', 'S')
 
-int tensor_valid(TENSOR *tensor)
+int tensor_valid(TENSOR * tensor)
 {
-	return (! tensor || tensor->batch < 1 || tensor->chan < 1 || \
-		tensor->height < 1 || tensor->width < 1 || tensor->magic != TENSOR_MAGIC) ? 0 : 1;
+	return (!tensor || tensor->batch < 1 || tensor->chan < 1 ||
+			tensor->height < 1 || tensor->width < 1 || tensor->magic != TENSOR_MAGIC) ? 0 : 1;
 }
 
 TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
@@ -22,12 +22,12 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	TENSOR *t;
 
 	BYTE *base = (BYTE *) calloc((size_t) 1, sizeof(TENSOR) + b * c * h * w);
-	if (! base) {
+	if (!base) {
 		syslog_error("Allocate memeory.");
 		return NULL;
 	}
-	t = (TENSOR *)base;
-	
+	t = (TENSOR *) base;
+
 	t->batch = b;
 	t->chan = c;
 	t->height = h;
@@ -37,7 +37,7 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	return t;
 }
 
-void tensor_destroy(TENSOR *tensor)
+void tensor_destroy(TENSOR * tensor)
 {
 	if (!tensor_valid(tensor))
 		return;
@@ -45,7 +45,7 @@ void tensor_destroy(TENSOR *tensor)
 	free(tensor);
 }
 
-int tensor_abhead(TENSOR *tensor, BYTE *buffer)
+int tensor_abhead(TENSOR * tensor, BYTE * buffer)
 {
 	AbHead h;
 
@@ -62,7 +62,7 @@ int tensor_abhead(TENSOR *tensor, BYTE *buffer)
 	return abhead_encode(&h, buffer);
 }
 
-TENSOR *tensor_fromab(BYTE *buf)
+TENSOR *tensor_fromab(BYTE * buf)
 {
 	TENSOR *tensor;
 	AbHead abhead;
@@ -72,14 +72,15 @@ TENSOR *tensor_fromab(BYTE *buf)
 		return NULL;
 	}
 
-	tensor = tensor_create(abhead.b, abhead.c, abhead.h, abhead.w); CHECK_TENSOR(tensor);
+	tensor = tensor_create(abhead.b, abhead.c, abhead.h, abhead.w);
+	CHECK_TENSOR(tensor);
 	tensor->opc = abhead.opc;
 	memcpy(tensor->base, buf + sizeof(AbHead), abhead.len);
 
 	return tensor;
 }
 
-BYTE *tensor_toab(TENSOR *tensor)
+BYTE *tensor_toab(TENSOR * tensor)
 {
 	BYTE *buf;
 	int data_size;
@@ -87,8 +88,8 @@ BYTE *tensor_toab(TENSOR *tensor)
 	CHECK_TENSOR(tensor);
 
 	data_size = tensor->batch * tensor->chan * tensor->height * tensor->width;
-	buf = (BYTE *)malloc(sizeof(AbHead) + data_size);
-	if (! buf) {
+	buf = (BYTE *) malloc(sizeof(AbHead) + data_size);
+	if (!buf) {
 		syslog_error("Memory allocate.");
 		return NULL;
 	}
@@ -100,8 +101,7 @@ BYTE *tensor_toab(TENSOR *tensor)
 }
 
 #ifdef CONFIG_NNG
-
-int tensor_send(nng_socket socket, TENSOR *tensor)
+int tensor_send(nng_socket socket, TENSOR * tensor)
 {
 	int ret;
 	nng_msg *msg = NULL;
@@ -126,7 +126,7 @@ int tensor_send(nng_socket socket, TENSOR *tensor)
 	}
 	// nng_msg_free(msg); // NNG_FLAG_ALLOC means "call nng_msg_free auto"
 
-	return RET_OK;	
+	return RET_OK;
 }
 
 TENSOR *tensor_recv(nng_socket socket)
@@ -149,6 +149,58 @@ TENSOR *tensor_recv(nng_socket socket)
 
 	return recv_tensor;
 }
+
+BYTE *tensor_recv_text(nng_socket socket)
+{
+	int ret;
+	BYTE *recv_buf = NULL;
+	size_t recv_size;
+	BYTE *recv_text = NULL;
+
+	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
+		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
+		nng_free(recv_buf, recv_size);	// Bad message received...
+		return NULL;
+	}
+
+	if (valid_ab(recv_buf, recv_size)) {
+		recv_text = (BYTE *)calloc(1, recv_size - sizeof(AbHead) + 1);
+		if (recv_text) {
+			memcpy(recv_text, recv_buf + sizeof(AbHead),  recv_size - sizeof(AbHead));
+		} else {
+			syslog_error("Allocate memory.");
+		}
+	}
+
+	nng_free(recv_buf, recv_size);	// Data has been saved ...
+	return recv_text;
+}
+
+
+TENSOR *rpc_tensor_tensor(nng_socket socket, TENSOR *src, WORD opc)
+{
+	CHECK_TENSOR(src);
+	
+	src->opc = opc;
+	if (tensor_send(socket, src) == RET_OK)
+		return tensor_recv(socket);
+
+	// Else
+	syslog_error("RPC from tensor to tensor.");
+	return NULL;
+}
+
+BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc)
+{
+	CHECK_TENSOR(src);
+	
+	src->opc = opc;
+	if (tensor_send(socket, src) == RET_OK)
+		return tensor_recv_text(socket);
+
+	// Else
+	syslog_error("RPC from tensor to text.");
+	return NULL;
+}
+
 #endif
-
-
