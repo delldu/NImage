@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <arpa/inet.h>		// Suppot htonl, ntohl etc ...
 #include <stdlib.h>
 #include <syslog.h>
 #include <stdarg.h>
@@ -18,6 +19,15 @@ extern "C" {
 #include <stdint.h>
 #include <sys/time.h>
 #include <syslog.h>				// syslog, RFC3164 ?
+
+#define CONFIG_NNG 1
+
+#ifdef CONFIG_NNG
+	#include <nng/nng.h>
+	#include <nng/protocol/reqrep0/rep.h>
+	#include <nng/protocol/reqrep0/req.h>
+#endif
+
 
 #define BYTE uint8_t
 #define WORD uint16_t
@@ -43,14 +53,13 @@ extern "C" {
 
 
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
-#define syslog_print(fmt, arg...) fprintf(stderr, fmt, ##arg)
-#if 0
-#define syslog_debug(fmt, arg...)  do { \
-		syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-	} while (0)
-#define syslog_error(fmt, arg...)  do { \
-		syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-	} while (0)
+#if 1
+	#define syslog_debug(fmt, arg...)  do { \
+			syslog(LOG_DEBUG, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+		} while (0)
+	#define syslog_error(fmt, arg...)  do { \
+			syslog(LOG_ERR, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+		} while (0)
 #else
 #define syslog_debug(fmt, arg...)  do { \
 		fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
@@ -62,11 +71,16 @@ extern "C" {
 	
 #define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
 
-#define MAKE_FOURCC(a,b,c,d) (((DWORD)(a) << 0) | ((DWORD)(b) << 8) | ((DWORD)(c) << 16) | ((DWORD)(d) << 24))
-#define GET_FOURCC1(a) ((BYTE)((a) & 0xff))
-#define GET_FOURCC2(a) ((BYTE)(((a)>>8) & 0xff))
-#define GET_FOURCC3(a) ((BYTE)(((a)>>16) & 0xff))
-#define GET_FOURCC4(a) ((BYTE)(((a)>>24) & 0xff))
+// Big Enddian ..
+#define MAKE_FOURCC(a,b,c,d) (((DWORD)(a) << 24) | ((DWORD)(b) << 16) | ((DWORD)(c) << 8) | ((DWORD)(d) << 0))
+#define GET_FOURCC1(abcd) ((BYTE)(((abcd) >> 24) & 0xff))
+#define GET_FOURCC2(abcd) ((BYTE)(((abcd) >> 16) & 0xff))
+#define GET_FOURCC3(abcd) ((BYTE)(((abcd) >> 8) & 0xff))
+#define GET_FOURCC4(abcd) ((BYTE)(((abcd) >> 0) & 0xff))
+
+#define MAKE_TWOCC(a,b) (((DWORD)(a) << 8) | ((DWORD)(b) << 0))
+#define GET_TWOCC1(ab) ((BYTE)(((ab) >> 8) & 0xff))
+#define GET_TWOCC2(ab) ((BYTE)(((ab) >> 0) & 0xff))
 
 
 	typedef struct {

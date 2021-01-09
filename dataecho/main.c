@@ -14,7 +14,7 @@ int image_service()
 {
 	IMAGE *image;
 
-	image = image_recv(0);
+	image = image_read(0);
 	check_image(image);
 	// Process image ...
 	// switch(request_image->opc) {
@@ -25,7 +25,7 @@ int image_service()
 	// 	default:
 	// 		break;
 	// }
-	image_send(1, image);
+	image_write(1, image);
 
 	image_destroy(image);
 	return RET_OK;

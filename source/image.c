@@ -1392,7 +1392,7 @@ int image_rect_statistics(IMAGE * img, RECT * rect, char orgb, double *avg, doub
 	case 'A':
 		rect_foreach(rect, i, j) {
 			color_rgb2gray(img->ie[rect->r + i][rect->c + j].r,
-						   img->ie[rect->r + i][rect->c + j].g, img->ie[rect->r + i][rect->c + j].b, &n);
+			   img->ie[rect->r + i][rect->c + j].g, img->ie[rect->r + i][rect->c + j].b, &n);
 			davg += n;
 			dstdv += n * n;
 		}
@@ -1490,7 +1490,7 @@ int image_rect_mcenter(IMAGE * img, RECT * rect, char orgb, int *crow, int *ccol
 	case 'A':
 		rect_foreach(rect, i, j) {
 			color_rgb2gray(img->ie[i + rect->r][j + rect->c].r,
-						   img->ie[i + rect->r][j + rect->c].g, img->ie[i + rect->r][j + rect->c].b, &n);
+			   img->ie[i + rect->r][j + rect->c].g, img->ie[i + rect->r][j + rect->c].b, &n);
 			m00 += n;
 			m10 += i * n;
 			m01 += j * n;
@@ -1553,7 +1553,7 @@ IMAGE *image_subimg(IMAGE * img, RECT * rect)
 			sub->ie[i][j].b = img->ie[i + rect->r][j + rect->c].b;
 		}
 	}
-#else							// Fast
+#else // Fast
 	for (i = 0; i < rect->h; i++) {
 		memcpy(&(sub->ie[i][0]), &(img->ie[i + rect->r][rect->c]), sizeof(RGBA_8888) * rect->w);
 	}
@@ -1697,7 +1697,6 @@ int image_clahe(IMAGE * image, int grid_rows, int grid_cols, double limit)
 	return RET_OK;
 }
 
-
 int image_niblack(IMAGE * image, int radius, double scale)
 {
 	int i, j;
@@ -1795,3 +1794,238 @@ int image_show(IMAGE * image, char *title)
 
 	return system(str);
 }
+
+IMAGE *image_fromtensor(TENSOR *tensor, int k)
+{
+	int i, j;
+	IMAGE *image;
+	BYTE *base, *R, *G, *B, *A;
+
+	CHECK_TENSOR(tensor);
+
+	if (k < 0 || k >= tensor->batch) {
+		syslog_error("image index over tensor batch size.");
+		return NULL;
+	}
+
+	image = image_create(tensor->height, tensor->width); CHECK_IMAGE(image);
+	base = tensor->base + k * (tensor->chan * tensor->height * tensor->width);
+	R = base;
+	G = R + tensor->height * tensor->width;
+	B = G + tensor->height * tensor->width;
+	A = B + tensor->height * tensor->width;
+
+	image_foreach(image, i, j) {
+		image->ie[i][j].r = *R++;
+		image->ie[i][j].g = *G++;
+		image->ie[i][j].b = *B++;
+		image->ie[i][j].a = *A++;
+	}
+
+	return image;
+}
+
+int image_totensor(TENSOR *tensor, int k, IMAGE *image)
+{
+	int i, j;
+	BYTE *base, *R, *G, *B, *A;
+
+	check_tensor(tensor);
+	check_image(image);
+
+	if (k < 0 || k >= tensor->batch) {
+		syslog_error("image index over tensor batch size.");
+		return RET_ERROR;
+	}
+
+	base = tensor->base + k * (tensor->chan * tensor->height * tensor->width);
+	R = base;
+	G = R + tensor->height * tensor->width;
+	B = G + tensor->height * tensor->width;
+	A = B + tensor->height * tensor->width;
+
+	image_foreach(image, i, j) {
+		*R++ = image->ie[i][j].r;
+		*G++ = image->ie[i][j].g;
+		*B++ = image->ie[i][j].b;
+		*A++ = image->ie[i][j].a;
+	}	
+
+	return RET_OK;
+}
+
+IMAGE *image_fromab(BYTE *buf)
+{
+	IMAGE *image;
+	AbHead abhead;
+
+	if (abhead_decode(buf, &abhead) != RET_OK) {
+		syslog_error("Bad Ab Head.");
+		return NULL;
+	}
+
+	image = image_create(abhead.h, abhead.w); CHECK_IMAGE(image);
+	image->opc = abhead.opc;
+	memcpy(image->base, buf + sizeof(AbHead), abhead.len);
+
+	return image;
+}
+
+BYTE *image_toab(IMAGE *image)
+{
+	BYTE *buf;
+	int data_size;
+
+	CHECK_IMAGE(image);
+
+	data_size = image->height * image->width * sizeof(RGBA_8888);
+	buf = (BYTE *)malloc(sizeof(AbHead) + data_size);
+	if (! buf) {
+		syslog_error("Memory allocate.");
+		return NULL;
+	}
+
+	image_abhead(image, buf);
+	memcpy(buf + sizeof(AbHead), image->base, data_size);
+
+	return buf;
+}
+
+#if 0
+IMAGE *image_read(int fd)
+{
+	AbHead abhead;
+	IMAGE *image;
+	ssize_t n, data_size;
+	BYTE headbuf[sizeof(AbHead)], *databuf;
+
+	if (read(fd, headbuf, sizeof(AbHead)) != sizeof(AbHead)) {
+		syslog_error("Reading arraybuffer head.\n");
+		return NULL;
+	}
+	// 1. Get abhead ?
+	if (abhead_decode(headbuf, &abhead) != RET_OK) {
+		syslog_error("Bad AbHead: t = %c%c, len = %d, crc = %x .\n", 
+			abhead.t[0], abhead.t[1], abhead.len, abhead.crc);
+		while (read(fd, headbuf, sizeof(headbuf)) > 0);	// Skip left dirty data ...
+
+		return NULL;
+	}
+	// 2. Get image data
+	image = image_create(abhead.h, abhead.w); CHECK_IMAGE(image);
+	image->opc = abhead.opc;	// Save RPC Method
+	data_size = image->height * image->width * sizeof(RGBA_8888);
+	databuf = (BYTE *) image->base;
+	n = 0;
+	while (n < data_size) {
+		n += read(fd, databuf + n, data_size - n);
+		if (n <= 0)
+			break;
+	}
+	if (n != data_size) {
+		syslog_error("Received %ld bytes image data -- expect %ld !!!\n", n, data_size);
+		image_destroy(image);
+		return NULL;
+	}
+
+	return image;
+}
+
+int image_write(int fd, IMAGE * image)
+{
+	ssize_t data_size;
+	BYTE buffer[sizeof(AbHead)];
+
+	check_image(image);
+
+	data_size = image->height * image->width * sizeof(RGBA_8888);
+
+	// 1. encode abhead and send
+	if (image_abhead(image, buffer) != RET_OK) {
+		syslog_error("Image AbHead encode.");
+	}
+	if (write(fd, buffer, sizeof(AbHead)) != sizeof(AbHead)) {
+		syslog_error("Write AbHead.");
+		return RET_ERROR;
+	}
+
+	// 2. send data
+	if (write(fd, image->base, data_size) != data_size) {
+		syslog_error("Write image data.");
+		return RET_ERROR;
+	}
+
+	return RET_OK;
+}
+#endif
+
+int image_abhead(IMAGE *image, BYTE *buffer)
+{
+	AbHead t;
+	check_image(image);
+
+	// encode abhead
+	abhead_init(&t);
+	t.len = image->height * image->width * sizeof(RGBA_8888);
+	t.b = 1;
+	t.c = sizeof(RGBA_8888);
+	t.h = image->height;
+	t.w = image->width;
+	t.opc = image->opc;
+
+	return abhead_encode(&t, buffer);
+}
+
+
+#ifdef CONFIG_NNG
+
+int image_send(nng_socket socket, IMAGE *image)
+{
+	int ret;
+	nng_msg *msg = NULL;
+	BYTE head_buf[sizeof(AbHead)];
+	size_t send_size;
+
+	check_image(image);
+	image_abhead(image, head_buf);
+	if ((ret = nng_msg_alloc(&msg, 0)) != 0) {
+		syslog_error("nng_msg_alloc: return code = %d, message = %s", ret, nng_strerror(ret));
+	}
+	if ((ret = nng_msg_append(msg, head_buf, sizeof(AbHead))) != 0) {
+		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+	}
+	send_size = image->height * image->width * sizeof(RGBA_8888);
+	if ((ret = nng_msg_append(msg, image->base, send_size)) != 0) {
+		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+	}
+	if ((ret = nng_sendmsg(socket, msg, NNG_FLAG_ALLOC)) != 0) {
+		syslog_error("nng_sendmsg: return code = %d, message = %s", ret, nng_strerror(ret));
+	}
+	// nng_msg_free(msg); // NNG_FLAG_ALLOC will "call nng_msg_free auto"
+
+	return RET_OK;	
+}
+
+IMAGE *image_recv(nng_socket socket)
+{
+	int ret;
+	BYTE *recv_buf = NULL;
+	size_t recv_size;
+	IMAGE *recv_image = NULL;
+
+	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
+		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
+		nng_free(recv_buf, recv_size);	// Bad message received...
+		return NULL;
+	}
+
+	if (valid_ab(recv_buf, recv_size))
+		recv_image = image_fromab(recv_buf);
+
+	nng_free(recv_buf, recv_size);	// Data has been saved ...
+
+	return recv_image;
+}
+#endif
+
+

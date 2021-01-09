@@ -117,7 +117,7 @@ int mask_valid(MASK * img)
 int color_instance_(MASK * image, int KRadius)
 {
 	// KRadius -- radius, define neighbours
-	int i, j, instance, H, W, count, noise_row, noise_col;
+	int i, j, instance, H, W, noise_row, noise_col;
 
 	check_mask(image);
 
@@ -200,9 +200,6 @@ int mask_show(MASK * mask)
 	return RET_OK;
 }
 
-
-
-
 int mask_refine(MASK * semantic, MASK * color)
 {
 	MATRIX *mat;				// Insection matrix
@@ -219,6 +216,8 @@ int mask_refine(MASK * semantic, MASK * color)
 	return RET_OK;
 }
 
+
+#if 0
 // box select
 int mask_drag(MASK * mask, RECT * rect)
 {
@@ -232,3 +231,4 @@ int mask_click(MASK * mask, int row, int col)
 	check_mask(mask);
 	return RET_OK;
 }
+#endif

@@ -133,7 +133,7 @@ static void __canny_edgetrace(IMAGE * img, double hr, double lr)
 	char *p = getenv("CANNY_EDGE_MIN_DOTS");
 	int min_edge_dots = (p) ? atoi(p) : 4;
 
-	syslog_print("CANNY_EDGE_MIN_DOTS = %d\n", min_edge_dots);
+	printf("CANNY_EDGE_MIN_DOTS = %d\n", min_edge_dots);
 
 	for (i = 1; i < (int) img->height - 1; i++) {
 		for (j = 1; j < (int) img->width - 1; j++) {
@@ -713,7 +713,7 @@ int shape_bestedge(IMAGE * img)
 	hr = (p) ? atof(p) : 0.80;
 	p = getenv("CANNY_EDGE_LO_THRESHOLD");
 	lr = (p) ? atof(p) : 0.75;
-	syslog_print("CANNY_EDGE_HI_THRESHOLD = %f, CANNY_EDGE_LO_THRESHOLD = %f\n", hr, lr);
+	printf("CANNY_EDGE_HI_THRESHOLD = %f, CANNY_EDGE_LO_THRESHOLD = %f\n", hr, lr);
 	ret = __canny_edge_detect(img, hr, lr);
 	image_foreach(img, i, j) {
 		if (img->ie[i][j].b == 255)

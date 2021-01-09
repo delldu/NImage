@@ -16,7 +16,7 @@ INCS	:= \
 	-I/usr/local/include
 
 SOURCE :=  \
-	source/codec.c \
+	source/abhead.c \
 	source/color.c \
 	source/frame.c \
 	source/hough.c \
@@ -34,7 +34,8 @@ SOURCE :=  \
 	source/hash64.c \
 	source/retinex.c \
 	source/histogram.c \
-	source/mask.c
+	source/mask.c \
+	source/tensor.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra

@@ -180,13 +180,13 @@ void histogram_dump(HISTOGRAM * h)
 {
 	int i;
 
-	syslog_print("Histogram:\n");
+	printf("Histogram:\n");
 	for (i = 0; i < HISTOGRAM_MAX_COUNT; i++) {
 		if (h->count[i] < 1)
 			continue;
 
-		syslog_print("%3d, count: %6d(%10.4f %%), cdf: %10.4f(%5d), map: %3d\n",
-					 i, h->count[i], (double) (100.0 * h->count[i]) / (double) h->total, h->cdf[i],
-					 (int) (h->cdf[i] * h->total), h->map[i]);
+		printf("%3d, count: %6d(%10.4f %%), cdf: %10.4f(%5d), map: %3d\n",
+			 i, h->count[i], (double) (100.0 * h->count[i]) / (double) h->total, h->cdf[i],
+			 (int) (h->cdf[i] * h->total), h->map[i]);
 	}
 }

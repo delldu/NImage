@@ -17,6 +17,8 @@ extern "C" {
 #include "common.h"
 #include "matrix.h"
 #include "vector.h"
+#include "abhead.h"
+#include "tensor.h"
 
 #define IMAGE_VERSION "1.0.0"
 
@@ -41,7 +43,8 @@ extern "C" {
 
 	typedef struct {
 		DWORD magic;			// IMAGE_MAGIC
-		int height, width, format, opc;	// opc is for RPC request/response
+		WORD height, width, format;
+		DWORD opc;				// 4 Bytes, opc is for RPC request/response
 		RGBA_8888 **ie, *base;
 
 		// Extentend for cluster & color mask
@@ -276,28 +279,29 @@ extern "C" {
 	int color_instance_(MASK * image, int KRadius);
 	int mask_show();
 
-//  Array Buffer
-//  Array Buffer == AbHead + Data (CxHxW format)
-	typedef struct {
-		BYTE t[2];					// 2 bytes
-		DWORD len;					// 4 bytes, data size
-		WORD h, w, c, opc;			// 8 bytes
-		WORD crc;					// 2 bytes
-	} AbHead;						// ArrayBuffer Head
-
-	int abhead_decode(BYTE *buf, AbHead *head);
-	int abhead_encode(AbHead *head, BYTE *buf);
-	int valid_ab(BYTE *buf, size_t size);
-	int image_data_size(IMAGE *image);
-
+#if 0
 	// For Test AB !!!
 	// Because general AB = AbHead + CxHxW format, but our image is HxWxC, so here 
 	// image is just temperal container, Semantic IS NOT not exactly !!!
-	int image_send(int fd, IMAGE * image);
-	IMAGE *image_recv(int fd);
+	int image_write(int fd, IMAGE * image);
+	IMAGE *image_read(int fd);
+#endif
 	int image_abhead(IMAGE *image, BYTE *buffer);
 	IMAGE *image_fromab(BYTE *buf);
 	BYTE *image_toab(IMAGE *image);
+
+IMAGE *image_fromtensor(TENSOR *tensor, int k);
+int image_totensor(TENSOR *tensor, int k, IMAGE *image);
+
+
+#ifdef CONFIG_NNG
+	IMAGE *image_recv(nng_socket socket);
+	int image_send(nng_socket socket, IMAGE *image);
+
+	TENSOR *tensor_recv(nng_socket socket);
+	int tensor_send(nng_socket socket, TENSOR *tensor);
+#endif
+
 
 #if defined(__cplusplus)
 }

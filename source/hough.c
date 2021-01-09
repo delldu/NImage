@@ -103,7 +103,7 @@ static int __hough_line(IMAGE * image, int threshold, int debug)
 			line_put((int) begrow->me[i][j], (int) begcol->me[i][j], (int) endrow->me[i][j], (int) endcol->me[i][j]);
 			if (debug)
 				image_drawline(image, (int) begrow->me[i][j], (int) begcol->me[i][j], (int) endrow->me[i][j],
-							   (int) endcol->me[i][j], 0x00ffff);
+				   (int) endcol->me[i][j], 0x00ffff);
 		}
 	}
 
