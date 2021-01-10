@@ -1799,7 +1799,7 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 {
 	int i, j;
 	IMAGE *image;
-	BYTE *base, *R, *G, *B, *A;
+	BYTE *R, *G, *B, *A;
 
 	CHECK_TENSOR(tensor);
 
@@ -1810,8 +1810,7 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 
 	image = image_create(tensor->height, tensor->width);
 	CHECK_IMAGE(image);
-	base = tensor->base + k * (tensor->chan * tensor->height * tensor->width);
-	R = base;
+	R = tensor->base + k * (tensor->chan * tensor->height * tensor->width);
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
 	A = B + tensor->height * tensor->width;
@@ -1830,15 +1829,14 @@ TENSOR *tensor_from_image(IMAGE *image)
 {
 	int i, j;
 	TENSOR *tensor;
-	BYTE *base, *R, *G, *B, *A;
+	BYTE *R, *G, *B, *A;
 
 	CHECK_IMAGE(image);
 
 	tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
 	CHECK_TENSOR(tensor);
 
-	base = tensor->base;
-	R = base;
+	R = tensor->base;
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
 	A = B + tensor->height * tensor->width;
