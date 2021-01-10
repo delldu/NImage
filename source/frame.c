@@ -115,7 +115,7 @@ FRAME *frame_create(DWORD fmt, WORD width, WORD height)
 	FRAME *f;
 
 	if (!frame_goodfmt(fmt)) {
-		syslog_error("Unsupport format.");
+		syslog_error("Bad frame format.");
 		return NULL;
 	}
 
@@ -218,7 +218,7 @@ DWORD frame_format(char *name)
 	else if (strcasecmp(name, "RGBA32") == 0)
 		format = FRAME_FMT_RGBA32;
 	else
-		syslog_error("Unkown video format %s.\n", name);
+		syslog_error("Bad video format %s.\n", name);
 
 	return format;
 }

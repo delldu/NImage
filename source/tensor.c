@@ -106,7 +106,7 @@ BYTE *tensor_toab(TENSOR * tensor)
 	data_size = tensor->batch * tensor->chan * tensor->height * tensor->width;
 	buf = (BYTE *) malloc(sizeof(AbHead) + data_size);
 	if (!buf) {
-		syslog_error("Memory allocate.");
+		syslog_error("Allocate memory.");
 		return NULL;
 	}
 
@@ -174,7 +174,7 @@ TENSOR *rpc_tensor_tensor(nng_socket socket, TENSOR *src, WORD opc)
 	CHECK_TENSOR(src);
 
 	if (RPC_IS_TENSOR_TEXT(opc)) {
-		syslog_error("RPC opc 0x%x is not for tensor to tensor.", opc);
+		syslog_error("Bad RPC opc 0x%x(from tensor to tensor).", opc);
 		return NULL;
 	}
 	src->opc = opc;
@@ -191,7 +191,7 @@ BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc)
 	CHECK_TENSOR(src);
 
 	if (! RPC_IS_TENSOR_TEXT(opc)) {
-		syslog_error("RPC opc 0x%x is not for tensor to text.", opc);
+		syslog_error("Bad RPC opc 0x%x(from tensor to text).", opc);
 		return NULL;
 	}
 	src->opc = opc;

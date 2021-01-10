@@ -42,7 +42,7 @@ VECTOR *texture_vector(IMAGE * img, RECT * rect, int ndim)
 	CHECK_IMAGE(img);
 
 	if (ndim > 256) {
-		syslog_error("NOT support dimension %d.", ndim);
+		syslog_error("Bad dimension %d.", ndim);
 		return NULL;
 	}
 

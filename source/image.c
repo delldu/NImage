@@ -637,13 +637,13 @@ IMAGE *image_loadpng(char *fname)
 	row_bytes = png_get_rowbytes(png_ptr, info_ptr);
 
 	if ((png_pixels = (png_byte *) malloc(row_bytes * height * sizeof(png_byte))) == NULL) {
-		syslog_error("Alloc memeory.");
+		syslog_error("Allocate memeory.");
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 		return NULL;
 	}
 
 	if ((row_pointers = (png_byte **) malloc(height * sizeof(png_bytep))) == NULL) {
-		syslog_error("Alloc memeory.");
+		syslog_error("Allocate memeory.");
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 		free(png_pixels);
 		png_pixels = NULL;
@@ -1829,8 +1829,8 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 TENSOR *tensor_from_image(IMAGE *image)
 {
 	int i, j;
-	BYTE *base;
 	TENSOR *tensor;
+	BYTE *base, *R, *G, *B, *A;
 
 	CHECK_IMAGE(image);
 
@@ -1838,11 +1838,15 @@ TENSOR *tensor_from_image(IMAGE *image)
 	CHECK_TENSOR(tensor);
 
 	base = tensor->base;
+	R = base;
+	G = R + tensor->height * tensor->width;
+	B = G + tensor->height * tensor->width;
+	A = B + tensor->height * tensor->width;
 	image_foreach(image, i, j) {
-		*base++ = image->ie[i][j].r;
-		*base++ = image->ie[i][j].g;
-		*base++ = image->ie[i][j].b;
-		*base++ = image->ie[i][j].a;
+		*R++ = image->ie[i][j].r;
+		*G++ = image->ie[i][j].g;
+		*B++ = image->ie[i][j].b;
+		*A++ = image->ie[i][j].a;
 	}
 	
 	return tensor;
@@ -1877,7 +1881,7 @@ BYTE *image_toab(IMAGE * image)
 	data_size = image->height * image->width * sizeof(RGBA_8888);
 	buf = (BYTE *) malloc(sizeof(AbHead) + data_size);
 	if (!buf) {
-		syslog_error("Memory allocate.");
+		syslog_error("Allocate memory.");
 		return NULL;
 	}
 
@@ -1896,7 +1900,7 @@ IMAGE *image_read(int fd)
 	BYTE headbuf[sizeof(AbHead)], *databuf;
 
 	if (read(fd, headbuf, sizeof(AbHead)) != sizeof(AbHead)) {
-		syslog_error("Reading arraybuffer head.\n");
+		syslog_error("Reading array buffer head.\n");
 		return NULL;
 	}
 	// 1. Get abhead ?

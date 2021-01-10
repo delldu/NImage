@@ -515,7 +515,7 @@ VECTOR *shape_vector(IMAGE * img, RECT * rect, int ndim)
 
 	CHECK_IMAGE(img);
 	if (ndim > 360) {
-		syslog_error("NOT support dimension %d.", ndim);
+		syslog_error("Bad dimension %d.", ndim);
 		return NULL;
 	}
 	vec = vector_create(ndim);

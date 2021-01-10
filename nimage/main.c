@@ -48,7 +48,7 @@ TENSOR *tensor_tensor_service(TENSOR *src)
 			dst = tensor_copy(src);
 			break;
 		default:
-			syslog_error("NO Implemented service 0x%x.", src->opc);
+			syslog_error("Bad service opc 0x%x.", src->opc);
 			break;
 	}
 
@@ -72,7 +72,7 @@ BYTE *tensor_text_service(TENSOR *src)
 			snprintf((char *)response, RPC_MAX_TEXT_LENGTH - 1, "Image NIMA 5.50");
 			break;
 		default:
-			syslog_error("NO Implemented service 0x%x.", src->opc);
+			syslog_error("Bad service opc 0x%x.", src->opc);
 			break;
 	}
 
@@ -92,12 +92,12 @@ int server()
 	// sudo journalctl -u image.service -n 10
 	syslog_info("Start image service on %s ...\n", URL);
 	if ((ret = nng_rep0_open(&socket)) != 0) {
-		syslog_error("nng_rep0_open: : return code = %d, message = %s", ret, nng_strerror(ret));
+		syslog_error("nng_rep0_open: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
 
 	if ((ret = nng_listen(socket, URL, NULL, 0)) != 0) {
-		syslog_error("nng_listen: : return code = %d, message = %s", ret, nng_strerror(ret));
+		syslog_error("nng_listen: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
 
@@ -145,11 +145,11 @@ int client(char *input_file, WORD opc, char *output_file)
 	BYTE *r_text = NULL;
 
 	if ((ret = nng_req0_open(&socket)) != 0) {
-		syslog_error("nng_socket: : return code = %d, message = %s", ret, nng_strerror(ret));
+		syslog_error("nng_socket: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
 	if ((ret = nng_dial(socket, URL, NULL, 0)) != 0) {
-		syslog_error("nng_dial: : return code = %d, message = %s", ret, nng_strerror(ret));
+		syslog_error("nng_dial: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
 
