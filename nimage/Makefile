@@ -15,7 +15,7 @@ SOURCE :=  \
 
 INCS	:=
 	#  -I$(BUILD_DIR)/include
-LIBS	:=  -lnng -lpthread -lnimage -ljpeg -lpng -lm
+LIBS	:=  -lnng -lnimage -lpthread -ljpeg -lpng -lm
 	#-L$(BUILD_DIR)/lib -lstd... -lstdc++
 
 DEFINES :=
