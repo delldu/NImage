@@ -6,6 +6,7 @@
 
 #include "abhead.h"
 #include "image.h"
+#include "config.h"
 
 #define CRC_CCITT_POLY 0x1021	// CRC-CCITT, polynormial 0x1021.
 // 0x31 0x32 0x33 0x34 0x35 0x36 ==> 0x20E4
@@ -93,3 +94,67 @@ int abhead_encode(AbHead * head, BYTE * buf)
 
 	return RET_OK;
 }
+
+#ifdef CONFIG_NNG
+int text_send(nng_socket socket, BYTE *buf, int size)
+{
+	int ret;
+	AbHead h;
+	nng_msg *msg = NULL;
+	BYTE head_buf[sizeof(AbHead)];
+
+	abhead_init(&h);
+	h.len = size;
+	h.b = h.c = h.h = 1;
+	h.w = size;
+	h.opc = 0;
+	abhead_encode(&h, head_buf);
+
+	if ((ret = nng_msg_alloc(&msg, 0)) != 0) {
+		syslog_error("nng_msg_alloc: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
+	}
+	if ((ret = nng_msg_append(msg, head_buf, sizeof(AbHead))) != 0) {
+		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
+	}
+	if ((ret = nng_msg_append(msg, buf, size)) != 0) {
+		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
+	}
+	if ((ret = nng_sendmsg(socket, msg, NNG_FLAG_ALLOC)) != 0) {
+		syslog_error("nng_sendmsg: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
+	}
+	// nng_msg_free(msg); // NNG_FLAG_ALLOC means "call nng_msg_free auto"
+
+	return RET_OK;
+}
+
+BYTE *text_recv(nng_socket socket, int *size)
+{
+	int ret;
+	BYTE *recv_buf = NULL;
+	size_t recv_size;
+	BYTE *s = NULL;
+
+	*size = 0;
+	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
+		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
+		nng_free(recv_buf, recv_size);	// Bad message received...
+		return NULL;
+	}
+
+	if (valid_ab(recv_buf, recv_size)) {
+		s = (BYTE *)calloc(1, recv_size - sizeof(AbHead) + 1);
+		if (s) {
+			*size = recv_size - sizeof(AbHead);
+			memcpy(s, recv_buf + sizeof(AbHead),  *size);
+		}
+	}
+
+	nng_free(recv_buf, recv_size);	// Message has been saved ...
+	return s;
+}
+
+#endif

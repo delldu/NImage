@@ -1795,7 +1795,7 @@ int image_show(IMAGE * image, char *title)
 	return system(str);
 }
 
-IMAGE *image_fromtensor(TENSOR * tensor, int k)
+IMAGE *image_from_tensor(TENSOR * tensor, int k)
 {
 	int i, j;
 	IMAGE *image;
@@ -1826,34 +1826,28 @@ IMAGE *image_fromtensor(TENSOR * tensor, int k)
 	return image;
 }
 
-int image_totensor(TENSOR * tensor, int k, IMAGE * image)
+TENSOR *tensor_from_image(IMAGE *image)
 {
 	int i, j;
-	BYTE *base, *R, *G, *B, *A;
+	BYTE *base;
+	TENSOR *tensor;
 
-	check_tensor(tensor);
-	check_image(image);
+	CHECK_IMAGE(image);
 
-	if (k < 0 || k >= tensor->batch) {
-		syslog_error("image index over tensor batch size.");
-		return RET_ERROR;
-	}
+	tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
+	CHECK_TENSOR(tensor);
 
-	base = tensor->base + k * (tensor->chan * tensor->height * tensor->width);
-	R = base;
-	G = R + tensor->height * tensor->width;
-	B = G + tensor->height * tensor->width;
-	A = B + tensor->height * tensor->width;
-
+	base = tensor->base;
 	image_foreach(image, i, j) {
-		*R++ = image->ie[i][j].r;
-		*G++ = image->ie[i][j].g;
-		*B++ = image->ie[i][j].b;
-		*A++ = image->ie[i][j].a;
+		*base++ = image->ie[i][j].r;
+		*base++ = image->ie[i][j].g;
+		*base++ = image->ie[i][j].b;
+		*base++ = image->ie[i][j].a;
 	}
-
-	return RET_OK;
+	
+	return tensor;
 }
+
 
 IMAGE *image_fromab(BYTE * buf)
 {
@@ -1991,16 +1985,21 @@ int image_send(nng_socket socket, IMAGE * image)
 	image_abhead(image, head_buf);
 	if ((ret = nng_msg_alloc(&msg, 0)) != 0) {
 		syslog_error("nng_msg_alloc: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	if ((ret = nng_msg_append(msg, head_buf, sizeof(AbHead))) != 0) {
 		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
+
 	send_size = image->height * image->width * sizeof(RGBA_8888);
 	if ((ret = nng_msg_append(msg, image->base, send_size)) != 0) {
 		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	if ((ret = nng_sendmsg(socket, msg, NNG_FLAG_ALLOC)) != 0) {
 		syslog_error("nng_sendmsg: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	// nng_msg_free(msg); // NNG_FLAG_ALLOC will "call nng_msg_free auto"
 

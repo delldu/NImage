@@ -31,6 +31,11 @@ extern "C" {
 	int abhead_decode(BYTE * buf, AbHead * head);
 	int abhead_encode(AbHead * head, BYTE * buf);
 
+#ifdef CONFIG_NNG
+	int text_send(nng_socket socket, BYTE *buf, int size);
+	BYTE *text_recv(nng_socket socket, int *size);
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

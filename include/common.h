@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include "config.h"
+
 #include <arpa/inet.h>			// Suppot htonl, ntohl etc ...
 #include <stdlib.h>
 #include <syslog.h>
@@ -20,14 +22,11 @@ extern "C" {
 #include <sys/time.h>
 #include <syslog.h>				// syslog, RFC3164 ?
 
-#define CONFIG_NNG 1
-
 #ifdef CONFIG_NNG
 #include <nng/nng.h>
 #include <nng/protocol/reqrep0/rep.h>
 #include <nng/protocol/reqrep0/req.h>
 #endif
-
 
 #define BYTE uint8_t
 #define WORD uint16_t
@@ -53,7 +52,10 @@ extern "C" {
 
 
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
-#if 1
+#if 0
+#define syslog_info(fmt, arg...)  do { \
+			syslog(LOG_INFO, "Info: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+		} while (0)
 #define syslog_debug(fmt, arg...)  do { \
 			syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 		} while (0)
@@ -61,6 +63,9 @@ extern "C" {
 			syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 		} while (0)
 #else
+#define syslog_info(fmt, arg...)  do { \
+		fprintf(stderr, "Info: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+	} while (0)
 #define syslog_debug(fmt, arg...)  do { \
 		fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
 	} while (0)

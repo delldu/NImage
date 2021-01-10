@@ -20,10 +20,9 @@ extern "C" {
 #include "abhead.h"
 #include "tensor.h"
 
-#define IMAGE_VERSION "1.0.0"
+#include "config.h"
 
-#define CONFIG_JPEG 1
-#define CONFIG_PNG 1
+#define IMAGE_VERSION "1.0.0"
 
 	typedef struct {
 		BYTE r, g, b, a;
@@ -290,9 +289,8 @@ extern "C" {
 	IMAGE *image_fromab(BYTE * buf);
 	BYTE *image_toab(IMAGE * image);
 
-	IMAGE *image_fromtensor(TENSOR * tensor, int k);
-	int image_totensor(TENSOR * tensor, int k, IMAGE * image);
-
+	IMAGE *image_from_tensor(TENSOR * tensor, int k);
+	TENSOR *tensor_from_image(IMAGE *image);
 
 #ifdef CONFIG_NNG
 	// Local functions are good enough, so following rpc functions removed:
@@ -304,20 +302,20 @@ extern "C" {
 	// --------------------------------------------------------------------
 	// RPC--(INPUT:Tensor)--(Output:Tensor)--OPC
 
-	#define RPC_TENSOR_TENSOR_HELLO 0x0000
-
 	#define RPC_TENSOR_TENSOR_IMAGE_CLEAN 0x1001
 	#define RPC_TENSOR_TENSOR_IMAGE_COLOR 0X1002
 	#define RPC_TENSOR_TENSOR_IMAGE_ZOOM  0x1003
 	#define RPC_TENSOR_TENSOR_IMAGE_PATCH 0x1004
-	#define RPC_IMAGE_TEXT_IMAGE_NIMA     0x1005
-	#define RPC_IMAGE_IMAGE_FACE_EDIT     0x1006
+	#define RPC_TENSOR_TEXT_IMAGE_NIMA    0x1005
+	#define RPC_TENSOR_TENSOR_FACE_EDIT   0x1006
 
 	#define RPC_TENSOR_TENSOR_VIDEO_CLEAN 0x2001
 	#define RPC_TENSOR_TENSOR_VIDEO_COLOR 0X2002
 	#define RPC_TENSOR_TENSOR_VIDEO_ZOOM  0x2003
 	#define RPC_TENSOR_TENSOR_VIDEO_SLOW  0x2004
 	#define RPC_TENSOR_TENSOR_VIDEO_TRACK  0x2005
+
+	#define RPC_IS_TENSOR_TEXT(opc) (opc == RPC_TENSOR_TEXT_IMAGE_NIMA)
 
 	IMAGE *image_recv(nng_socket socket);
 	int image_send(nng_socket socket, IMAGE * image);

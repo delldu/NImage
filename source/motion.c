@@ -267,7 +267,6 @@ static int object_search(MATRIX * mat)
 	matrix_integrate(mat);
 	r = mat->me[mat->m - 1][mat->n - 1] * OBJECT_DETECTION_LO_THRESHOLD;	// 4*sigma
 	object_min_points = MAX((int) r, OBJECT_DETECTION_MIN_POINTS);
-	// CheckPoint("object_min_points = %d, r = %f", object_min_points, r);
 
 	object_finding(mat, &rect);
 

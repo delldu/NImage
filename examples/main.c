@@ -10,9 +10,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define CheckPoint(fmt, args...) printf("CheckPoint: %d(%s), " fmt "\n", __LINE__, __FILE__, ##args)
-
-
 typedef struct applet_s {
 	char *name;
 	int (*main) (int argc, char **argv);

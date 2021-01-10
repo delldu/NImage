@@ -147,7 +147,7 @@ int color_instance_(MASK * image, int KRadius)
 	}
 	image->KRadius = KRadius;
 	image->KInstance = instance;
-	CheckPoint("image->KInstance: %d", instance);
+	// CheckPoint("image->KInstance: %d", instance);
 
 	return RET_OK;
 }

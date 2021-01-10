@@ -8,6 +8,7 @@
 
 #include "tensor.h"
 #include "abhead.h"
+#include "image.h"
 
 #define TENSOR_MAGIC MAKE_FOURCC('T', 'E', 'N', 'S')
 
@@ -28,6 +29,7 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	}
 	t = (TENSOR *) base;
 
+	t->magic = TENSOR_MAGIC;
 	t->batch = b;
 	t->chan = c;
 	t->height = h;
@@ -35,6 +37,20 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	t->base = base + sizeof(TENSOR);
 
 	return t;
+}
+
+TENSOR *tensor_copy(TENSOR *src)
+{
+	TENSOR *dst;
+
+	CHECK_TENSOR(src);
+
+	dst = tensor_create(src->batch, src->chan, src->height, src->width);
+	if (tensor_valid(dst)) {
+		memcpy(dst->base, src->base, src->batch * src->chan * src->height * src->width);
+	}
+	
+	return dst;
 }
 
 void tensor_destroy(TENSOR * tensor)
@@ -113,16 +129,20 @@ int tensor_send(nng_socket socket, TENSOR * tensor)
 	tensor_abhead(tensor, head_buf);
 	if ((ret = nng_msg_alloc(&msg, 0)) != 0) {
 		syslog_error("nng_msg_alloc: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	if ((ret = nng_msg_append(msg, head_buf, sizeof(AbHead))) != 0) {
 		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	send_size = tensor->batch * tensor->chan * tensor->height * tensor->width;
 	if ((ret = nng_msg_append(msg, tensor->base, send_size)) != 0) {
 		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	if ((ret = nng_sendmsg(socket, msg, NNG_FLAG_ALLOC)) != 0) {
 		syslog_error("nng_sendmsg: return code = %d, message = %s", ret, nng_strerror(ret));
+		return RET_ERROR;
 	}
 	// nng_msg_free(msg); // NNG_FLAG_ALLOC means "call nng_msg_free auto"
 
@@ -134,71 +154,50 @@ TENSOR *tensor_recv(nng_socket socket)
 	int ret;
 	BYTE *recv_buf = NULL;
 	size_t recv_size;
-	TENSOR *recv_tensor = NULL;
+	TENSOR *t = NULL;
 
 	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
 		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
 		nng_free(recv_buf, recv_size);	// Bad message received...
 		return NULL;
 	}
-
 	if (valid_ab(recv_buf, recv_size))
-		recv_tensor = tensor_fromab(recv_buf);
+		t = tensor_fromab(recv_buf);
 
-	nng_free(recv_buf, recv_size);	// Data has been saved ...
+	nng_free(recv_buf, recv_size);	// Message has been saved ...
 
-	return recv_tensor;
+	return t;
 }
-
-BYTE *tensor_recv_text(nng_socket socket)
-{
-	int ret;
-	BYTE *recv_buf = NULL;
-	size_t recv_size;
-	BYTE *recv_text = NULL;
-
-	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
-		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
-		nng_free(recv_buf, recv_size);	// Bad message received...
-		return NULL;
-	}
-
-	if (valid_ab(recv_buf, recv_size)) {
-		recv_text = (BYTE *)calloc(1, recv_size - sizeof(AbHead) + 1);
-		if (recv_text) {
-			memcpy(recv_text, recv_buf + sizeof(AbHead),  recv_size - sizeof(AbHead));
-		} else {
-			syslog_error("Allocate memory.");
-		}
-	}
-
-	nng_free(recv_buf, recv_size);	// Data has been saved ...
-	return recv_text;
-}
-
 
 TENSOR *rpc_tensor_tensor(nng_socket socket, TENSOR *src, WORD opc)
 {
 	CHECK_TENSOR(src);
-	
+
+	if (RPC_IS_TENSOR_TEXT(opc)) {
+		syslog_error("RPC opc 0x%x is not for tensor to tensor.", opc);
+		return NULL;
+	}
 	src->opc = opc;
 	if (tensor_send(socket, src) == RET_OK)
 		return tensor_recv(socket);
 
-	// Else
 	syslog_error("RPC from tensor to tensor.");
 	return NULL;
 }
 
 BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc)
 {
+	int size;
 	CHECK_TENSOR(src);
-	
+
+	if (! RPC_IS_TENSOR_TEXT(opc)) {
+		syslog_error("RPC opc 0x%x is not for tensor to text.", opc);
+		return NULL;
+	}
 	src->opc = opc;
 	if (tensor_send(socket, src) == RET_OK)
-		return tensor_recv_text(socket);
+		return text_recv(socket, &size);
 
-	// Else
 	syslog_error("RPC from tensor to text.");
 	return NULL;
 }

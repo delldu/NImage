@@ -20,24 +20,21 @@
 
 #define URL "ipc:///tmp/nimage.ipc"
 
-#define RPC_MAX_RESPONE_TEXT_LENGTH 1024
+#define RPC_MAX_TEXT_LENGTH 1024
 
 // nng/nng.h define ...
 // typedef struct nng_socket_s {
 //         uint32_t id;
 // } nng_socket;
 
-// do rpc from tensor to tensor
-TENSOR *rpc_tensor_tensor_image_service(TENSOR *src)
+// Run image service(from tensor to tensor)
+TENSOR *tensor_tensor_service(TENSOR *src)
 {
 	TENSOR *dst = NULL;
 
 	CHECK_TENSOR(src);
 
 	switch(src->opc) {
-		case RPC_TENSOR_TENSOR_HELLO:
-			dst = tensor_copy(src);
-			break;
 		case RPC_TENSOR_TENSOR_IMAGE_CLEAN:
 			dst = tensor_copy(src);
 			break;
@@ -58,24 +55,21 @@ TENSOR *rpc_tensor_tensor_image_service(TENSOR *src)
 	return dst;
 }
 
-// do rpc from tensor to text
-BYTE *rpc_tensor_text_image_service(TENSOR *src)
+// Run image service(from tensor to text)
+BYTE *tensor_text_service(TENSOR *src)
 {
 	BYTE *response = NULL;
 
 	CHECK_TENSOR(src);
 
-	response = (BYTE *)calloc(1, RPC_MAX_RESPONE_TEXT_LENGTH);
+	response = (BYTE *)calloc(1, RPC_MAX_TEXT_LENGTH);
 	if (! response) {
 		syslog_error("Memory allocate.");
 		return NULL;
 	}
 	switch(src->opc) {
-		case RPC_TENSOR_TEXT_HELLO:
-			snprintf((char *)response, RPC_MAX_RESPONE_TEXT_LENGTH - 1, "Hello, Image Service !");
-			break;
 		case RPC_TENSOR_TEXT_IMAGE_NIMA:
-			snprintf((char *)response, RPC_MAX_RESPONE_TEXT_LENGTH - 1, "Image NIMA 5.50");
+			snprintf((char *)response, RPC_MAX_TEXT_LENGTH - 1, "Image NIMA 5.50");
 			break;
 		default:
 			syslog_error("NO Implemented service 0x%x.", src->opc);
@@ -111,20 +105,20 @@ int server()
 
 	for (;;) {
 		if (count % 100 == 0)
-			syslog_info("Done image service %d times", count);
+			syslog_info("Image service %d times", count);
 
 		r_tensor = tensor_recv(socket);
 		if (! tensor_valid(r_tensor))
 			continue;
 
 		if (RPC_IS_TENSOR_TEXT(r_tensor->opc)) {
-			s_text = rpc_tensor_text_image_service(r_tensor);
+			s_text = tensor_text_service(r_tensor);
 			if (s_text) {
-				text_send(socket, s_text, RPC_MAX_RESPONE_TEXT_LENGTH);
+				text_send(socket, s_text, RPC_MAX_TEXT_LENGTH);
 				free(s_text);
 			}
 		} else {
-			s_tensor = rpc_tensor_tensor_image_service(r_tensor);
+			s_tensor = tensor_tensor_service(r_tensor);
 			if (tensor_valid(s_tensor)) {
 				tensor_send(socket, s_tensor);
 				tensor_destroy(s_tensor);
@@ -174,7 +168,8 @@ int client(char *input_file, WORD opc, char *output_file)
 		}
 		tensor_destroy(s_tensor);
 		image_destroy(s_image);
-		return ret;
+
+		goto finish;
 	}
 
 	// Now RPC IS from tensor to tensor
@@ -207,11 +202,11 @@ void help(char *cmd)
 	printf("Usage: %s [option]\n", cmd);
 	printf("    h, --help                   Display this help.\n");
 	printf("    s, --server                 Start server.\n");
-	printf("       --clean <file>           Clean image.\n");
-	printf("       --color <file>           Color image.\n");
-	printf("       --zoom <file>            Zoom image.\n");
-	printf("       --patch <file>           Patch image.\n");
-	printf("       --nima <file>            NIMA image.\n");
+	printf("       --clean  <file>          Clean image.\n");
+	printf("       --color  <file>          Color image.\n");
+	printf("       --zoom   <file>          Zoom image.\n");
+	printf("       --patch  <file>          Patch image.\n");
+	printf("       --nima   <file>          NIMA image.\n");
 	printf("    o, --output <file>          Output file (default: output.png).\n");
 
 	exit(1);

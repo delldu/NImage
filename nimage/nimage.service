@@ -1,5 +1,5 @@
 [Unit]
-Description=Image Application With Deep Learning
+Description=Image Service With Deep Learning
 Documentation=https://githubs.com/delldu/NImage
 After=syslog.target
 
