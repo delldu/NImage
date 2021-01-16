@@ -325,22 +325,6 @@ extern "C" {
 	BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc);
 #endif
 
-#ifdef CONFIG_GIMP
-	#include <libgimp/gimp.h>
-
-	// Get image from Gimp
-	IMAGE *image_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height);
-
-	// Set image to gimp
-	int image_togimp(IMAGE * image, GimpDrawable * drawable, int x, int y, int width, int height);
-
-	// Get tensor from Gimp
-	TENSOR *tensor_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height);
-
-	// Set tensor to gimp
-	int tensor_togimp(TENSOR * tensor, GimpDrawable * drawable, int x, int y, int width, int height);
-#endif
-
 #if defined(__cplusplus)
 }
 #endif

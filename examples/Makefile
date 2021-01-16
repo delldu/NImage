@@ -16,7 +16,9 @@ INSTALL_DIR := /usr/local
 SOURCE := main.c
 SOURCE += $(APPLETS)
 
-INCS	:= -I../include
+INCS	:= -I../include \
+	$(shell gimptool-2.0 --cflags)
+
 LIBS	:= -L.. -lnimage -ljpeg -lpng -lm  
 
 CFLAGS := -O2 -fPIC

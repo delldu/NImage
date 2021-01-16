@@ -13,8 +13,7 @@ INSTALL_DIR := /usr/local
 
 INCS	:= \
 	-Iinclude \
-	-I/usr/local/include \
-	$(shell gimptool-2.0 --cflags)
+	-I/usr/local/include
 
 SOURCE :=  \
 	source/abhead.c \
@@ -60,7 +59,6 @@ all: staticlib
 sharelib: $(OBJECTS)
 	$(LD) $(LDFLAGS) -shared -soname $(LIB_NAME).so -o $(LIB_NAME).so $(OBJECTS)
 
-
 staticlib:$(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIB_NAME).a $(OBJECTS)
 
@@ -86,7 +84,7 @@ clean:
 install:
 	sudo mkdir -p ${INSTALL_DIR}/include/nimage
 	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
-	# sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
+# 	sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
 	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 
 

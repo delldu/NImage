@@ -13,11 +13,10 @@ TARGET := nimage
 SOURCE :=  \
 	main.c \
 
-INCS	:= 	\
-	$(shell gimptool-2.0 --cflags)
+INCS	:= -I/usr/local/include
 
-LIBS	:=  -lnimage \
-	$(shell gimptool-2.0 --libs) \
+LIBS	:= \
+	-lnimage \
 	-lnng -ljpeg -lpng -lpthread -lm
 
 DEFINES :=
