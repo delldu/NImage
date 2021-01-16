@@ -13,7 +13,8 @@ INSTALL_DIR := /usr/local
 
 INCS	:= \
 	-Iinclude \
-	-I/usr/local/include
+	-I/usr/local/include \
+	$(shell gimptool-2.0 --cflags)
 
 SOURCE :=  \
 	source/abhead.c \

@@ -1,3 +1,4 @@
-#define CONFIG_NNG 1
-#define CONFIG_JPEG 1
-#define CONFIG_PNG 1
+#define CONFIG_NNG
+#define CONFIG_JPEG 
+#define CONFIG_PNG
+#define CONFIG_GIMP

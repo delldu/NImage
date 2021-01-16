@@ -13,10 +13,12 @@ TARGET := nimage
 SOURCE :=  \
 	main.c \
 
-INCS	:=
-	#  -I$(BUILD_DIR)/include
-LIBS	:=  -lnng -lnimage -lpthread -ljpeg -lpng -lm
-	#-L$(BUILD_DIR)/lib -lstd... -lstdc++
+INCS	:= 	\
+	$(shell gimptool-2.0 --cflags)
+
+LIBS	:=  -lnimage \
+	$(shell gimptool-2.0 --libs) \
+	-lnng -ljpeg -lpng -lpthread -lm
 
 DEFINES :=
 
@@ -37,7 +39,7 @@ OBJECT := $(addsuffix .o,$(basename ${SOURCE}))
 all: ${TARGET}
 
 ${TARGET}: ${OBJECT}
-	${CXX} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
+	${CC} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
 
 install:
 # 	${STRIP} ${TARGET}
@@ -53,7 +55,7 @@ install:
 	${CXX} ${CXXFLAGS} ${INCS} -c $< -o $@
 
 %.o : %.c
-	${CXX} ${CXXFLAGS} ${INCS} -c $< -o $@
+	${CC} ${CFLAGS} ${INCS} -c $< -o $@
 
 #****************************************************************************
 # Depend block

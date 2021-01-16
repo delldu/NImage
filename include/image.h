@@ -125,7 +125,6 @@ extern "C" {
 #define RGB565_B(x) (((x) & 0x1f) << 3)
 #define RGB565_NO(r, g, b) (((r)&0xf8) << 8 | ((g) & 0xfc) << 3 | ((b) & 0xf8) >> 3)
 
-
 	IMAGE *image_create(WORD h, WORD w);
 	IMAGE *image_load(char *fname);
 	IMAGE *image_copy(IMAGE * img);
@@ -146,7 +145,6 @@ extern "C" {
 	MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect);
 
 	int image_setplane(IMAGE * img, char oargb, MATRIX * mat);
-
 
 	void color_rgb2hsv(BYTE R, BYTE G, BYTE B, BYTE * h, BYTE * s, BYTE * v);
 	void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE * gray);
@@ -327,6 +325,21 @@ extern "C" {
 	BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc);
 #endif
 
+#ifdef CONFIG_GIMP
+	#include <libgimp/gimp.h>
+
+	// Get image from Gimp
+	IMAGE *image_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height);
+
+	// Set image to gimp
+	int image_togimp(IMAGE * image, GimpDrawable * drawable, int x, int y, int width, int height);
+
+	// Get tensor from Gimp
+	TENSOR *tensor_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height);
+
+	// Set tensor to gimp
+	int tensor_togimp(TENSOR * tensor, GimpDrawable * drawable, int x, int y, int width, int height);
+#endif
 
 #if defined(__cplusplus)
 }

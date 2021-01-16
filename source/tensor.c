@@ -203,3 +203,81 @@ BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc)
 }
 
 #endif
+
+#ifdef CONFIG_GIMP
+TENSOR *tensor_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height)
+{
+	gint i, j, k;
+	gint c, channels;
+	GimpPixelRgn input_rgn;
+	TENSOR *tensor = NULL;
+	guchar *rgn_data, *s, *d;
+
+	channels = drawable->bpp;
+	gimp_pixel_rgn_init(&input_rgn, drawable, 0, 0, drawable->width, drawable->height, FALSE, FALSE);
+
+	tensor = tensor_create(1 /*batch*/, channels, height, width);
+	if (!tensor_valid(tensor)) {
+		g_print("Create tensor.\n");
+		return NULL;
+	}
+
+	rgn_data = g_new(guchar, height * width * channels);
+	if (!rgn_data) {
+		g_print("Memory allocate (%d bytes) failure.\n", height * width * channels);
+		tensor_destroy(tensor);
+		return NULL;
+	}
+
+	gimp_pixel_rgn_get_rect(&input_rgn, rgn_data, x, y, width, height);
+
+	s = rgn_data;		// source
+	d = tensor->base;	// destion
+	for (c = 0; i < channels; c++) {
+		for (i = 0; i < height; i++) {
+			k = i * width * channels; // start row i, for HxWxC format
+			for (j = 0; j < width; j++) {
+				*d++ = s[k + j*channels + c];
+			}
+		}
+	}
+
+	g_free(rgn_data);
+
+	return tensor;
+}
+
+int tensor_togimp(TENSOR * tensor, GimpDrawable * drawable, int x, int y, int width, int height)
+{
+	gint i, j, k;
+	gint c, channels;
+	GimpPixelRgn output_rgn;
+	guchar *rgn_data, *s, *d;
+
+	channels = drawable->bpp;
+	gimp_pixel_rgn_init(&output_rgn, drawable, 0, 0, drawable->width, drawable->height, TRUE, TRUE);
+
+	rgn_data = g_new(guchar, height * width * channels);
+	if (!rgn_data) {
+		g_print("Memory allocate (%d bytes) failure.\n", height * width * channels);
+		return -1;
+	}
+
+	d = rgn_data;
+	s = tensor->base;
+	for (c = 0; i < channels; c++) {
+		for (i = 0; i < height; i++) {
+			k = i * width * channels; // start row i for HxWxC
+			for (j = 0; j < width; j++) {
+				d[k + j*channels + c] = *s++;
+			}
+		}
+	}
+
+	gimp_pixel_rgn_set_rect(&output_rgn, rgn_data, x, y, width, height);
+
+	g_free(rgn_data);
+
+	return 0;
+}
+#endif
