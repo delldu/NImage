@@ -20,8 +20,6 @@ static int __single_scale(MATRIX * mat, double sigma)
 	int i, j;
 	MATRIX *g;
 
-//  CheckPoint("Sigma = %f", sigma);
-
 	check_matrix(mat);
 	g = matrix_copy(mat);
 	check_matrix(g);

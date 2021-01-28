@@ -431,7 +431,7 @@ MATRIX *color_classmat(IMAGE * image)
 	return mat;
 }
 
-int color_cluster_(IMAGE * image, int num)
+int color_cluster(IMAGE * image, int num)
 {
 	int i, j, k, c;
 	MATRIX *mat, *ccmat;
@@ -445,6 +445,8 @@ int color_cluster_(IMAGE * image, int num)
 	// Weight k-means
 	ccmat = matrix_wkmeans(mat, num, NULL);
 	check_matrix(ccmat);
+
+	matrix_print(ccmat, "%10.2f");
 
 	// Back project !!!
 	memset(classno, 0, ARRAY_SIZE(classno) * sizeof(int));
@@ -493,7 +495,7 @@ int *color_count(IMAGE * image, int rows, int cols, int levs)
 		return NULL;
 	}
 
-	color_cluster_(image, levs);
+	color_cluster(image, levs);
 
 	// Statistics !!!
 	bh = (image->height + rows - 1) / rows;

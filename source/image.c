@@ -672,18 +672,38 @@ IMAGE *image_loadpng(char *fname)
 		for (col = 0; col < width; col++) {
 			if (bit_depth == 16) {
 				image->ie[row][col].r = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
-				image->ie[row][col].g = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
-				image->ie[row][col].b = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
-				if (alpha_present)
-					image->ie[row][col].a = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
+				if (channels >= 2)
+					image->ie[row][col].g = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
+				if (channels >= 3)
+					image->ie[row][col].b = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
+				if (channels >= 4) {
+					if (alpha_present)
+						image->ie[row][col].a = (((BYTE) * pix_ptr++ << 8) + (BYTE) * pix_ptr++);
+				}
 			} else {
 				image->ie[row][col].r = (BYTE) * pix_ptr++;
-				image->ie[row][col].g = (BYTE) * pix_ptr++;
-				image->ie[row][col].b = (BYTE) * pix_ptr++;
-				if (alpha_present)
-					image->ie[row][col].a = (BYTE) * pix_ptr++;
+				if (channels >= 2)
+					image->ie[row][col].g = (BYTE) * pix_ptr++;
+				if (channels >= 3)
+					image->ie[row][col].b = (BYTE) * pix_ptr++;
+				if (channels >= 4) {
+					if (alpha_present)
+						image->ie[row][col].a = (BYTE) * pix_ptr++;
+				}
 			}
 		}
+	}
+
+	// Sorted chanels
+	if (channels < 2) {
+		image_foreach(image, row, col)
+			image->ie[row][col].g = image->ie[row][col].r;
+		image_foreach(image, row, col)
+			image->ie[row][col].b = image->ie[row][col].r;
+	}
+	if (channels < 3) {
+		image_foreach(image, row, col)
+			image->ie[row][col].b = image->ie[row][col].r;
 	}
 
 	if (row_pointers != (BYTE **) NULL)
@@ -1788,9 +1808,9 @@ int image_show(IMAGE * image, char *title)
 
 	check_image(image);
 
-	snprintf(str, sizeof(str) - 1, "/tmp/%s.png", title);
+	snprintf(str, sizeof(str) - 1, "/tmp/%s.jpg", title);
 	image_save(image, str);
-	snprintf(str, sizeof(str) - 1, "display /tmp/%s.png", title);
+	snprintf(str, sizeof(str) - 1, "display /tmp/%s.jpg", title);
 
 	return system(str);
 }

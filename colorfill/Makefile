@@ -7,7 +7,7 @@
 #************************************************************************************/
 #
 
-TARGET := dataecho
+TARGET := colorfill
 INSTALL_DIR := /usr/local
 
 
@@ -16,7 +16,7 @@ SOURCE :=  \
 
 INCS	:= -I../include
 	#  -I$(BUILD_DIR)/include
-LIBS	:= -L../ -lnimage -ljpeg -lpng -lm
+LIBS	:= -L../ -lnimage -lnng -lpthread -ljpeg -lpng -lm
 	#-L$(BUILD_DIR)/lib -lstd... -lstdc++
 
 DEFINES :=

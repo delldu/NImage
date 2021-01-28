@@ -55,12 +55,3 @@ extern "C" {
 #endif
 #endif							// _TENSOR_H
 
-#ifdef CONFIG_GIMP
-	#include <libgimp/gimp.h>
-
-	// Get tensor from Gimp
-	TENSOR *tensor_fromgimp(GimpDrawable * drawable, int x, int y, int width, int height);
-
-	// Set tensor to gimp
-	int tensor_togimp(TENSOR * tensor, GimpDrawable * drawable, int x, int y, int width, int height);
-#endif

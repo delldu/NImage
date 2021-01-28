@@ -82,7 +82,7 @@ static void __mask_finetune(IMAGE * mask, IMAGE * src, int debug)
 
 	__mask_binary(mask, debug);
 
-	color_cluster_(src, COLOR_CLUSTERS);	// not update
+	color_cluster(src, COLOR_CLUSTERS);	// not update
 
 	// Calculate border colors
 	memset(count, 0, COLOR_CLUSTERS * sizeof(int));
@@ -138,7 +138,7 @@ int image_blend(IMAGE * src, IMAGE * mask, IMAGE * dst, int top, int left, int d
 		time_reset();
 	}
 
-	color_cluster_(src, COLOR_CLUSTERS);
+	color_cluster(src, COLOR_CLUSTERS);
 	if (mask == NULL) {
 		mask_is_null = 1;
 		mask = image_create(src->height, src->width);

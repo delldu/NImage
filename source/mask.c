@@ -114,7 +114,7 @@ int mask_valid(MASK * img)
 	return (img->format == IMAGE_MASK && img->K > 0) ? 1 : 0;
 }
 
-int color_instance_(MASK * image, int KRadius)
+int color_instance(MASK * image, int KRadius)
 {
 	// KRadius -- radius, define neighbours
 	int i, j, instance, H, W, noise_row, noise_col;
@@ -147,7 +147,6 @@ int color_instance_(MASK * image, int KRadius)
 	}
 	image->KRadius = KRadius;
 	image->KInstance = instance;
-	// CheckPoint("image->KInstance: %d", instance);
 
 	return RET_OK;
 }
@@ -185,11 +184,13 @@ int mask_show(MASK * mask)
 	check_image(image);
 	image_foreach(image, i, j) {
 		// label = RGB_INT(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
-		if (__label_border(mask, i, j)) {
-			color = 0x7f0000;
-		} else {
-			color = image->KColors[image->ie[i][j].a];
-		}
+		// if (__label_border(mask, i, j)) {
+		// 	color = 0x7f0000;
+		// } else {
+		// 	color = image->KColors[image->ie[i][j].a];
+		// }
+
+		color = image->KColors[image->ie[i][j].a];
 		image->ie[i][j].r = (BYTE) (RGB_R(color));
 		image->ie[i][j].g = (BYTE) (RGB_G(color));
 		image->ie[i][j].b = (BYTE) (RGB_B(color));

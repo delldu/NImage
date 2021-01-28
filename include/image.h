@@ -151,7 +151,7 @@ extern "C" {
 	int skin_detect(IMAGE * img);
 	int skin_statics(IMAGE * img, RECT * rect);
 
-	int color_cluster_(IMAGE * image, int num);
+	int color_cluster(IMAGE * image, int num);
 	int color_picker();
 	int color_balance(IMAGE * img, int method, int debug);
 
@@ -273,7 +273,7 @@ extern "C" {
 // Mask is all you need
 #define MASK IMAGE
 
-	int color_instance_(MASK * image, int KRadius);
+	int color_instance(MASK * image, int KRadius);
 	int mask_show();
 
 #if 0

@@ -77,8 +77,8 @@ int cluster_main(int argc, char **argv)
 
 		// time_reset();
 		// // image_gauss_filter(image, 2);
-		// color_cluster_(image, k);
-		// color_instance_(image, r);	// widow size (2*r + 1)*(2*r + 1)
+		// color_cluster(image, k);
+		// color_instance(image, r);	// widow size (2*r + 1)*(2*r + 1)
 		// time_spend("Color instance");
 
 		// mask_show(image);
