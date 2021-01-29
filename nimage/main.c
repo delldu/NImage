@@ -91,8 +91,8 @@ int server()
 
 	// sudo journalctl -u image.service -n 10
 	syslog_info("Start image service on %s ...\n", URL);
-	if ((ret = nng_rep0_open(&socket)) != 0) {
-		syslog_error("nng_rep0_open: return code = %d, message = %s", ret, nng_strerror(ret));
+	if ((ret = nng_rep_open(&socket)) != 0) {
+		syslog_error("nng_rep_open: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
 
@@ -144,7 +144,7 @@ int client(char *input_file, WORD opc, char *output_file)
 	TENSOR *s_tensor, *r_tensor;
 	BYTE *r_text = NULL;
 
-	if ((ret = nng_req0_open(&socket)) != 0) {
+	if ((ret = nng_req_open(&socket)) != 0) {
 		syslog_error("nng_socket: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
