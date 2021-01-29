@@ -148,6 +148,10 @@ int client(char *input_file, WORD opc, char *output_file)
 		syslog_error("nng_socket: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
 	}
+    // ret = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, 5000);
+    // if (ret != 0) {
+    //         fatal("nng_socket_set(nng_opt_recvtimeo)", ret);
+    // }
 	if ((ret = nng_dial(socket, URL, NULL, 0)) != 0) {
 		syslog_error("nng_dial: return code = %d, message = %s", ret, nng_strerror(ret));
 		return RET_ERROR;
