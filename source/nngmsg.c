@@ -9,70 +9,6 @@
 #include "nngmsg.h"
 #include <msgpack.h>
 
-#if 0
-// xxxx3333
-int text_send(nng_socket socket, BYTE *buf, int size)
-{
-	int ret;
-	AbHead h;
-	nng_msg *msg = NULL;
-	BYTE head_buf[sizeof(AbHead)];
-
-	abhead_init(&h);
-	h.len = size;
-	h.b = h.c = h.h = 1;
-	h.w = size;
-	h.opc = 0;
-	abhead_encode(&h, head_buf);
-
-	if ((ret = nng_msg_alloc(&msg, 0)) != 0) {
-		syslog_error("nng_msg_alloc: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
-	if ((ret = nng_msg_append(msg, head_buf, sizeof(AbHead))) != 0) {
-		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
-	if ((ret = nng_msg_append(msg, buf, size)) != 0) {
-		syslog_error("nng_msg_append: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
-	if ((ret = nng_sendmsg(socket, msg, NNG_FLAG_ALLOC)) != 0) {
-		syslog_error("nng_sendmsg: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
-	// nng_msg_free(msg); // NNG_FLAG_ALLOC means "call nng_msg_free auto"
-
-	return RET_OK;
-}
-
-BYTE *text_recv(nng_socket socket, int *size)
-{
-	int ret;
-	BYTE *recv_buf = NULL;
-	size_t recv_size;
-	BYTE *s = NULL;
-
-	*size = 0;
-	if ((ret = nng_recv(socket, &recv_buf, &recv_size, NNG_FLAG_ALLOC)) != 0) {
-		syslog_error("nng_recv: return code = %d, message = %s", ret, nng_strerror(ret));
-		nng_free(recv_buf, recv_size);	// Bad message received...
-		return NULL;
-	}
-
-	if (valid_ab(recv_buf, recv_size)) {
-		s = (BYTE *)calloc(1, recv_size - sizeof(AbHead) + 1);
-		if (s) {
-			*size = recv_size - sizeof(AbHead);
-			memcpy(s, recv_buf + sizeof(AbHead),  *size);
-		}
-	}
-
-	nng_free(recv_buf, recv_size);	// Message has been saved ...
-	return s;
-}
-#endif
-
 // typedef struct nng_socket_s {
 //         uint32_t id;
 // } nng_socket;
@@ -205,9 +141,8 @@ TENSOR *request_recv(nng_socket socket, int *reqcode, float *option)
         if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0 ) {
 	        msgpack_object* p = obj.via.array.ptr;
 	        msgpack_object* const pend = obj.via.array.ptr + obj.via.array.size;
-	        for(n = 0; p < pend && n < 4; ++p, n++) {
+	        for(n = 0; p < pend && n < 4; ++p, n++)
 	        	dims[n] = (WORD)(p->via.i64);
-	        }
         }
     }
 
@@ -231,14 +166,13 @@ TENSOR *request_recv(nng_socket socket, int *reqcode, float *option)
     msgret = msgpack_unpack_next(&result, (char const*)buf, size, &off);
     if (msgret == MSGPACK_UNPACK_SUCCESS) {
         msgpack_object obj = result.data;
-        if (obj.type == MSGPACK_OBJECT_FLOAT) {
+        if (obj.type == MSGPACK_OBJECT_FLOAT32)
         	*option = (float)obj.via.f64;
-        }
     }
 
     // Check buffer decode over status
 	if (msgret == MSGPACK_UNPACK_PARSE_ERROR) {
-        fprintf(stderr, "The data in buf is invalid format.\n");
+        syslog_error("The data in buf is invalid format.");
 	}
     msgpack_unpacked_destroy(&result);
 
@@ -317,9 +251,8 @@ TENSOR *response_recv(nng_socket socket, int *rescode)
         if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0 ) {
 	        msgpack_object* p = obj.via.array.ptr;
 	        msgpack_object* const pend = obj.via.array.ptr + obj.via.array.size;
-	        for(n = 0; p < pend && n < 4; ++p, n++) {
+	        for(n = 0; p < pend && n < 4; ++p, n++)
 	        	dims[n] = (WORD)(p->via.i64);
-	        }
         }
     }
 
@@ -352,9 +285,10 @@ TENSOR *response_recv(nng_socket socket, int *rescode)
 
     // Check buffer decode over status
 	if (msgret == MSGPACK_UNPACK_PARSE_ERROR) {
-        fprintf(stderr, "The data in buf is invalid format.\n");
+        syslog_error("The data in buf is invalid format.");
 	}
     msgpack_unpacked_destroy(&result);
+
 
 	nng_free(buf, size);	// Message has been saved ...
 

@@ -16,149 +16,96 @@
 #include <nng/protocol/reqrep0/rep.h>
 #include <nng/protocol/reqrep0/req.h>
 
-#include <nimage/image.h>
+#include "image.h"
+#include "nngmsg.h"
 
 #define URL "ipc:///tmp/nimage.ipc"
 
-
-// start server
+// Echo Server
 int server()
 {
-#if 0
-	// xxxx6666
-	int ret;
+	int reqcode;
+	float option;
 	nng_socket socket;
-	TENSOR *r_tensor, *s_tensor = NULL;
-	BYTE *s_text = NULL;
-
+	TENSOR *tensor;
 	int count = 0;
 
-	// sudo journalctl -u image.service -n 10
-	syslog_info("Start image service on %s ...\n", URL);
-	if ((ret = nng_rep_open(&socket)) != 0) {
-		syslog_error("nng_rep_open: return code = %d, message = %s", ret, nng_strerror(ret));
+	if (start_server(URL, &socket) != RET_OK)
 		return RET_ERROR;
-	}
-
-	if ((ret = nng_listen(socket, URL, NULL, 0)) != 0) {
-		syslog_error("nng_listen: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
-
-	syslog_info("Image service already ...\n");
 
 	for (;;) {
 		if (count % 100 == 0)
-			syslog_info("Image service %d times", count);
+			syslog_info("Service %d times", count);
 
-		r_tensor = tensor_recv(socket);
-		if (! tensor_valid(r_tensor))
+		tensor = request_recv(socket, &reqcode, &option);
+		if (! tensor_valid(tensor)) {
+			syslog_error("Request recv bad tensor ...");
 			continue;
-
-		if (RPC_IS_TENSOR_TEXT(r_tensor->opc)) {
-			s_text = tensor_text_service(r_tensor);
-			if (s_text) {
-				text_send(socket, s_text, RPC_MAX_TEXT_LENGTH);
-				free(s_text);
-			}
-		} else {
-			s_tensor = tensor_tensor_service(r_tensor);
-			if (tensor_valid(s_tensor)) {
-				tensor_send(socket, s_tensor);
-				tensor_destroy(s_tensor);
-			}
 		}
-
-		tensor_destroy(r_tensor);
+		response_send(socket, tensor, reqcode);
+		tensor_destroy(tensor);
 
 		count++;
 	}
 
-	syslog(LOG_INFO, "Image service shutdown.\n");
+	syslog(LOG_INFO, "Service shutdown.\n");
 	nng_close(socket);
-#endif
+
 	return RET_OK;
 }
 
-int client(char *input_file, WORD opc, char *output_file)
+int client(char *input_file, char *output_file)
 {
-#if 0
-	// xxxx6666
-	int ret;
+	int ret, rescode;
 	nng_socket socket;
-	IMAGE *s_image, *r_image;
-	TENSOR *s_tensor, *r_tensor;
-	BYTE *r_text = NULL;
+	IMAGE *send_image, *recv_image;
+	TENSOR *send_tensor, *recv_tensor;
 
-	if ((ret = nng_req_open(&socket)) != 0) {
-		syslog_error("nng_socket: return code = %d, message = %s", ret, nng_strerror(ret));
+	if (client_connect(URL, &socket) != RET_OK)
 		return RET_ERROR;
-	}
-    // ret = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, 5000);
-    // if (ret != 0) {
-    //         fatal("nng_socket_set(nng_opt_recvtimeo)", ret);
-    // }
-	if ((ret = nng_dial(socket, URL, NULL, 0)) != 0) {
-		syslog_error("nng_dial: return code = %d, message = %s", ret, nng_strerror(ret));
-		return RET_ERROR;
-	}
 
 	ret = RET_ERROR;
-	s_image = image_load(input_file);
-	if (! image_valid(s_image))
+	send_image = image_load(input_file);
+	if (! image_valid(send_image))
 		goto finish;
 
-	s_tensor = tensor_from_image(s_image);
-	if (RPC_IS_TENSOR_TEXT(opc)) {
-		r_text = rpc_tensor_text(socket, s_tensor, opc);
-		if (r_text) {
-			printf("%s\n", r_text);
-			free(r_text);
-			ret = RET_OK;
-		}
-		tensor_destroy(s_tensor);
-		image_destroy(s_image);
+	send_tensor = tensor_from_image(send_image); check_tensor(send_tensor);
 
-		goto finish;
-	}
-
-	// Now RPC IS from tensor to tensor
-	if (tensor_valid(s_tensor)) {
-		r_tensor = rpc_tensor_tensor(socket, s_tensor, opc);
-		if (tensor_valid(r_tensor)) {
-
-			// Process recv tensor ...
-			r_image = image_from_tensor(r_tensor, 0);
-			if (image_valid(r_image)) {
-				ret = image_save(r_image, output_file);
-				image_destroy(r_image);
+	if (tensor_valid(send_tensor)) {
+		// Send
+		ret = request_send(socket, 6789, send_tensor, 3.14f); 
+		if (ret == RET_OK) {
+			// Recv
+			recv_tensor = response_recv(socket, &rescode);
+			if (tensor_valid(recv_tensor)) {
+				// Process recv tensor ...
+				recv_image = image_from_tensor(recv_tensor, 0);
+				if (image_valid(recv_image)) {
+					ret = image_save(recv_image, output_file);
+					image_destroy(recv_image);
+				}
+				tensor_destroy(recv_tensor);
 			}
-
-			tensor_destroy(r_tensor);
 		}
-		tensor_destroy(s_tensor);			
-	}
-	image_destroy(s_image);
 
+		tensor_destroy(send_tensor);			
+	}
+	image_destroy(send_image);
 
 finish:
 	nng_close(socket);
 
 	return ret;
-#endif
-	return 0;
 }
 
 void help(char *cmd)
 {
+	printf("This is simple an example for nimage, client send image to server and server echo back\n");
+
 	printf("Usage: %s [option]\n", cmd);
 	printf("    h, --help                   Display this help.\n");
 	printf("    s, --server                 Start server.\n");
-	printf("       --clean  <file>          Clean image.\n");
-	printf("       --color  <file>          Color image.\n");
-	printf("       --zoom   <file>          Zoom image.\n");
-	printf("       --patch  <file>          Patch image.\n");
-	printf("       --nima   <file>          NIMA image.\n");
+	printf("    c, --client <file>          Client image.\n");
 	printf("    o, --output <file>          Output file (default: output.png).\n");
 
 	exit(1);
@@ -168,22 +115,13 @@ int main(int argc, char **argv)
 {
 	int optc;
 	int option_index = 0;
-
-	char *clean_file = NULL;
-	char *color_file = NULL;
-	char *zoom_file = NULL;
-	char *patch_file = NULL;
-	char *nima_file = NULL;
+	char *client_file = NULL;
 	char *output_file = (char *)"output.png";
 
 	struct option long_opts[] = {
 		{ "help", 0, 0, 'h'},
 		{ "server", 0, 0, 's'},
-		{ "clean", 1, 0, 'c'},
-		{ "color", 1, 0, 'C'},
-		{ "zoom", 1, 0, 'z'},
-		{ "patch", 1, 0, 'p'},
-		{ "nima", 1, 0, 'n'},
+		{ "client", 1, 0, 'c'},
 		{ "output", 1, 0, 'o'},
 		{ 0, 0, 0, 0}
 	};
@@ -191,25 +129,13 @@ int main(int argc, char **argv)
 	if (argc <= 1)
 		help(argv[0]);
 	
-	while ((optc = getopt_long(argc, argv, "h s c: C: z: p: n: o:", long_opts, &option_index)) != EOF) {
+	while ((optc = getopt_long(argc, argv, "h s c: o:", long_opts, &option_index)) != EOF) {
 		switch (optc) {
 		case 's':
 			return server();
 			break;
 		case 'c':	// Clean
-			clean_file = optarg;
-			break;
-		case 'C':	// Color
-			color_file = optarg;
-			break;
-		case 'z':	// Zoom
-			zoom_file = optarg;
-			break;
-		case 'p':	// Patch
-			patch_file = optarg;
-			break;
-		case 'n':	// Nima
-			nima_file = optarg;
+			client_file = optarg;
 			break;
 		case 'o':	// Output
 			output_file = optarg;
@@ -221,20 +147,8 @@ int main(int argc, char **argv)
 	    }
 	}
 
-	if (clean_file) {
-		return client(clean_file, RPC_TENSOR_TENSOR_IMAGE_CLEAN, output_file);
-	}
-	if (color_file) {
-		return client(color_file, RPC_TENSOR_TENSOR_IMAGE_COLOR, output_file);
-	}
-	if (zoom_file) {
-		return client(zoom_file, RPC_TENSOR_TENSOR_IMAGE_ZOOM, output_file);
-	}
-	if (patch_file) {
-		return client(zoom_file, RPC_TENSOR_TENSOR_IMAGE_PATCH, output_file);
-	}
-	if (nima_file) {
-		return client(nima_file, RPC_TENSOR_TEXT_IMAGE_NIMA, output_file);
+	if (client_file) {
+		return client(client_file, output_file);
 	}
 
 	help(argv[0]);

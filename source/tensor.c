@@ -52,6 +52,11 @@ TENSOR *tensor_copy(TENSOR *src)
 	return dst;
 }
 
+void tensor_dump(TENSOR *tensor)
+{
+	printf("Tensor dims: %dx%dx%dx%d\n", tensor->batch, tensor->chan, tensor->height, tensor->width);
+}
+
 void tensor_destroy(TENSOR * tensor)
 {
 	if (!tensor_valid(tensor))
