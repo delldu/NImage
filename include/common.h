@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-#include "config.h"
-
 #include <arpa/inet.h>			// Suppot htonl, ntohl etc ...
 #include <stdlib.h>
 #include <syslog.h>
@@ -22,11 +20,10 @@ extern "C" {
 #include <sys/time.h>
 #include <syslog.h>				// syslog, RFC3164 ?
 
-#ifdef CONFIG_NNG
-#include <nng/nng.h>
-#include <nng/protocol/reqrep0/rep.h>
-#include <nng/protocol/reqrep0/req.h>
-#endif
+// config.h
+#define CONFIG_JPEG 
+#define CONFIG_PNG
+#define CONFIG_NNG
 
 #define BYTE uint8_t
 #define WORD uint16_t

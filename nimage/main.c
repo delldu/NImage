@@ -20,68 +20,12 @@
 
 #define URL "ipc:///tmp/nimage.ipc"
 
-#define RPC_MAX_TEXT_LENGTH 1024
-
-// nng/nng.h define ...
-// typedef struct nng_socket_s {
-//         uint32_t id;
-// } nng_socket;
-
-// Run image service(from tensor to tensor)
-TENSOR *tensor_tensor_service(TENSOR *src)
-{
-	TENSOR *dst = NULL;
-
-	CHECK_TENSOR(src);
-
-	switch(src->opc) {
-		case RPC_TENSOR_TENSOR_IMAGE_CLEAN:
-			dst = tensor_copy(src);
-			break;
-		case RPC_TENSOR_TENSOR_IMAGE_COLOR:
-			dst = tensor_copy(src);
-			break;
-		case RPC_TENSOR_TENSOR_IMAGE_ZOOM:
-			dst = tensor_copy(src);
-			break;
-		case RPC_TENSOR_TENSOR_IMAGE_PATCH:
-			dst = tensor_copy(src);
-			break;
-		default:
-			syslog_error("Bad service opc 0x%x.", src->opc);
-			break;
-	}
-
-	return dst;
-}
-
-// Run image service(from tensor to text)
-BYTE *tensor_text_service(TENSOR *src)
-{
-	BYTE *response = NULL;
-
-	CHECK_TENSOR(src);
-
-	response = (BYTE *)calloc(1, RPC_MAX_TEXT_LENGTH);
-	if (! response) {
-		syslog_error("Memory allocate.");
-		return NULL;
-	}
-	switch(src->opc) {
-		case RPC_TENSOR_TEXT_IMAGE_NIMA:
-			snprintf((char *)response, RPC_MAX_TEXT_LENGTH - 1, "Image NIMA 5.50");
-			break;
-		default:
-			syslog_error("Bad service opc 0x%x.", src->opc);
-			break;
-	}
-
-	return response;
-}
 
 // start server
 int server()
 {
+#if 0
+	// xxxx6666
 	int ret;
 	nng_socket socket;
 	TENSOR *r_tensor, *s_tensor = NULL;
@@ -132,12 +76,14 @@ int server()
 
 	syslog(LOG_INFO, "Image service shutdown.\n");
 	nng_close(socket);
-
+#endif
 	return RET_OK;
 }
 
 int client(char *input_file, WORD opc, char *output_file)
 {
+#if 0
+	// xxxx6666
 	int ret;
 	nng_socket socket;
 	IMAGE *s_image, *r_image;
@@ -199,6 +145,8 @@ finish:
 	nng_close(socket);
 
 	return ret;
+#endif
+	return 0;
 }
 
 void help(char *cmd)

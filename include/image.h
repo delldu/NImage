@@ -14,13 +14,11 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
 #include "common.h"
 #include "matrix.h"
 #include "vector.h"
-#include "abhead.h"
 #include "tensor.h"
-
-#include "config.h"
 
 #define IMAGE_VERSION "1.0.0"
 
@@ -43,7 +41,6 @@ extern "C" {
 	typedef struct {
 		DWORD magic;			// IMAGE_MAGIC
 		WORD height, width, format;
-		DWORD opc;				// 4 Bytes, opc is for RPC request/response
 		RGBA_8888 **ie, *base;
 
 		// Extentend for cluster & color mask
@@ -276,55 +273,9 @@ extern "C" {
 	int color_instance(MASK * image, int KRadius);
 	int mask_show();
 
-#if 0
-	// For Test AB !!!
-	// Because general AB = AbHead + CxHxW format, but our image is HxWxC, so here 
-	// image is just temperal container, Semantic IS NOT not exactly !!!
-	int image_write(int fd, IMAGE * image);
-	IMAGE *image_read(int fd);
-#endif
-	int image_abhead(IMAGE * image, BYTE * buffer);
-	IMAGE *image_fromab(BYTE * buf);
-	BYTE *image_toab(IMAGE * image);
-
+// Tensor
 	IMAGE *image_from_tensor(TENSOR * tensor, int k);
 	TENSOR *tensor_from_image(IMAGE *image);
-
-#ifdef CONFIG_NNG
-	// Local functions are good enough, so following rpc functions removed:
-	// --------------------------------------------------------------------
-	//   IMAGE *rpc_image_image(IMAGE *src, nng_socket socket, WORD opc);
-	//   BYTE *rpc_image_text(IMAGE *src, nng_socket socket, WORD opc);
-	// --------------------------------------------------------------------
-	//   ----- Therefor our RPC focus on AI format ---
-	// --------------------------------------------------------------------
-	// RPC--(INPUT:Tensor)--(Output:Tensor)--OPC
-
-	#define RPC_TENSOR_TENSOR_IMAGE_CLEAN 0x1001
-	#define RPC_TENSOR_TENSOR_IMAGE_COLOR 0X1002
-	#define RPC_TENSOR_TENSOR_IMAGE_ZOOM  0x1003
-	#define RPC_TENSOR_TENSOR_IMAGE_PATCH 0x1004
-	#define RPC_TENSOR_TEXT_IMAGE_NIMA    0x1005
-	#define RPC_TENSOR_TENSOR_FACE_EDIT   0x1006
-
-	#define RPC_TENSOR_TENSOR_VIDEO_CLEAN 0x2001
-	#define RPC_TENSOR_TENSOR_VIDEO_COLOR 0X2002
-	#define RPC_TENSOR_TENSOR_VIDEO_ZOOM  0x2003
-	#define RPC_TENSOR_TENSOR_VIDEO_SLOW  0x2004
-	#define RPC_TENSOR_TENSOR_VIDEO_TRACK  0x2005
-
-	#define RPC_IS_TENSOR_TEXT(opc) (opc == RPC_TENSOR_TEXT_IMAGE_NIMA)
-
-	IMAGE *image_recv(nng_socket socket);
-	int image_send(nng_socket socket, IMAGE * image);
-
-	TENSOR *tensor_recv(nng_socket socket);
-	int tensor_send(nng_socket socket, TENSOR * tensor);
-
-	TENSOR *rpc_tensor_tensor(nng_socket socket, TENSOR *src, WORD opc);
-	BYTE *rpc_tensor_text(nng_socket socket, TENSOR *src, WORD opc);
-#endif
-
 #if defined(__cplusplus)
 }
 #endif

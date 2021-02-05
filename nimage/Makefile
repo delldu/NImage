@@ -13,10 +13,10 @@ TARGET := nimage
 SOURCE :=  \
 	main.c \
 
-INCS	:= -I/usr/local/include
+INCS	:= -I../include
 
 LIBS	:= \
-	-lnimage \
+	-L.. -lnimage \
 	-lnng -ljpeg -lpng -lpthread -lm
 
 DEFINES :=

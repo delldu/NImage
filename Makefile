@@ -16,7 +16,6 @@ INCS	:= \
 	-I/usr/local/include
 
 SOURCE :=  \
-	source/abhead.c \
 	source/color.c \
 	source/frame.c \
 	source/hough.c \
@@ -35,7 +34,8 @@ SOURCE :=  \
 	source/retinex.c \
 	source/histogram.c \
 	source/mask.c \
-	source/tensor.c
+	source/tensor.c \
+	source/nngmsg.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra
