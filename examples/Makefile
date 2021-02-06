@@ -1,31 +1,30 @@
 #/************************************************************************************
 #***
-#***	Copyright 2010-2020 Dell(18588220928@163.com), All Rights Reserved.
+#***	Copyright 2020 Dell(18588220928g@163.com), All Rights Reserved.
 #***
-#***	File Author: Dell, Sun Feb  5 20:51:04 CST 2010
+#***	File Author: Dell, 2020-11-22 02:26:07
 #***
 #************************************************************************************/
 #
-
-# Configurations
-APPLETS := $(shell ./makebox --source)
-
-TARGET := imagebox
 INSTALL_DIR := /usr/local
 
-SOURCE := main.c
-SOURCE += $(APPLETS)
+TARGET := nimage
 
-INCS	:= -I../include \
-	$(shell gimptool-2.0 --cflags)
+SOURCE :=  \
+	main.c \
 
-LIBS	:= -L.. -lnimage -ljpeg -lpng -lm  
+INCS	:= -I../include
 
-CFLAGS := -O2 -fPIC
+LIBS	:= \
+	-L.. -lnimage \
+	-lnanomsg \
+	-lmsgpackc \
+	-ljpeg -lpng -lpthread -lm
+
+DEFINES :=
+
+CFLAGS := -O2 -fPIC -Wall -Wextra
 LDFLAGS := -fPIC
-
-# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:..
-
 
 #****************************************************************************
 # Makefile code common to all platforms
@@ -35,22 +34,20 @@ CXXFLAGS := ${CXXFLAGS} ${DEFINES}
 
 OBJECT := $(addsuffix .o,$(basename ${SOURCE}))
 
-all: ${TARGET} 
-# install
-
 #****************************************************************************
 # Compile block
 #****************************************************************************
-${TARGET}: applets.h ${OBJECT}
-	${CC} -o ${TARGET} ${LDFLAGS} ${OBJECT} ${LIBS}
+all: ${TARGET}
 
-applets.h: imagebox.config
-	./makebox --table > applets.h
+${TARGET}: ${OBJECT}
+	${CC} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
 
 install:
-	#${STRIP} ${TARGET}
-	install -m 755 ${TARGET} ${INSTALL_DIR}/bin
-	./makebox --links ${INSTALL_DIR}/bin
+# 	${STRIP} ${TARGET}
+	sudo install -m 755 ${TARGET} ${INSTALL_DIR}/bin
+	sudo cp nimage.service /lib/systemd/system/
+	sudo systemctl daemon-reload
+
 
 #****************************************************************************
 # common rules
@@ -67,7 +64,4 @@ install:
 depend:
 
 clean:
-	rm -f core ${OBJECT}
-	rm -f core ${TARGET}
-	rm -f applets.h
-
+	rm -f core ${OBJECT} ${TARGET}

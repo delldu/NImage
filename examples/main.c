@@ -1,95 +1,154 @@
 /************************************************************************************
 ***
-***	File Author: Dell, Fri May 30 12:46:39 CST 2020
+***	Copyright 2020 Dell(18588220928g@163.com), All Rights Reserved.
+***
+***	File Author: Dell, 2020-11-22 13:18:11
 ***
 ************************************************************************************/
 
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 
-typedef struct applet_s {
-	char *name;
-	int (*main) (int argc, char **argv);
-} applet_t;
 
-#include "applets.h"
+#include "image.h"
+#include "nngmsg.h"
+#include <nanomsg/nn.h>
 
-#define NUMBER_OF_APPLETS (sizeof(applet_table)/sizeof(applet_table[0]))
+#define URL "ipc:///tmp/nimage.ipc"
 
-static int applet_cmp(const void *a, const void *b)
+// Echo Server
+int server()
 {
-	applet_t *m, *n;
-	m = (applet_t *) a;
-	n = (applet_t *) b;
+	int socket, reqcode, count;
+	float option;
+	TENSOR *tensor;
 
-	return strcmp(m->name, n->name);
+	if ((socket = start_server(URL)) < 0)
+		return RET_ERROR;
+
+	count = 0;
+	for (;;) {
+		if (count % 100 == 0)
+			syslog_info("Service %d times", count);
+
+		tensor = request_recv(socket, &reqcode, &option);
+		if (!tensor_valid(tensor)) {
+			syslog_error("Request recv bad tensor ...");
+			continue;
+		}
+		response_send(socket, tensor, reqcode);
+		tensor_destroy(tensor);
+
+		count++;
+	}
+
+	syslog(LOG_INFO, "Service shutdown.\n");
+	nn_shutdown(socket, 0);
+
+	return RET_OK;
 }
 
-applet_t *applet_search(char *name)
+int client(char *input_file, char *output_file)
 {
-	applet_t key;
-	key.name = name;
+	int ret, rescode, socket;
+	IMAGE *send_image, *recv_image;
+	TENSOR *send_tensor, *recv_tensor;
 
-	return (applet_t *)bsearch(&key, applet_table, NUMBER_OF_APPLETS, sizeof(applet_t), applet_cmp);
+	if ((socket = client_connect(URL)) < 0)
+		return RET_ERROR;
+
+	ret = RET_ERROR;
+	send_image = image_load(input_file);
+	if (!image_valid(send_image))
+		goto finish;
+
+	send_tensor = tensor_from_image(send_image);
+	check_tensor(send_tensor);
+
+	if (tensor_valid(send_tensor)) {
+		// Send
+		ret = request_send(socket, 6789, send_tensor, 3.14f);
+		if (ret == RET_OK) {
+			// Recv
+			recv_tensor = response_recv(socket, &rescode);
+			if (tensor_valid(recv_tensor)) {
+				// Process recv tensor ...
+				recv_image = image_from_tensor(recv_tensor, 0);
+				if (image_valid(recv_image)) {
+					ret = image_save(recv_image, output_file);
+					image_destroy(recv_image);
+				}
+				tensor_destroy(recv_tensor);
+			}
+		}
+
+		tensor_destroy(send_tensor);
+	}
+	image_destroy(send_image);
+
+  finish:
+	nn_shutdown(socket, 0);
+
+	return ret;
 }
-
-extern void exit(int status);
 
 void help(char *cmd)
 {
-	int i;
-	printf("This box is a multi-call binary that combines many applets.\n");
-	printf("Usage: %s applet-name\n", cmd);
-	printf("Support %ld applets:\n", NUMBER_OF_APPLETS);
-	for (i = 0; i < NUMBER_OF_APPLETS; i++)
-		printf("  %s", applet_table[i].name);
-	printf("\n");
+	printf("This is simple an example for nimage, client send image to server and server echo back\n");
+
+	printf("Usage: %s [option]\n", cmd);
+	printf("    h, --help                   Display this help.\n");
+	printf("    s, --server                 Start server.\n");
+	printf("    c, --client <file>          Client image.\n");
+	printf("    o, --output <file>          Output file (default: output.png).\n");
 
 	exit(1);
 }
 
 int main(int argc, char **argv)
 {
-	int cnt;
-	char origname[256];
-	char *p, *appletname, *rootname;
-	applet_t *applet;
+	int optc;
+	int option_index = 0;
+	char *client_file = NULL;
+	char *output_file = (char *) "output.png";
 
-	rootname = argv[0];
+	struct option long_opts[] = {
+		{"help", 0, 0, 'h'},
+		{"server", 0, 0, 's'},
+		{"client", 1, 0, 'c'},
+		{"output", 1, 0, 'o'},
+		{0, 0, 0, 0}
+	};
 
-	if ((cnt = readlink(argv[0], origname, sizeof(origname) - 1)) < 0 && strstr(argv[0], "imagebox")) {
-		/*
-		 * Guess: it must be box self !
-		 * We must use the following command to run:
-		 * busybox applet-name ......
-		 */
-		if (argc < 2)
+	if (argc <= 1)
+		help(argv[0]);
+
+	while ((optc = getopt_long(argc, argv, "h s c: o:", long_opts, &option_index)) != EOF) {
+		switch (optc) {
+		case 's':
+			return server();
+			break;
+		case 'c':				// Clean
+			client_file = optarg;
+			break;
+		case 'o':				// Output
+			output_file = optarg;
+			break;
+		case 'h':				// help
+		default:
 			help(argv[0]);
-
-		--argc;
-		argv++;
+			break;
+		}
 	}
 
-	appletname = argv[0];
-	p = strrchr(appletname, '/');
-	if (p)
-		p++;
-	else
-		p = appletname;
-	appletname = p;
-
-	applet = applet_search(appletname);
-	if (applet) {
-		if (applet->main)
-			return applet->main(argc, argv);
-		else
-			printf("Fatal error: applet->main is NULL !\n");
-	} else {
-		help(rootname);
+	if (client_file) {
+		return client(client_file, output_file);
 	}
 
-	return 0;
+	help(argv[0]);
+
+	return RET_ERROR;
 }
