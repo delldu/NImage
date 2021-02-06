@@ -86,5 +86,7 @@ install:
 	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
 # 	sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
 	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+	sudo cp nimagetool ${INSTALL_DIR}/bin
+	
 
 

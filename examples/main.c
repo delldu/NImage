@@ -39,6 +39,8 @@ int server(char *endpoint)
 			syslog_error("Request recv bad tensor ...");
 			continue;
 		}
+		syslog_info("Request Code = %d, Option = %f", reqcode, option);
+		
 		response_send(socket, tensor, reqcode);
 		tensor_destroy(tensor);
 

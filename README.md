@@ -25,6 +25,3 @@ ii  libpng-dev:amd64                    1.6.34-1ubuntu0.18.04. amd64            
 ###   1.2 Command
 `make && make install`
 
-libnanomsg-dev
-libmsgpack-dev
-
