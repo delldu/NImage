@@ -185,9 +185,9 @@ int mask_show(MASK * mask)
 	image_foreach(image, i, j) {
 		// label = RGB_INT(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b);
 		// if (__label_border(mask, i, j)) {
-		// 	color = 0x7f0000;
+		//  color = 0x7f0000;
 		// } else {
-		// 	color = image->KColors[image->ie[i][j].a];
+		//  color = image->KColors[image->ie[i][j].a];
 		// }
 
 		color = image->KColors[image->ie[i][j].a];

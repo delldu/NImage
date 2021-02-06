@@ -17,7 +17,7 @@ INCS	:= -I../include
 
 LIBS	:= \
 	-L.. -lnimage \
-	-lnng \
+	-lnanomsg \
 	-lmsgpackc \
 	-ljpeg -lpng -lpthread -lm
 

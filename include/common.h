@@ -21,7 +21,7 @@ extern "C" {
 #include <syslog.h>				// syslog, RFC3164 ?
 
 // config.h
-#define CONFIG_JPEG 
+#define CONFIG_JPEG
 #define CONFIG_PNG
 #define CONFIG_NNG
 

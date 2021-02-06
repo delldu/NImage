@@ -33,12 +33,12 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	t->chan = c;
 	t->height = h;
 	t->width = w;
-	t->data = (float *)(base + sizeof(TENSOR));
+	t->data = (float *) (base + sizeof(TENSOR));
 
 	return t;
 }
 
-TENSOR *tensor_copy(TENSOR *src)
+TENSOR *tensor_copy(TENSOR * src)
 {
 	TENSOR *dst;
 
@@ -48,11 +48,11 @@ TENSOR *tensor_copy(TENSOR *src)
 	if (tensor_valid(dst)) {
 		memcpy(dst->data, src->data, src->batch * src->chan * src->height * src->width * sizeof(float));
 	}
-	
+
 	return dst;
 }
 
-void tensor_dump(TENSOR *tensor)
+void tensor_dump(TENSOR * tensor)
 {
 	printf("Tensor dims: %dx%dx%dx%d\n", tensor->batch, tensor->chan, tensor->height, tensor->width);
 }
@@ -86,16 +86,16 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 	A = B + tensor->height * tensor->width;
 
 	image_foreach(image, i, j) {
-		image->ie[i][j].r = (BYTE)((*R++) * 255);
-		image->ie[i][j].g = (BYTE)((*G++) * 255);
-		image->ie[i][j].b = (BYTE)((*B++) * 255);
-		image->ie[i][j].a = (BYTE)((*A++) * 255);
+		image->ie[i][j].r = (BYTE) ((*R++) * 255);
+		image->ie[i][j].g = (BYTE) ((*G++) * 255);
+		image->ie[i][j].b = (BYTE) ((*B++) * 255);
+		image->ie[i][j].a = (BYTE) ((*A++) * 255);
 	}
 
 	return image;
 }
 
-TENSOR *tensor_from_image(IMAGE *image)
+TENSOR *tensor_from_image(IMAGE * image)
 {
 	int i, j;
 	TENSOR *tensor;
@@ -111,12 +111,11 @@ TENSOR *tensor_from_image(IMAGE *image)
 	B = G + tensor->height * tensor->width;
 	A = B + tensor->height * tensor->width;
 	image_foreach(image, i, j) {
-		*R++ = (float)image->ie[i][j].r/255.0;
-		*G++ = (float)image->ie[i][j].g/255.0;
-		*B++ = (float)image->ie[i][j].b/255.0;
-		*A++ = (float)image->ie[i][j].a/255.0;
+		*R++ = (float) image->ie[i][j].r / 255.0;
+		*G++ = (float) image->ie[i][j].g / 255.0;
+		*B++ = (float) image->ie[i][j].b / 255.0;
+		*A++ = (float) image->ie[i][j].a / 255.0;
 	}
-	
+
 	return tensor;
 }
-

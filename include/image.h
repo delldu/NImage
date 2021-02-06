@@ -275,7 +275,7 @@ extern "C" {
 
 // Tensor
 	IMAGE *image_from_tensor(TENSOR * tensor, int k);
-	TENSOR *tensor_from_image(IMAGE *image);
+	TENSOR *tensor_from_image(IMAGE * image);
 #if defined(__cplusplus)
 }
 #endif

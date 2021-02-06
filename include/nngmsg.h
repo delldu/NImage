@@ -15,21 +15,16 @@ extern "C" {
 
 #include "tensor.h"
 
-#include <nng/nng.h>
-#include <nng/protocol/reqrep0/rep.h>
-#include <nng/protocol/reqrep0/req.h>
+	int start_server(char *endpoint);
+	int client_connect(char *endpoint);
 
-int start_server(char *endpoint, nng_socket *socket);
-int client_connect(char *endpoint, nng_socket *socket);
+	int request_send(int socket, int reqcode, TENSOR * tensor, float option);
+	TENSOR *request_recv(int socket, int *reqcode, float *option);
 
-int request_send(nng_socket socket, int reqcode, TENSOR *tensor, float option);
-TENSOR *request_recv(nng_socket socket, int *reqcode, float *option);
-
-int response_send(nng_socket socket, TENSOR *tensor, int rescode);
-TENSOR *response_recv(nng_socket socket, int *rescode);
+	int response_send(int, TENSOR * tensor, int rescode);
+	TENSOR *response_recv(int socket, int *rescode);
 
 #if defined(__cplusplus)
 }
 #endif
 #endif							// _NNGMSG_H
-

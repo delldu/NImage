@@ -12,33 +12,30 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include <nng/nng.h>
-#include <nng/protocol/reqrep0/rep.h>
-#include <nng/protocol/reqrep0/req.h>
 
 #include "image.h"
 #include "nngmsg.h"
+#include <nanomsg/nn.h>
 
 #define URL "ipc:///tmp/nimage.ipc"
 
 // Echo Server
 int server()
 {
-	int reqcode;
+	int socket, reqcode, count;
 	float option;
-	nng_socket socket;
 	TENSOR *tensor;
-	int count = 0;
 
-	if (start_server(URL, &socket) != RET_OK)
+	if ((socket = start_server(URL)) < 0)
 		return RET_ERROR;
 
+	count = 0;
 	for (;;) {
 		if (count % 100 == 0)
 			syslog_info("Service %d times", count);
 
 		tensor = request_recv(socket, &reqcode, &option);
-		if (! tensor_valid(tensor)) {
+		if (!tensor_valid(tensor)) {
 			syslog_error("Request recv bad tensor ...");
 			continue;
 		}
@@ -49,31 +46,31 @@ int server()
 	}
 
 	syslog(LOG_INFO, "Service shutdown.\n");
-	nng_close(socket);
+	nn_shutdown(socket, 0);
 
 	return RET_OK;
 }
 
 int client(char *input_file, char *output_file)
 {
-	int ret, rescode;
-	nng_socket socket;
+	int ret, rescode, socket;
 	IMAGE *send_image, *recv_image;
 	TENSOR *send_tensor, *recv_tensor;
 
-	if (client_connect(URL, &socket) != RET_OK)
+	if ((socket = client_connect(URL)) < 0)
 		return RET_ERROR;
 
 	ret = RET_ERROR;
 	send_image = image_load(input_file);
-	if (! image_valid(send_image))
+	if (!image_valid(send_image))
 		goto finish;
 
-	send_tensor = tensor_from_image(send_image); check_tensor(send_tensor);
+	send_tensor = tensor_from_image(send_image);
+	check_tensor(send_tensor);
 
 	if (tensor_valid(send_tensor)) {
 		// Send
-		ret = request_send(socket, 6789, send_tensor, 3.14f); 
+		ret = request_send(socket, 6789, send_tensor, 3.14f);
 		if (ret == RET_OK) {
 			// Recv
 			recv_tensor = response_recv(socket, &rescode);
@@ -88,12 +85,12 @@ int client(char *input_file, char *output_file)
 			}
 		}
 
-		tensor_destroy(send_tensor);			
+		tensor_destroy(send_tensor);
 	}
 	image_destroy(send_image);
 
-finish:
-	nng_close(socket);
+  finish:
+	nn_shutdown(socket, 0);
 
 	return ret;
 }
@@ -116,35 +113,35 @@ int main(int argc, char **argv)
 	int optc;
 	int option_index = 0;
 	char *client_file = NULL;
-	char *output_file = (char *)"output.png";
+	char *output_file = (char *) "output.png";
 
 	struct option long_opts[] = {
-		{ "help", 0, 0, 'h'},
-		{ "server", 0, 0, 's'},
-		{ "client", 1, 0, 'c'},
-		{ "output", 1, 0, 'o'},
-		{ 0, 0, 0, 0}
+		{"help", 0, 0, 'h'},
+		{"server", 0, 0, 's'},
+		{"client", 1, 0, 'c'},
+		{"output", 1, 0, 'o'},
+		{0, 0, 0, 0}
 	};
 
 	if (argc <= 1)
 		help(argv[0]);
-	
+
 	while ((optc = getopt_long(argc, argv, "h s c: o:", long_opts, &option_index)) != EOF) {
 		switch (optc) {
 		case 's':
 			return server();
 			break;
-		case 'c':	// Clean
+		case 'c':				// Clean
 			client_file = optarg;
 			break;
-		case 'o':	// Output
+		case 'o':				// Output
 			output_file = optarg;
 			break;
-		case 'h':	// help
+		case 'h':				// help
 		default:
 			help(argv[0]);
 			break;
-	    }
+		}
 	}
 
 	if (client_file) {
