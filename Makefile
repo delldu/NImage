@@ -35,7 +35,7 @@ SOURCE :=  \
 	source/histogram.c \
 	source/mask.c \
 	source/tensor.c \
-	source/nngmsg.c
+	source/nnmsg.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra

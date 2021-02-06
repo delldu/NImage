@@ -19,7 +19,7 @@ extern "C" {
 	typedef struct {
 		DWORD magic;
 		int m, n, _m;			// _m is internal rows
-		double **me, *base;
+		float **me, *base;
 	} MATRIX;
 
 #define matrix_rect(rect, mat) \
@@ -45,13 +45,13 @@ extern "C" {
 		} \
 	} while(0)
 
-	typedef double (*distancef_t) (double *a, double *b, int n);
+	typedef float (*distancef_t) (float *a, float *b, int n);
 
 	MATRIX *matrix_create(int m, int n);
 
 	MATRIX *matrix_copy(MATRIX * src);
 	MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method);
-	MATRIX *matrix_gskernel(double sigma);
+	MATRIX *matrix_gskernel(float sigma);
 	MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance);
 	int matrix_clean(MATRIX * mat);
 
@@ -60,7 +60,7 @@ extern "C" {
 	int matrix_outdoor(MATRIX * M, int i, int di, int j, int dj);
 
 	int matrix_integrate(MATRIX * mat);
-	double matrix_difference(MATRIX * mat, int r1, int c1, int r2, int c2);
+	float matrix_difference(MATRIX * mat, int r1, int c1, int r2, int c2);
 	int matrix_weight(MATRIX * mat, RECT * rect);
 
 	int matrix_clear(MATRIX * mat);
@@ -83,7 +83,7 @@ extern "C" {
 	int matrix_dotdiv(MATRIX * A, MATRIX * B);
 	int matrix_multi(MATRIX * C, MATRIX * A, MATRIX * B);
 
-	double matrix_median(MATRIX * mat);
+	float matrix_median(MATRIX * mat);
 
 
 	void matrix_destroy(MATRIX * m);

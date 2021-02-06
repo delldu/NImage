@@ -15,7 +15,7 @@
 
 #define VECTOR_MAGIC MAKE_FOURCC('V','E','C','T')
 
-extern int math_gsbw(double sigma);
+extern int math_gsbw(float sigma);
 
 VECTOR *vector_create(int m)
 {
@@ -33,7 +33,7 @@ VECTOR *vector_create(int m)
 	}
 
 	vec->m = m;
-	vec->ve = (double *) calloc((size_t) m, sizeof(double));
+	vec->ve = (float *) calloc((size_t) m, sizeof(float));
 	if (!vec->ve) {
 		syslog_error("Allocate memeory.");
 		free(vec);
@@ -49,7 +49,7 @@ VECTOR *vector_create(int m)
 int vector_clear(VECTOR * vec)
 {
 	check_vector(vec);
-	memset(vec->ve, 0, sizeof(double) * vec->m);
+	memset(vec->ve, 0, sizeof(float) * vec->m);
 	return RET_OK;
 }
 
@@ -74,7 +74,7 @@ void vector_print(VECTOR * v, char *format)
 	}
 
 	for (i = 0; i < v->m; i++) {
-		if (strchr(format, 'f'))	// double
+		if (strchr(format, 'f'))	// float
 			printf(format, v->ve[i]);
 		else {
 			k = (int) v->ve[i];
@@ -92,10 +92,10 @@ int vector_valid(VECTOR * v)
 	return (v && v->m >= 1 && v->ve && v->magic == VECTOR_MAGIC);
 }
 
-int vector_cosine(VECTOR * v1, VECTOR * v2, double *res)
+int vector_cosine(VECTOR * v1, VECTOR * v2, float *res)
 {
 	int i;
-	double s1, s2, s;
+	float s1, s2, s;
 
 	if (!res) {
 		syslog_error("Result pointer is null.");
@@ -115,13 +115,13 @@ int vector_cosine(VECTOR * v1, VECTOR * v2, double *res)
 		s2 += v2->ve[i] * v2->ve[i];
 		s += v1->ve[i] * v2->ve[i];
 	}
-	if (ABS(s1) < MIN_DOUBLE_NUMBER || ABS(s2) < MIN_DOUBLE_NUMBER) {
+	if (ABS(s1) < MIN_FLOAT_NUMBER || ABS(s2) < MIN_FLOAT_NUMBER) {
 		syslog_error("Two vectors are zero.");
 		*res = 1.0f;
 		return RET_OK;
 	}
 
-	*res = (double) (s / (sqrt(s1) * sqrt(s2)));
+	*res = (float) (s / (sqrt(s1) * sqrt(s2)));
 
 	return RET_OK;
 }
@@ -129,12 +129,12 @@ int vector_cosine(VECTOR * v1, VECTOR * v2, double *res)
 int vector_normal(VECTOR * v)
 {
 	int i;
-	double sum;
+	float sum;
 
 	check_vector(v);
 
 	sum = vector_sum(v);
-	if (ABS(sum) < MIN_DOUBLE_NUMBER)	// NO Need calculation more
+	if (ABS(sum) < MIN_FLOAT_NUMBER)	// NO Need calculation more
 		return RET_OK;
 
 	vector_foreach(v, i)
@@ -143,17 +143,17 @@ int vector_normal(VECTOR * v)
 	return RET_OK;
 }
 
-double vector_likeness(VECTOR * v1, VECTOR * v2)
+float vector_likeness(VECTOR * v1, VECTOR * v2)
 {
-	double d;
+	float d;
 	vector_cosine(v1, v2, &d);
 	return d;
 }
 
-double vector_sum(VECTOR * v)
+float vector_sum(VECTOR * v)
 {
 	int i;
-	double sum;
+	float sum;
 
 	if (!vector_valid(v)) {
 		syslog_error("Bad vector.");
@@ -167,16 +167,16 @@ double vector_sum(VECTOR * v)
 	return sum;
 }
 
-double vector_mean(VECTOR * v)
+float vector_mean(VECTOR * v)
 {
 	return vector_sum(v) / v->m;
 }
 
 // Guass 1D kernel
-VECTOR *vector_gskernel(double sigma)
+VECTOR *vector_gskernel(float sigma)
 {
 	int j, dim;
-	double d, g;
+	float d, g;
 	VECTOR *vec;
 
 	dim = math_gsbw(sigma) / 2;

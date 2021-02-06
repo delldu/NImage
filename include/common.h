@@ -23,7 +23,6 @@ extern "C" {
 // config.h
 #define CONFIG_JPEG
 #define CONFIG_PNG
-#define CONFIG_NNG
 
 #define BYTE uint8_t
 #define WORD uint16_t
@@ -41,7 +40,7 @@ extern "C" {
 #define ABS(a) ((a) > 0? (a) : (-(a)))
 
 #define MATH_PI 3.1415926f
-#define MIN_DOUBLE_NUMBER 0.000001f
+#define MIN_FLOAT_NUMBER 0.000001f
 
 // Zoom method
 #define ZOOM_METHOD_COPY 0

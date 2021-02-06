@@ -51,7 +51,7 @@ static int __hough_line(IMAGE * image, int threshold, int debug)
 {
 #define MAX_ANGLES 180
 	int i, j, n, r, rmax;
-	double d;
+	float d;
 	VECTOR *cosv, *sinv;
 	MATRIX *hough, *begrow, *endrow, *begcol, *endcol;
 	LINES *lines = line_set();
@@ -121,10 +121,10 @@ int line_detect(IMAGE * img, int debug)
 	return __hough_line(img, MIN(img->height, img->width) / 10, debug);
 }
 
-int line_lsm(IMAGE * image, RECT * rect, double *k, double *b, int debug)
+int line_lsm(IMAGE * image, RECT * rect, float *k, float *b, int debug)
 {
 	int i, j, n, x[4096], y[4096];
-	double avg_xy, avg_x, avg_y, avg_xx, t;
+	float avg_xy, avg_x, avg_y, avg_xx, t;
 
 	check_image(image);
 
@@ -157,7 +157,7 @@ int line_lsm(IMAGE * image, RECT * rect, double *k, double *b, int debug)
 	avg_xx /= n;
 	t = avg_xx - (avg_x) * (avg_x);
 
-	if (t < MIN_DOUBLE_NUMBER)
+	if (t < MIN_FLOAT_NUMBER)
 		return RET_ERROR;
 
 	*k = (avg_xy - avg_x * avg_y) / t;

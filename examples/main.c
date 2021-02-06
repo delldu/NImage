@@ -12,21 +12,20 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-
 #include "image.h"
-#include "nngmsg.h"
-#include <nanomsg/nn.h>
+#include "nnmsg.h"
 
 #define URL "ipc:///tmp/nimage.ipc"
+// #define URL "tcp://127.0.0.1:5560"
 
 // Echo Server
-int server()
+int server(char *endpoint)
 {
 	int socket, reqcode, count;
 	float option;
 	TENSOR *tensor;
 
-	if ((socket = start_server(URL)) < 0)
+	if ((socket = server_open(endpoint)) < 0)
 		return RET_ERROR;
 
 	count = 0;
@@ -35,6 +34,7 @@ int server()
 			syslog_info("Service %d times", count);
 
 		tensor = request_recv(socket, &reqcode, &option);
+
 		if (!tensor_valid(tensor)) {
 			syslog_error("Request recv bad tensor ...");
 			continue;
@@ -46,18 +46,18 @@ int server()
 	}
 
 	syslog(LOG_INFO, "Service shutdown.\n");
-	nn_shutdown(socket, 0);
+	server_close(socket);
 
 	return RET_OK;
 }
 
-int client(char *input_file, char *output_file)
+int client(char *endpoint, char *input_file, char *output_file)
 {
 	int ret, rescode, socket;
 	IMAGE *send_image, *recv_image;
 	TENSOR *send_tensor, *recv_tensor;
 
-	if ((socket = client_connect(URL)) < 0)
+	if ((socket = client_open(endpoint)) < 0)
 		return RET_ERROR;
 
 	ret = RET_ERROR;
@@ -71,9 +71,11 @@ int client(char *input_file, char *output_file)
 	if (tensor_valid(send_tensor)) {
 		// Send
 		ret = request_send(socket, 6789, send_tensor, 3.14f);
+
 		if (ret == RET_OK) {
 			// Recv
 			recv_tensor = response_recv(socket, &rescode);
+
 			if (tensor_valid(recv_tensor)) {
 				// Process recv tensor ...
 				recv_image = image_from_tensor(recv_tensor, 0);
@@ -90,7 +92,7 @@ int client(char *input_file, char *output_file)
 	image_destroy(send_image);
 
   finish:
-	nn_shutdown(socket, 0);
+	client_close(socket);
 
 	return ret;
 }
@@ -101,6 +103,7 @@ void help(char *cmd)
 
 	printf("Usage: %s [option]\n", cmd);
 	printf("    h, --help                   Display this help.\n");
+	printf("    e, --endpoint               Set endpoint.\n");
 	printf("    s, --server                 Start server.\n");
 	printf("    c, --client <file>          Client image.\n");
 	printf("    o, --output <file>          Output file (default: output.png).\n");
@@ -111,12 +114,16 @@ void help(char *cmd)
 int main(int argc, char **argv)
 {
 	int optc;
+	int running_server = 0;
+
 	int option_index = 0;
 	char *client_file = NULL;
+	char *endpoint = (char *)URL;
 	char *output_file = (char *) "output.png";
 
 	struct option long_opts[] = {
 		{"help", 0, 0, 'h'},
+		{"endpoint", 1, 0, 'e'},
 		{"server", 0, 0, 's'},
 		{"client", 1, 0, 'c'},
 		{"output", 1, 0, 'o'},
@@ -126,10 +133,13 @@ int main(int argc, char **argv)
 	if (argc <= 1)
 		help(argv[0]);
 
-	while ((optc = getopt_long(argc, argv, "h s c: o:", long_opts, &option_index)) != EOF) {
+	while ((optc = getopt_long(argc, argv, "h e: s c: o:", long_opts, &option_index)) != EOF) {
 		switch (optc) {
+		case 'e':
+			endpoint = optarg;
+			break;
 		case 's':
-			return server();
+			running_server = 1;
 			break;
 		case 'c':				// Clean
 			client_file = optarg;
@@ -144,8 +154,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (client_file) {
-		return client(client_file, output_file);
+	if (running_server)
+		return server(endpoint);
+	else if (client_file) {
+		return client(endpoint, client_file, output_file);
 	}
 
 	help(argv[0]);

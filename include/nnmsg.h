@@ -6,8 +6,8 @@
 ***
 ************************************************************************************/
 
-#ifndef _NNGMSG_H
-#define _NNGMSG_H
+#ifndef _NNMSG_H
+#define _NNMSG_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -15,8 +15,8 @@ extern "C" {
 
 #include "tensor.h"
 
-	int start_server(char *endpoint);
-	int client_connect(char *endpoint);
+	int server_open(char *endpoint);
+	int client_open(char *endpoint);
 
 	int request_send(int socket, int reqcode, TENSOR * tensor, float option);
 	TENSOR *request_recv(int socket, int *reqcode, float *option);
@@ -24,7 +24,10 @@ extern "C" {
 	int response_send(int, TENSOR * tensor, int rescode);
 	TENSOR *response_recv(int socket, int *rescode);
 
+	void client_close(int socket);
+	void server_close(int socket);
+
 #if defined(__cplusplus)
 }
 #endif
-#endif							// _NNGMSG_H
+#endif							// _NNMSG_H

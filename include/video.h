@@ -86,7 +86,7 @@ extern "C" {
 	int video_mds(char *filename, int start);
 
 // Video IDS: Instrusion Detection System
-	int video_ids(char *filename, int start, double threshold);
+	int video_ids(char *filename, int start, float threshold);
 
 // YUV420 !!!
 	int yuv420_play(char *filename, int width, int height);

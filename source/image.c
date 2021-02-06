@@ -184,12 +184,7 @@ BYTE image_getvalue(IMAGE * img, char oargb, int r, int c)
 	case 'B':
 		return img->ie[r][c].b;
 		break;
-	case 'H':					// Hue !!!
-		{
-			BYTE s, v;
-			color_rgb2hsv(img->ie[r][c].r, img->ie[r][c].g, img->ie[r][c].b, &n, &s, &v);
-			return n;
-		}
+	default:
 		break;
 	}
 	return 0;
@@ -249,7 +244,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 				y2 = (66 * (img->ie[i + rect->r][j + rect->c].r)
 					  + 129 * (img->ie[i + rect->r][j + rect->c].g)
 					  + 25 * (img->ie[i + rect->r][j + rect->c].b) + 128) / 256 + 16;
-				mat->me[i][j] = (double) CLAMP(y2, 0, 255);
+				mat->me[i][j] = (float) CLAMP(y2, 0, 255);
 			}
 		}
 		break;
@@ -262,7 +257,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 					continue;
 				color_rgb2gray(img->ie[i + rect->r][j + rect->c].r,
 							   img->ie[i + rect->r][j + rect->c].g, img->ie[i + rect->r][j + rect->c].b, &n);
-				mat->me[i][j] = (double) n;
+				mat->me[i][j] = (float) n;
 			}
 		}
 		break;
@@ -273,7 +268,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 			for (j = 0; j < (rect)->w; j++) {
 				if (j + rect->c < 0 || j + rect->c >= img->width)
 					continue;
-				mat->me[i][j] = (double) img->ie[i + rect->r][j + rect->c].r;
+				mat->me[i][j] = (float) img->ie[i + rect->r][j + rect->c].r;
 			}
 		}
 		break;
@@ -284,7 +279,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 			for (j = 0; j < (rect)->w; j++) {
 				if (j + rect->c < 0 || j + rect->c >= img->width)
 					continue;
-				mat->me[i][j] = (double) img->ie[i + rect->r][j + rect->c].g;
+				mat->me[i][j] = (float) img->ie[i + rect->r][j + rect->c].g;
 			}
 		}
 		break;
@@ -295,7 +290,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 			for (j = 0; j < (rect)->w; j++) {
 				if (j + rect->c < 0 || j + rect->c >= img->width)
 					continue;
-				mat->me[i][j] = (double) img->ie[i + rect->r][j + rect->c].b;
+				mat->me[i][j] = (float) img->ie[i + rect->r][j + rect->c].b;
 			}
 		}
 		break;
@@ -306,7 +301,7 @@ MATRIX *image_rect_plane(IMAGE * img, char oargb, RECT * rect)
 			for (j = 0; j < (rect)->w; j++) {
 				if (j + rect->c < 0 || j + rect->c >= img->width)
 					continue;
-				mat->me[i][j] = (double) img->ie[i + rect->r][j + rect->c].a;
+				mat->me[i][j] = (float) img->ie[i + rect->r][j + rect->c].a;
 			}
 		}
 		break;
@@ -608,7 +603,7 @@ IMAGE *image_loadpng(char *fname)
 		png_set_gray_to_rgb(png_ptr);
 	/* only if file has a file gamma, we do a correction */
 	if (png_get_gAMA(png_ptr, info_ptr, &file_gamma))
-		png_set_gamma(png_ptr, (double) 2.2, file_gamma);
+		png_set_gamma(png_ptr, (float) 2.2, file_gamma);
 #endif
 
 	/* all transformations have been registered; now update info_ptr data,
@@ -843,7 +838,7 @@ IMAGE *image_copy(IMAGE * img)
 IMAGE *image_zoom(IMAGE * img, int nh, int nw, int method)
 {
 	int i, j, i2, j2;
-	double di, dj, d1, d2, d3, d4, u, v, d;
+	float di, dj, d1, d2, d3, d4, u, v, d;
 	IMAGE *copy;
 
 	CHECK_IMAGE(img);
@@ -1190,7 +1185,7 @@ int image_drawtext(IMAGE * image, int r, int c, char *texts, int color)
 }
 
 // Draw line: y = k*x + b
-int image_drawkxb(IMAGE * image, double k, double b, int color)
+int image_drawkxb(IMAGE * image, float k, float b, int color)
 {
 	int i, j;
 	check_image(image);
@@ -1207,11 +1202,11 @@ int image_drawkxb(IMAGE * image, double k, double b, int color)
 }
 
 // Peak Signal Noise Ratio
-int image_psnr(char oargb, IMAGE * orig, IMAGE * curr, double *psnr)
+int image_psnr(char oargb, IMAGE * orig, IMAGE * curr, float *psnr)
 {
 	int i, j, k;
 	long long n, sum;
-	double d = 0.0;
+	float d = 0.0;
 
 	check_rgb(oargb);
 	check_image(orig);
@@ -1270,7 +1265,7 @@ int image_psnr(char oargb, IMAGE * orig, IMAGE * curr, double *psnr)
 	return RET_OK;
 }
 
-int image_paste(IMAGE * img, int r, int c, IMAGE * small, double alpha)
+int image_paste(IMAGE * img, int r, int c, IMAGE * small, float alpha)
 {
 	int i, j, x2, y2, offx, offy;
 
@@ -1387,7 +1382,7 @@ int image_delete_noise(IMAGE * img)
 	return RET_OK;
 }
 
-int image_statistics(IMAGE * img, char orgb, double *avg, double *stdv)
+int image_statistics(IMAGE * img, char orgb, float *avg, float *stdv)
 {
 	RECT rect;
 
@@ -1396,11 +1391,11 @@ int image_statistics(IMAGE * img, char orgb, double *avg, double *stdv)
 }
 
 
-int image_rect_statistics(IMAGE * img, RECT * rect, char orgb, double *avg, double *stdv)
+int image_rect_statistics(IMAGE * img, RECT * rect, char orgb, float *avg, float *stdv)
 {
 	BYTE n;
 	int i, j;
-	double davg, dstdv;
+	float davg, dstdv;
 
 	check_image(img);
 
@@ -1606,11 +1601,11 @@ MATRIX *image_gstatics(IMAGE * img, int rows, int cols)
 }
 
 // Example: image_clahe(image, 4, 4, 4);
-int image_clahe(IMAGE * image, int grid_rows, int grid_cols, double limit)
+int image_clahe(IMAGE * image, int grid_rows, int grid_cols, float limit)
 {
 	BYTE g;
 	int i, j, h, w, i2, j2;
-	double u, v, d;
+	float u, v, d;
 	int d1r, d1c, d2r, d2c, d3r, d3c, d4r, d4c;
 	RECT rect;
 	HISTOGRAM hist[CLAHE_MAX_ROWS][CLAHE_MAX_COLS], *d1, *d2, *d3, *d4;
@@ -1694,10 +1689,10 @@ int image_clahe(IMAGE * image, int grid_rows, int grid_cols, double limit)
 			d4 = &hist[d4r][d4c];
 
 			for (i2 = rect.r; i2 < rect.r + rect.h; i2++) {
-				u = (double) (i2 - rect.r) / (double) rect.h;
+				u = (float) (i2 - rect.r) / (float) rect.h;
 
 				for (j2 = rect.c; j2 < rect.c + rect.w; j2++) {
-					v = (double) (j2 - rect.c) / (double) rect.w;
+					v = (float) (j2 - rect.c) / (float) rect.w;
 
 					g = image->ie[i2][j2].r;
 					d = (1.0 - u) * (1.0 - v) * d1->map[g] + (1.0 - u) * v * d2->map[g] + u * (1.0 - v) * d3->map[g] +
@@ -1716,7 +1711,7 @@ int image_clahe(IMAGE * image, int grid_rows, int grid_cols, double limit)
 	return RET_OK;
 }
 
-int image_niblack(IMAGE * image, int radius, double scale)
+int image_niblack(IMAGE * image, int radius, float scale)
 {
 	int i, j;
 	MATRIX *mean, *stdv, *temp, *area;

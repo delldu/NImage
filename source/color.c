@@ -81,10 +81,10 @@ do {                                                                  \
 extern int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2);
 extern void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr);
 extern void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cg, BYTE * cr);
-extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v);
-extern void color_luv2rgb(double L, double u, double v, BYTE * R, BYTE * G, BYTE * B);
+extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, float *L, float *u, float *v);
+extern void color_luv2rgb(float L, float u, float v, BYTE * R, BYTE * G, BYTE * B);
 extern Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B);
-extern int color_prmgain(IMAGE * img, double *r_gain, double *g_gain, double *b_gain);
+extern int color_prmgain(IMAGE * img, float *r_gain, float *g_gain, float *b_gain);
 extern int *color_count(IMAGE * image, int rows, int cols, int levs);
 
 static int __color_rgbcmp(const void *p1, const void *p2)
@@ -125,9 +125,9 @@ int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2)
 }
 
 // xxxx how to use ?
-void color_rgb2lab(BYTE R, BYTE G, BYTE B, double *L, double *a, double *b)
+void color_rgb2lab(BYTE R, BYTE G, BYTE B, float *L, float *a, float *b)
 {
-	double x, y, z;
+	float x, y, z;
 
 	x = LAB_X_R * R + LAB_X_G * G + LAB_X_B * B;
 	y = LAB_Y_R * R + LAB_Y_G * G + LAB_Y_B * B;
@@ -162,12 +162,12 @@ void color_rgb2lab(BYTE R, BYTE G, BYTE B, double *L, double *a, double *b)
 //  printf(" ==> L = %f, a = %f, b = %f\n", *L, *a, *b);
 }
 
-void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v)
+void color_rgb2luv(BYTE R, BYTE G, BYTE B, float *L, float *u, float *v)
 {
 	static int rgb2luv_init = 0;
-	static double X0, Z0, Y0, u20, v20;
+	static float X0, Z0, Y0, u20, v20;
 
-	double x, y, X, Y, Z, d, u2, v2, r, g, b;
+	float x, y, X, Y, Z, d, u2, v2, r, g, b;
 
 	if (rgb2luv_init == 0) {
 		X0 = (0.607 + 0.174 + 0.201);
@@ -179,9 +179,9 @@ void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v)
 		rgb2luv_init = 1;
 	}
 
-	r = (R <= 20) ? (double) (8.715e-4 * R) : (double) pow((R + 25.245) / 280.245, 2.22);
-	g = (G <= 20) ? (double) (8.715e-4 * G) : (double) pow((G + 25.245) / 280.245, 2.22);
-	b = (B <= 20) ? (double) (8.715e-4 * B) : (double) pow((B + 25.245) / 280.245, 2.22);
+	r = (R <= 20) ? (float) (8.715e-4 * R) : (float) pow((R + 25.245) / 280.245, 2.22);
+	g = (G <= 20) ? (float) (8.715e-4 * G) : (float) pow((G + 25.245) / 280.245, 2.22);
+	b = (B <= 20) ? (float) (8.715e-4 * B) : (float) pow((B + 25.245) / 280.245, 2.22);
 
 	X = 0.412453 * r + 0.357580 * g + 0.180423 * b;
 	Y = 0.212671 * r + 0.715160 * g + 0.072169 * b;
@@ -210,12 +210,12 @@ void color_rgb2luv(BYTE R, BYTE G, BYTE B, double *L, double *u, double *v)
 }
 
 
-void color_luv2rgb(double L, double u, double v, BYTE * R, BYTE * G, BYTE * B)
+void color_luv2rgb(float L, float u, float v, BYTE * R, BYTE * G, BYTE * B)
 {
 	static int luv2rgb_init = 0;
-	static double X0, Y0, Z0, u20, v20;
+	static float X0, Y0, Z0, u20, v20;
 	int k;
-	double x, y, X, Y, Z, d, u2, v2, vec[3];
+	float x, y, X, Y, Z, d, u2, v2, vec[3];
 
 	if (luv2rgb_init == 0) {
 		X0 = (0.607 + 0.174 + 0.201);
@@ -265,35 +265,6 @@ void color_luv2rgb(double L, double u, double v, BYTE * R, BYTE * G, BYTE * B)
 	}
 }
 
-void color_rgb2hsv(BYTE R, BYTE G, BYTE B, BYTE * h, BYTE * s, BYTE * v)
-{
-	int x;
-	double dh, ds, dv;
-
-	x = MAX(R, G);
-	dv = MAX(x, B);
-	if (ABS(dv) > MIN_DOUBLE_NUMBER) {
-		x = MIN(R, G);
-		x = MIN(x, B);
-		ds = (dv - x) / dv;
-	} else
-		ds = 0;
-
-	if (ABS(dv - R) <= MIN_DOUBLE_NUMBER)	//  dv == R
-		dh = 60.0f * (G - B) / ds;
-	else if (ABS(dv - G) <= MIN_DOUBLE_NUMBER)	//  dv == G
-		dh = 120.0f + 60.0f * (B - R) / ds;
-	else						// dv == B
-		dh = 240.0f + 60.0f * (R - G) / ds;
-
-	if (dh < 0)
-		dh += 360.0f;
-
-	*h = (BYTE) (255.0f * dh / 360.f);
-	*s = (BYTE) (255.0f * ds);
-	*v = (BYTE) (255.0f * dv);
-}
-
 void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr)
 {
 	int y2, cb2, cr2;
@@ -303,6 +274,7 @@ void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr)
 	*cr = (BYTE) cr2;
 }
 
+// xxxx3333
 void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cg, BYTE * cr)
 {
 	int y2, cg2, cr2;
@@ -318,7 +290,7 @@ void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cg, BYTE * cr)
 // V = 0.615R - 0.515G - 0.100B
 void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE * gray)
 {
-	//  double d = 0.299f * r + 0.587 * g + 0.114 * b;
+	//  float d = 0.299f * r + 0.587 * g + 0.114 * b;
 	// *gray = (BYTE)(d + 0.5f);
 	int d = (306 * r + 601 * g + 117 * b) >> 10;
 	*gray = (BYTE) d;
@@ -331,7 +303,7 @@ void color_rgbsort(int n, RGBA_8888 * cv[])
 
 int color_midval(IMAGE * img, char orgb)
 {
-	double midv;
+	float midv;
 	return (image_statistics(img, orgb, &midv, NULL) == RET_OK) ? (int) midv : -1;
 }
 
@@ -361,9 +333,9 @@ VECTOR *color_vector(IMAGE * img, RECT * rect, int ndim)
 	return vec;
 }
 
-double color_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
+float color_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
 {
-	double avgd;
+	float avgd;
 	VECTOR *fs, *gs;
 
 	fs = color_vector(f, rect, ndim);
@@ -542,7 +514,7 @@ Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B)
 
 	int k;
 	BYTE r, g, b;
-	double L, u, v;
+	float L, u, v;
 
 	if (f2init == 0) {
 		for (k = 0; k < 0xffff + 1; k++) {
@@ -562,10 +534,10 @@ Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B)
 }
 
 // GWM -- Gray World Method
-int color_rect_gwmgain(IMAGE * img, RECT * rect, double *r_gain, double *g_gain, double *b_gain)
+int color_rect_gwmgain(IMAGE * img, RECT * rect, float *r_gain, float *g_gain, float *b_gain)
 {
 	int i, j;
-	double r_avg, g_avg, b_avg, rgb_avg, d;
+	float r_avg, g_avg, b_avg, rgb_avg, d;
 
 	image_rectclamp(img, rect);
 
@@ -587,18 +559,18 @@ int color_rect_gwmgain(IMAGE * img, RECT * rect, double *r_gain, double *g_gain,
 	rgb_avg = 127.0f;			// (r_avg + g_avg + b_avg)/3.0f;  // 127.0f
 
 	*r_gain = *g_gain = *b_gain = 1.0f;
-	if (r_avg > MIN_DOUBLE_NUMBER)
+	if (r_avg > MIN_FLOAT_NUMBER)
 		*r_gain = rgb_avg / r_avg;
-	if (g_avg > MIN_DOUBLE_NUMBER)
+	if (g_avg > MIN_FLOAT_NUMBER)
 		*g_gain = rgb_avg / g_avg;
-	if (b_avg > MIN_DOUBLE_NUMBER)
+	if (b_avg > MIN_FLOAT_NUMBER)
 		*b_gain = rgb_avg / b_avg;
 
 	return RET_OK;
 }
 
 // GWM -- Gray World Method
-int color_gwmgain(IMAGE * img, double *r_gain, double *g_gain, double *b_gain)
+int color_gwmgain(IMAGE * img, float *r_gain, float *g_gain, float *b_gain)
 {
 	RECT rect;
 
@@ -608,7 +580,7 @@ int color_gwmgain(IMAGE * img, double *r_gain, double *g_gain, double *b_gain)
 
 int color_balance(IMAGE * img, int method, int debug)
 {
-	double r_gain, g_gain, b_gain;
+	float r_gain, g_gain, b_gain;
 
 	if (method == COLOR_BALANCE_GRAY_WORLD) {
 		color_gwmgain(img, &r_gain, &g_gain, &b_gain);
@@ -626,10 +598,10 @@ int color_balance(IMAGE * img, int method, int debug)
 }
 
 // PRM -- Perfect Reflector Method
-int color_rect_prmgain(IMAGE * img, RECT * rect, double *r_gain, double *g_gain, double *b_gain)
+int color_rect_prmgain(IMAGE * img, RECT * rect, float *r_gain, float *g_gain, float *b_gain)
 {
 	int i, j, k, threshold;
-	double ratio, sum, r_max, g_max, b_max;
+	float ratio, sum, r_max, g_max, b_max;
 	int count[255 * 3 + 1];
 
 	check_image(img);
@@ -677,7 +649,7 @@ int color_rect_prmgain(IMAGE * img, RECT * rect, double *r_gain, double *g_gain,
 	return RET_OK;
 }
 
-int color_prmgain(IMAGE * img, double *r_gain, double *g_gain, double *b_gain)
+int color_prmgain(IMAGE * img, float *r_gain, float *g_gain, float *b_gain)
 {
 	RECT rect;
 
@@ -686,10 +658,10 @@ int color_prmgain(IMAGE * img, double *r_gain, double *g_gain, double *b_gain)
 }
 
 // Von Kries diagonal model
-int color_correct(IMAGE * img, double gain_r, double gain_g, double gain_b)
+int color_correct(IMAGE * img, float gain_r, float gain_g, float gain_b)
 {
 	int i, j;
-	double d;
+	float d;
 
 	check_image(img);
 
@@ -741,14 +713,14 @@ int color_torgb565(IMAGE * img)
 }
 
 // Lab distance
-double color_distance(RGBA_8888 * c1, RGBA_8888 * c2)
+float color_distance(RGBA_8888 * c1, RGBA_8888 * c2)
 {
 	static int first = 1;
-	static double L[0xffff + 1], a[0xffff + 1], b[0xffff + 1];
+	static float L[0xffff + 1], a[0xffff + 1], b[0xffff + 1];
 
 	int i, j, k;
 	int n1, n2;
-	double dL, da, db;
+	float dL, da, db;
 
 	if (first) {
 		for (i = 0; i <= 0xff; i++) {

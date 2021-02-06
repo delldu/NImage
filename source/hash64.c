@@ -54,9 +54,9 @@ int hash_hamming(HASH64 f1, HASH64 f2)
 }
 #endif
 
-double hash_likeness(HASH64 f1, HASH64 f2)
+float hash_likeness(HASH64 f1, HASH64 f2)
 {
-	double t;
+	float t;
 
 	t = hash_hamming(f1, f2);
 	t /= (8.0f * sizeof(HASH64));
@@ -86,7 +86,7 @@ HASH64 image_phash(IMAGE * image, char oargb, RECT * rect)
 	static MATRIX *dct2 = NULL;
 
 	int i, j, k;
-	double a, c, m;
+	float a, c, m;
 	MATRIX *mat, *mat32, *smat;	// smat -- smooth mat
 	HASH64 finger = 0L;
 
@@ -248,7 +248,7 @@ HASH64 image_ahash(IMAGE * image, char oargb, RECT * rect)
 HASH64 shape_hash(IMAGE * image, RECT * rect)
 {
 	int i, j, k;
-	double avg;
+	float avg;
 	VECTOR *vector;
 	HASH64 finger;
 
@@ -277,7 +277,7 @@ HASH64 shape_hash(IMAGE * image, RECT * rect)
 HASH64 texture_hash(IMAGE * image, RECT * rect)
 {
 	int i, j, k;
-	double avg;
+	float avg;
 	VECTOR *vector;
 	HASH64 finger;
 

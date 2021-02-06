@@ -37,22 +37,13 @@ extern "C" {
 	typedef struct {
 		DWORD magic;			// TENSOR_MAGIC
 		WORD batch, chan, height, width;
-		// WORD opc;                // 2 bytes, opc is for RPC request/response
-		float *data;			// xxxx8888
+		float *data;
 	} TENSOR;
 
 	int tensor_valid(TENSOR * tensor);
 	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
 	TENSOR *tensor_copy(TENSOR * src);
 	void tensor_destroy(TENSOR * tensor);
-
-#if 0
-	// xxxx3333
-	int tensor_abhead(TENSOR * tensor, BYTE * buffer);
-	TENSOR *tensor_fromab(BYTE * buf);
-	BYTE *tensor_toab(TENSOR * tensor);
-#endif
-
 
 #if defined(__cplusplus)
 }

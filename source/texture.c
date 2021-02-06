@@ -66,9 +66,9 @@ VECTOR *texture_vector(IMAGE * img, RECT * rect, int ndim)
 	return vec;
 }
 
-double texture_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
+float texture_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
 {
-	double avgd;
+	float avgd;
 	VECTOR *fs, *gs;
 
 	fs = texture_vector(f, rect, ndim);

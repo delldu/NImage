@@ -11,11 +11,11 @@
 #include "image.h"
 #include "matrix.h"
 
-extern int matrix_gauss_filter(MATRIX * mat, double sigma);
+extern int matrix_gauss_filter(MATRIX * mat, float sigma);
 
 // Single Scale
 // R  (x,y) = log(I (x,y)) - log(I (x,y) * F(x,y)) 
-static int __single_scale(MATRIX * mat, double sigma)
+static int __single_scale(MATRIX * mat, float sigma)
 {
 	int i, j;
 	MATRIX *g;
@@ -33,10 +33,10 @@ static int __single_scale(MATRIX * mat, double sigma)
 }
 
 // Multi Scale
-static int __multi_scale(MATRIX * mat, int nscale, double *scales)
+static int __multi_scale(MATRIX * mat, int nscale, float *scales)
 {
 	int i, j, k;
-	double weight;
+	float weight;
 	MATRIX *g, *out;
 
 	check_matrix(mat);
@@ -54,7 +54,7 @@ static int __multi_scale(MATRIX * mat, int nscale, double *scales)
 			out->me[i][j] += weight * g->me[i][j];
 		matrix_destroy(g);
 	}
-	memcpy(mat->base, out->base, out->m * out->n * sizeof(double));
+	memcpy(mat->base, out->base, out->m * out->n * sizeof(float));
 	matrix_destroy(out);
 
 	return RET_OK;
@@ -63,7 +63,7 @@ static int __multi_scale(MATRIX * mat, int nscale, double *scales)
 static int __color_restore(MATRIX * dst, MATRIX * src, MATRIX * gray)
 {
 	int i, j;
-	double gain;
+	float gain;
 
 	check_matrix(dst);
 	check_matrix(gray);
@@ -76,7 +76,7 @@ static int __color_restore(MATRIX * dst, MATRIX * src, MATRIX * gray)
 	return RET_OK;
 }
 
-static int __gain_offset(MATRIX * mat, double gain, double offset)
+static int __gain_offset(MATRIX * mat, float gain, float offset)
 {
 	int i, j;
 
@@ -91,7 +91,7 @@ static int __gain_offset(MATRIX * mat, double gain, double offset)
 int image_retinex(IMAGE * image, int nscale)
 {
 	int i, j;
-	double scales[3] = { 15, 80, 250 };
+	float scales[3] = { 15, 80, 250 };
 
 	MATRIX *rmat, *gmat, *bmat, *gray, *src;
 

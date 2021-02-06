@@ -257,7 +257,7 @@ static void object_finding(MATRIX * diffmat, RECT * rect)
 // mat -- difference matrix
 static int object_search(MATRIX * mat)
 {
-	double r;
+	float r;
 	RECT rect;
 
 	rect.r = rect.c = 0;
@@ -275,7 +275,7 @@ static int object_search(MATRIX * mat)
 
 int object_fast_detect(IMAGE * img)
 {
-	double r;
+	float r;
 	MATRIX *diffmat;
 	int i, j, i1, j1, i2, j2, k, threshold = MOTION_OBJECT_THRESHOLD;
 	RECTS *mrs = rect_set();

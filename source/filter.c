@@ -9,12 +9,12 @@
 #include "matrix.h"
 
 extern int matrix_minmax_filter(MATRIX * mat, int radius, int maxmode);
-extern int matrix_beeps_filter(MATRIX * mat, double stdv, double dec);
-extern int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps, int scale);
-extern int matrix_guided_filter(MATRIX * mat, MATRIX * guidance, int radius, double eps);
-extern int matrix_lee_filter(MATRIX * mat, int radius, double eps);
-extern int matrix_gauss_filter(MATRIX * mat, double sigma);
-extern int matrix_bilate_filter(MATRIX * mat, double hs, double hr);
+extern int matrix_beeps_filter(MATRIX * mat, float stdv, float dec);
+extern int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, float eps, int scale);
+extern int matrix_guided_filter(MATRIX * mat, MATRIX * guidance, int radius, float eps);
+extern int matrix_lee_filter(MATRIX * mat, int radius, float eps);
+extern int matrix_gauss_filter(MATRIX * mat, float sigma);
+extern int matrix_bilate_filter(MATRIX * mat, float hs, float hr);
 extern MATRIX *matrix_box_filter(MATRIX * src, int r);
 extern MATRIX *matrix_mean_filter(MATRIX * src, int r);
 
@@ -43,12 +43,12 @@ static int __accumulate_by_cols(MATRIX * mat)
 }
 
 // Forward filter
-static void __beeps_progressive(int n, double *x, double stdv, double dec)
+static void __beeps_progressive(int n, float *x, float stdv, float dec)
 {
 	int k;
-	double mu = 0.0;
-	double rho = 1.0 + dec;
-	double c = -0.5f / (stdv * stdv);
+	float mu = 0.0;
+	float rho = 1.0 + dec;
+	float c = -0.5f / (stdv * stdv);
 
 	x[0] /= rho;
 	for (k = 1; k < n; k++) {
@@ -59,22 +59,22 @@ static void __beeps_progressive(int n, double *x, double stdv, double dec)
 }
 
 // bi-exponential edge-preserving smoother 
-static void __beeps_gain(int n, double *x, double dec)
+static void __beeps_gain(int n, float *x, float dec)
 {
 	int k;
-	double mu = (1.0f - dec) / (1.0f + dec);
+	float mu = (1.0f - dec) / (1.0f + dec);
 
 	for (k = 0; k < n; k++)
 		x[k] *= mu;
 }
 
 // Backward filter
-static void __beeps_regressive(int n, double *x, double stdv, double dec)
+static void __beeps_regressive(int n, float *x, float stdv, float dec)
 {
 	int k;
-	double mu = 0.0;
-	double rho = 1.0 + dec;
-	double c = -0.5 / (stdv * stdv);
+	float mu = 0.0;
+	float rho = 1.0 + dec;
+	float c = -0.5 / (stdv * stdv);
 
 	x[n - 1] /= rho;
 	for (k = n - 2; k >= 0; k--) {
@@ -85,10 +85,10 @@ static void __beeps_regressive(int n, double *x, double stdv, double dec)
 }
 
 // HV Progresss
-static MATRIX *__beeps_hv(MATRIX * mat, double stdv, double dec)
+static MATRIX *__beeps_hv(MATRIX * mat, float stdv, float dec)
 {
 	int i, j;
-	double *x;
+	float *x;
 	MATRIX *p, *g, *r, *t;
 
 	CHECK_MATRIX(mat);
@@ -157,10 +157,10 @@ static MATRIX *__beeps_hv(MATRIX * mat, double stdv, double dec)
 }
 
 // HV Progresss
-static MATRIX *__beeps_vh(MATRIX * mat, double stdv, double dec)
+static MATRIX *__beeps_vh(MATRIX * mat, float stdv, float dec)
 {
 	int i, j;
-	double *x;
+	float *x;
 	MATRIX *p, *g, *r, *t;
 
 	CHECK_MATRIX(mat);
@@ -278,7 +278,7 @@ static int __create_darkchan(IMAGE * img, int radius)
 }
 
 // P --, I -- guidance
-int __guided_means(MATRIX * P, MATRIX * I, int radius, double eps, MATRIX * mean_a, MATRIX * mean_b)
+int __guided_means(MATRIX * P, MATRIX * I, int radius, float eps, MATRIX * mean_a, MATRIX * mean_b)
 {
 	int i, j;
 
@@ -310,27 +310,27 @@ int __guided_means(MATRIX * P, MATRIX * I, int radius, double eps, MATRIX * mean
 	mean_i = matrix_box_filter(I, radius);
 	check_matrix(mean_i);
 	matrix_dotdiv(mean_i, one);
-	memcpy(zero->base, I->base, zero->m * I->n * sizeof(double));
+	memcpy(zero->base, I->base, zero->m * I->n * sizeof(float));
 	matrix_dotmul(zero, I);		// zero = I .* I
 	mean_ii = matrix_box_filter(zero, radius);
 	check_matrix(mean_ii);
 	matrix_dotdiv(mean_ii, one);
 
-	memcpy(zero->base, I->base, zero->m * I->n * sizeof(double));
+	memcpy(zero->base, I->base, zero->m * I->n * sizeof(float));
 	matrix_dotmul(zero, P);		// zero = I .* P
 	mean_ip = matrix_box_filter(zero, radius);
 	check_matrix(mean_ip);
 	matrix_dotdiv(mean_ip, one);
 
 	// Step 2
-	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(float));
 	matrix_dotmul(zero, mean_i);	// Zero = mean_i .* mean_i
 	var_i = matrix_copy(mean_ii);
 	check_matrix(var_i);
 	matrix_sub(var_i, zero);
 
 	// Zero = mean_i .* mean_p
-	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, mean_i->base, zero->m * zero->n * sizeof(float));
 	matrix_dotmul(zero, mean_p);
 	cov_ip = matrix_copy(mean_ip);
 	check_matrix(cov_ip);
@@ -346,7 +346,7 @@ int __guided_means(MATRIX * P, MATRIX * I, int radius, double eps, MATRIX * mean
 		var_i->me[i][j] += eps;
 	matrix_dotdiv(a, var_i);
 
-	memcpy(zero->base, a->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, a->base, zero->m * zero->n * sizeof(float));
 	matrix_dotmul(zero, mean_i);	// zero = a .* mean_i
 	matrix_sub(b, zero);
 
@@ -354,12 +354,12 @@ int __guided_means(MATRIX * P, MATRIX * I, int radius, double eps, MATRIX * mean
 	matrix_destroy(zero);
 	zero = matrix_box_filter(a, radius);
 	matrix_dotdiv(zero, one);
-	memcpy(mean_a->base, zero->base, zero->m * zero->n * sizeof(double));
+	memcpy(mean_a->base, zero->base, zero->m * zero->n * sizeof(float));
 
 	matrix_destroy(zero);
 	zero = matrix_box_filter(b, radius);
 	matrix_dotdiv(zero, one);
-	memcpy(mean_b->base, zero->base, zero->m * zero->n * sizeof(double));
+	memcpy(mean_b->base, zero->base, zero->m * zero->n * sizeof(float));
 
 	matrix_destroy(a);
 	matrix_destroy(b);
@@ -413,7 +413,7 @@ MATRIX *matrix_box_filter(MATRIX * src, int r)
 	}
 
 	// 2. Update col
-	memcpy(sum->base, mat->base, mat->m * mat->n * sizeof(double));
+	memcpy(sum->base, mat->base, mat->m * mat->n * sizeof(float));
 	__accumulate_by_cols(sum);
 	for (j = 0; j <= r; j++) {
 		for (i = 0; i < mat->m; i++)
@@ -457,7 +457,7 @@ MATRIX *matrix_mean_filter(MATRIX * src, int r)
 
 // BEEPS
 // stdv -- Photometric Standard Deviation, dec -- Spatial Contra Decay
-int matrix_beeps_filter(MATRIX * mat, double stdv, double dec)
+int matrix_beeps_filter(MATRIX * mat, float stdv, float dec)
 {
 	int i, j;
 	MATRIX *hv, *vh;
@@ -481,10 +481,10 @@ int matrix_beeps_filter(MATRIX * mat, double stdv, double dec)
 }
 
 // hs -- space sigma,  hr -- value sigma
-int matrix_bilate_filter(MATRIX * mat, double hs, double hr)
+int matrix_bilate_filter(MATRIX * mat, float hs, float hr)
 {
 	int i, j, i2, j2, k, sdim;
-	double s, d, v, w;
+	float s, d, v, w;
 	MATRIX *skern, *temp;
 	VECTOR *rsvec;				// range standard vector
 
@@ -522,7 +522,7 @@ int matrix_bilate_filter(MATRIX * mat, double hs, double hr)
 				s += skern->me[sdim + i2][sdim + j2] * d * v;
 			}
 		}
-		if (ABS(w) > MIN_DOUBLE_NUMBER)
+		if (ABS(w) > MIN_FLOAT_NUMBER)
 			s /= w;
 		mat->me[i][j] = s;
 	}
@@ -536,7 +536,7 @@ int matrix_bilate_filter(MATRIX * mat, double hs, double hr)
 
 
 // P --, I -- guidance
-int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps, int scale)
+int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, float eps, int scale)
 {
 	int ret;
 
@@ -566,7 +566,7 @@ int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps, in
 
 		matrix_add(mean_a, mean_b);
 
-		memcpy(P->base, mean_a->base, mean_a->m * mean_a->n * sizeof(double));
+		memcpy(P->base, mean_a->base, mean_a->m * mean_a->n * sizeof(float));
 
 		matrix_destroy(mean_a);
 		matrix_destroy(mean_b);
@@ -585,10 +585,10 @@ int matrix_fast_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps, in
 // sigma = 0.5: convert kernel = 5x5
 // sigma = 1: convert kernel = 7x7
 // sigma = 2: convert kernel = 13x13
-int matrix_gauss_filter(MATRIX * mat, double sigma)
+int matrix_gauss_filter(MATRIX * mat, float sigma)
 {
 	int i, j, m, k;
-	double d;
+	float d;
 	VECTOR *vec;
 	MATRIX *temp;
 
@@ -629,7 +629,7 @@ int matrix_gauss_filter(MATRIX * mat, double sigma)
 }
 
 // P --, I -- guidance
-int matrix_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps)
+int matrix_guided_filter(MATRIX * P, MATRIX * I, int radius, float eps)
 {
 	int ret;
 	MATRIX *mean_a, *mean_b;
@@ -646,7 +646,7 @@ int matrix_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps)
 		matrix_dotmul(mean_a, I);
 		matrix_add(mean_a, mean_b);
 
-		memcpy(P->base, mean_a->base, mean_a->m * mean_a->n * sizeof(double));
+		memcpy(P->base, mean_a->base, mean_a->m * mean_a->n * sizeof(float));
 	}
 
 	matrix_destroy(mean_a);
@@ -656,7 +656,7 @@ int matrix_guided_filter(MATRIX * P, MATRIX * I, int radius, double eps)
 }
 
 
-int matrix_lee_filter(MATRIX * mat, int radius, double eps)
+int matrix_lee_filter(MATRIX * mat, int radius, float eps)
 {
 	int i, j;
 
@@ -679,7 +679,7 @@ int matrix_lee_filter(MATRIX * mat, int radius, double eps)
 	check_matrix(mean_mat);
 	matrix_dotdiv(mean_mat, one);
 
-	memcpy(zero->base, mat->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, mat->base, zero->m * zero->n * sizeof(float));
 	matrix_dotmul(zero, mat);	// zero = mat .* mat
 	mean_mat_mat = matrix_box_filter(zero, radius);
 	check_matrix(mean_mat_mat);
@@ -688,14 +688,14 @@ int matrix_lee_filter(MATRIX * mat, int radius, double eps)
 
 	k_mat = matrix_copy(mean_mat_mat);
 	check_matrix(k_mat);
-	memcpy(zero->base, mean_mat_mat->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, mean_mat_mat->base, zero->m * zero->n * sizeof(float));
 	matrix_foreach(zero, i, j) {
 		zero->me[i][j] += eps;
 	}
 	matrix_dotdiv(k_mat, zero);	// K = mean_mat_mat/(mean_mat_mat + eps)
 
 	// zero = (1 - k) * mean_mat
-	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(float));
 	matrix_foreach(zero, i, j) {
 		zero->me[i][j] = 1.0f - zero->me[i][j];
 	}
@@ -704,12 +704,12 @@ int matrix_lee_filter(MATRIX * mat, int radius, double eps)
 	//  dst = (1 - k) * mean_mat + k * mat
 	dst = matrix_copy(zero);
 	check_matrix(dst);
-	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(double));
+	memcpy(zero->base, k_mat->base, zero->m * zero->n * sizeof(float));
 	matrix_dotmul(zero, mat);
 	matrix_add(dst, zero);
 
 	// Save dst to mat
-	memcpy(mat->base, dst->base, mat->m * mat->n * sizeof(double));
+	memcpy(mat->base, dst->base, mat->m * mat->n * sizeof(float));
 
 	matrix_destroy(dst);
 	matrix_destroy(k_mat);
@@ -725,7 +725,7 @@ int matrix_lee_filter(MATRIX * mat, int radius, double eps)
 int matrix_minmax_filter(MATRIX * mat, int radius, int maxmode)
 {
 	int i, j, i1, i2, j1, j2, k;
-	double d;
+	float d;
 	MATRIX *copy;
 
 	check_matrix(mat);
@@ -795,7 +795,7 @@ int matrix_minmax_filter(MATRIX * mat, int radius, int maxmode)
 	return RET_OK;
 }
 
-int image_beeps_filter(IMAGE * img, double stdv, double dec, int debug)
+int image_beeps_filter(IMAGE * img, float stdv, float dec, int debug)
 {
 	MATRIX *mat;
 
@@ -832,7 +832,7 @@ int image_beeps_filter(IMAGE * img, double stdv, double dec, int debug)
 	return RET_OK;
 }
 
-int image_lee_filter(IMAGE * img, int radius, double eps, int debug)
+int image_lee_filter(IMAGE * img, int radius, float eps, int debug)
 {
 	MATRIX *mat;
 
@@ -869,7 +869,7 @@ int image_lee_filter(IMAGE * img, int radius, double eps, int debug)
 	return RET_OK;
 }
 
-int image_gauss_filter(IMAGE * image, double sigma)
+int image_gauss_filter(IMAGE * image, float sigma)
 {
 	int i, j;
 	MATRIX *mat;
@@ -907,7 +907,7 @@ int image_gauss_filter(IMAGE * image, double sigma)
 	return RET_OK;
 }
 
-int image_guided_filter(IMAGE * img, IMAGE * guidance, int radius, double eps, int scale, int debug)
+int image_guided_filter(IMAGE * img, IMAGE * guidance, int radius, float eps, int scale, int debug)
 {
 	MATRIX *mat_img, *mat_guidance;
 
@@ -974,7 +974,7 @@ int image_dehaze_filter(IMAGE * img, int radius, int debug)
 {
 	HISTOGRAM hist;
 	int i, j, k, al;
-	double red_al, green_al, blue_al, d, d1, d2, d3;	// al -- atmoslight
+	float red_al, green_al, blue_al, d, d1, d2, d3;	// al -- atmoslight
 	MATRIX *tx;
 
 	check_image(img);
@@ -1005,11 +1005,11 @@ int image_dehaze_filter(IMAGE * img, int radius, int debug)
 		green_al /= k;
 		blue_al /= k;
 	}
-	if (red_al < MIN_DOUBLE_NUMBER)
+	if (red_al < MIN_FLOAT_NUMBER)
 		red_al = 1.0f;
-	if (green_al < MIN_DOUBLE_NUMBER)
+	if (green_al < MIN_FLOAT_NUMBER)
 		green_al = 1.0f;
-	if (blue_al < MIN_DOUBLE_NUMBER)
+	if (blue_al < MIN_FLOAT_NUMBER)
 		blue_al = 1.0f;
 	red_al = MIN(red_al, 220);
 	green_al = MIN(green_al, 220);
@@ -1034,7 +1034,7 @@ int image_dehaze_filter(IMAGE * img, int radius, int debug)
 	matrix_minmax_filter(tx, radius, 0);	// 0 -- min filter
 
 	// tx = 1 - w*..
-	double w = 0.95f;
+	float w = 0.95f;
 	matrix_foreach(tx, i, j) {
 		d = 1.0f - w * tx->me[i][j];
 		tx->me[i][j] = MAX(d, 0.1f);	// threshold;

@@ -6,16 +6,20 @@
 ***
 ************************************************************************************/
 
-#include "nngmsg.h"
+#include "nnmsg.h"
 
 #include <msgpack.h>
-
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
 
-int start_server(char *endpoint)
+#include <unistd.h>
+#include <fcntl.h>
+
+int server_open(char *endpoint)
 {
 	int socket;
+	int buffer_size = 128*1024*1024;	// 128 M
+	int max_recv_size = 256*1024*1024;	// 256 M
 
 	// sudo journalctl -u image.service -n 10
 	syslog_info("Start service on %s ...\n", endpoint);
@@ -24,6 +28,22 @@ int start_server(char *endpoint)
 	    syslog_error("nn_socket: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 	    return -1;
     }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_RCVBUF, &buffer_size, sizeof(buffer_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_RCVMAXSIZE, &max_recv_size, sizeof(max_recv_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
     if (nn_bind(socket, endpoint) < 0) {
 	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 	    return -1;
@@ -34,14 +54,39 @@ int start_server(char *endpoint)
 	return socket;
 }
 
-int client_connect(char *endpoint)
+int client_open(char *endpoint)
 {
 	int socket;
+	int buffer_size = 128*1024*1024;	// 128 M
+	int max_recv_size = 256*1024*1024;	// 256 M
+	int recv_timeout = 32 * 1000;		// 32 seconds
 
+    // struct timeval timeout={5, 0};    // seconds
     if ((socket = nn_socket(AF_SP, NN_REQ)) < 0) {
 	    syslog_error("nn_socket: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 	    return -1;
     }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_RCVBUF, &buffer_size, sizeof(buffer_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_RCVMAXSIZE, &max_recv_size, sizeof(max_recv_size)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
+	if (nn_setsockopt(socket, NN_SOL_SOCKET, NN_RCVTIMEO, &recv_timeout, sizeof(recv_timeout)) < 0) {
+	    syslog_error("nn_bind: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	    return -1;
+    }
+
     if (nn_connect(socket, endpoint) < 0) {
 	    syslog_error("nn_connect: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 	    return -1;
@@ -57,18 +102,13 @@ int client_connect(char *endpoint)
 *	Tensor: uint16 [BxCxHxW], float [d1, ..., dn]
 *	float option
 ****************************************************************************/
-int request_send(int socket, int reqcode, TENSOR * tensor, float option)
+void request_encode(int reqcode, TENSOR * tensor, float option, msgpack_sbuffer *sbuf)
 {
-	int ret;
-	size_t i, n;
+	int i, n;
 	float *f;
-	msgpack_sbuffer sbuf;
 	msgpack_packer pk;
 
-	check_tensor(tensor);
-
-	msgpack_sbuffer_init(&sbuf);
-	msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+	msgpack_packer_init(&pk, sbuf, msgpack_sbuffer_write);
 
 	// Encode reqcode
 	msgpack_pack_int(&pk, reqcode);
@@ -93,38 +133,45 @@ int request_send(int socket, int reqcode, TENSOR * tensor, float option)
 
 	// Encode option
 	msgpack_pack_float(&pk, option);
+}
 
+int request_send(int socket, int reqcode, TENSOR * tensor, float option)
+{
+	int ret;
+	msgpack_sbuffer sbuf;
+
+	check_tensor(tensor);
+
+	msgpack_sbuffer_init(&sbuf);
+	request_encode(reqcode, tensor, option, &sbuf);
+
+	// syslog_info("Request send ... size = %d", sbuf.size);
 	if ((ret = nn_send(socket, sbuf.data, sbuf.size, 0)) < 0)
 	    syslog_error("nn_send: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	// syslog_info("Request send OK");
 
 	msgpack_sbuffer_destroy(&sbuf);
 
 	return (ret >= 0) ? RET_OK : RET_ERROR;
 }
 
-TENSOR *request_recv(int socket, int *reqcode, float *option)
+TENSOR *request_decode(BYTE *buf, int size, int *reqcode, float *option)
 {
 	int n;
 	WORD dims[4];
-	BYTE *buf = NULL;
-	int size;
+
 	msgpack_unpacked msg;
-	msgpack_unpack_return msgret;
+	msgpack_unpack_return ret;
 	size_t off = 0;
 	TENSOR *tensor;
 	float *f;
-
-	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
-	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
-		return NULL;
-	}
 
 	msgpack_unpacked_init(&msg);
 
 	// Decode reqcode
 	*reqcode = 0;
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_POSITIVE_INTEGER) {
 			*reqcode = (int) obj.via.u64;
@@ -133,8 +180,8 @@ TENSOR *request_recv(int socket, int *reqcode, float *option)
 		}
 	}
 	// Decode tensor dims
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0) {
 			msgpack_object *p = obj.via.array.ptr;
@@ -149,8 +196,8 @@ TENSOR *request_recv(int socket, int *reqcode, float *option)
 
 	// Decode tensor data
 	f = tensor->data;
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0) {
 			msgpack_object *p = obj.via.array.ptr;
@@ -161,17 +208,35 @@ TENSOR *request_recv(int socket, int *reqcode, float *option)
 	}
 	// Decode tensor option
 	*option = 0;
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_FLOAT32)
 			*option = (float) obj.via.f64;
 	}
 	// Check buffer decode over status
-	if (msgret == MSGPACK_UNPACK_PARSE_ERROR) {
+	if (ret == MSGPACK_UNPACK_PARSE_ERROR) {
 		syslog_error("The data in buf is invalid format.");
 	}
 	msgpack_unpacked_destroy(&msg);
+
+	return tensor;
+}
+
+TENSOR *request_recv(int socket, int *reqcode, float *option)
+{
+	int size;
+	BYTE *buf;
+	TENSOR *tensor;
+
+	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
+	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		return NULL;
+	}
+
+	syslog_info("Request tensor parsing ... ");
+	tensor = request_decode(buf, size, reqcode, option);
+	syslog_info("Response tensor parsed OK.");
 
 	nn_freemsg(buf);		// Message has been saved ...
 
@@ -183,18 +248,13 @@ TENSOR *request_recv(int socket, int *reqcode, float *option)
 *	Tensor: uint16 [BxCxHxW], float [d1, ..., dn]
 *	int rescode
 ****************************************************************************/
-int response_send(int socket, TENSOR * tensor, int rescode)
+void response_encode(TENSOR * tensor, int rescode, msgpack_sbuffer *sbuf)
 {
-	int ret;
 	int i, n;
 	float *f;
-	msgpack_sbuffer sbuf;
 	msgpack_packer pk;
 
-	check_tensor(tensor);
-
-	msgpack_sbuffer_init(&sbuf);
-	msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+	msgpack_packer_init(&pk, sbuf, msgpack_sbuffer_write);
 
 	// Encode tensor dims
 	msgpack_pack_array(&pk, 4);
@@ -216,37 +276,43 @@ int response_send(int socket, TENSOR * tensor, int rescode)
 
 	// Encode rescode
 	msgpack_pack_int(&pk, rescode);
+}
 
+int response_send(int socket, TENSOR * tensor, int rescode)
+{
+	int ret;
+	msgpack_sbuffer sbuf;
+
+	check_tensor(tensor);
+
+	msgpack_sbuffer_init(&sbuf);
+	response_encode(tensor, rescode, &sbuf);
+
+	// syslog_info("Respone send ...");
 	if ((ret = nn_send(socket, sbuf.data, sbuf.size, 0)) < 0)
 	    syslog_error("nn_send: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+	// syslog_info("Respone send OK");
 
 	msgpack_sbuffer_destroy(&sbuf);
 
-	return (ret == 0) ? RET_OK : RET_ERROR;
+	return (ret >= 0) ? RET_OK : RET_ERROR;
 }
 
-TENSOR *response_recv(int socket, int *rescode)
+TENSOR *response_decode(BYTE *buf, int size, int *rescode)
 {
 	int n;
 	WORD dims[4];
-	BYTE *buf = NULL;
-	int size;
 	msgpack_unpacked msg;
-	msgpack_unpack_return msgret;
+	msgpack_unpack_return ret;
 	size_t off = 0;
 	TENSOR *tensor;
 	float *f;
 
-	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
-	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
-		return NULL;
-	}
-
 	msgpack_unpacked_init(&msg);
 
 	// Decode tensor dims
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0) {
 			msgpack_object *p = obj.via.array.ptr;
@@ -261,8 +327,8 @@ TENSOR *response_recv(int socket, int *rescode)
 
 	// Decode tensor data
 	f = tensor->data;
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_ARRAY && obj.via.array.size != 0) {
 			msgpack_object *p = obj.via.array.ptr;
@@ -273,8 +339,8 @@ TENSOR *response_recv(int socket, int *rescode)
 	}
 	// Decode responde code
 	*rescode = 0;
-	msgret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (msgret == MSGPACK_UNPACK_SUCCESS) {
+	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
+	if (ret == MSGPACK_UNPACK_SUCCESS) {
 		msgpack_object obj = msg.data;
 		if (obj.type == MSGPACK_OBJECT_POSITIVE_INTEGER) {
 			*rescode = (int) obj.via.u64;
@@ -283,12 +349,40 @@ TENSOR *response_recv(int socket, int *rescode)
 		}
 	}
 	// Check buffer decode over status
-	if (msgret == MSGPACK_UNPACK_PARSE_ERROR) {
+	if (ret == MSGPACK_UNPACK_PARSE_ERROR) {
 		syslog_error("The data in buf is invalid format.");
 	}
 	msgpack_unpacked_destroy(&msg);
 
+	return tensor;
+}
+
+
+TENSOR *response_recv(int socket, int *rescode)
+{
+	int size;
+	BYTE *buf;
+	TENSOR *tensor;
+
+	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
+	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		return NULL;
+	}
+	syslog_info("Response tensor parsing ... ");
+	tensor = response_decode(buf, size, rescode);
+	syslog_info("Response tensor parsed OK.");
+
 	nn_freemsg(buf);
 
 	return tensor;
+}
+
+void client_close(int socket)
+{
+	nn_close(socket);
+}
+
+void server_close(int socket)
+{
+	nn_shutdown(socket, 0);
 }

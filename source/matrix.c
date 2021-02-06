@@ -21,16 +21,16 @@ extern int matrix_memsize(DWORD m, DWORD n);
 extern void matrix_membind(MATRIX * mat, DWORD m, DWORD n);
 
 // Euclidean Space square !!!
-static double __euc_distance2(double *a, double *b, int n)
+static float __euc_distance2(float *a, float *b, int n)
 {
 	(void) n;
-	double d = 0.0f;
+	float d = 0.0f;
 #if 0
 	int i;
 	for (i = 0; i < n; i++)
 		d += (a[i] - b[i]) * (a[i] - b[i]);
 #else							// Fast version
-	double d0, d1, d2;
+	float d0, d1, d2;
 	d0 = (a[0] - b[0]);
 	d0 *= d0;
 	d1 = (a[1] - b[1]);
@@ -44,13 +44,13 @@ static double __euc_distance2(double *a, double *b, int n)
 
 static int __cmp_1col(const void *p1, const void *p2)
 {
-	double *d1 = (double *) p1;
-	double *d2 = (double *) p2;
+	float *d1 = (float *) p1;
+	float *d2 = (float *) p2;
 
 	d1 += __matrix_qsort_column;
 	d2 += __matrix_qsort_column;
 
-	if (ABS(*d1 - *d2) < MIN_DOUBLE_NUMBER)
+	if (ABS(*d1 - *d2) < MIN_FLOAT_NUMBER)
 		return 0;
 
 	return (*d1 < *d2) ? -1 : 1;
@@ -68,7 +68,7 @@ static int __matrix_8conn(MATRIX * mat, int r, int c)
 	int nb[8][2] = { {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1} };
 
 	for (k = 0; k < 8; k++)
-		sum += ABS(mat->me[r + nb[k][0]][c + nb[k][1]]) > MIN_DOUBLE_NUMBER ? 0 : 1;
+		sum += ABS(mat->me[r + nb[k][0]][c + nb[k][1]]) > MIN_FLOAT_NUMBER ? 0 : 1;
 
 
 	return sum;
@@ -76,8 +76,8 @@ static int __matrix_8conn(MATRIX * mat, int r, int c)
 
 static int __matrix_cmp(const void *p1, const void *p2)
 {
-	double *d1 = (double *) p1;
-	double *d2 = (double *) p2;
+	float *d1 = (float *) p1;
+	float *d2 = (float *) p2;
 
 	return (*d1 < *d2) ? -1 : (*d1 > *d2) ? 1 : 0;
 }
@@ -87,8 +87,8 @@ int matrix_memsize(DWORD m, DWORD n)
 	int size;
 
 	size = sizeof(MATRIX);
-	size += m * n * sizeof(double);	// Data
-	size += m * sizeof(double *);	// me
+	size += m * n * sizeof(float);	// Data
+	size += m * sizeof(float *);	// me
 	return size;
 }
 
@@ -102,8 +102,8 @@ void matrix_membind(MATRIX * mat, DWORD m, DWORD n)
 	mat->n = n;
 	mat->_m = m;
 
-	mat->base = (double *) (base + sizeof(MATRIX));	// Data
-	mat->me = (double **) (base + sizeof(MATRIX) + (m * n) * sizeof(double));	// Skip head and data
+	mat->base = (float *) (base + sizeof(MATRIX));	// Data
+	mat->me = (float **) (base + sizeof(MATRIX) + (m * n) * sizeof(float));	// Skip head and data
 	for (i = 0; i < m; i++)
 		mat->me[i] = &(mat->base[i * n]);
 }
@@ -127,13 +127,13 @@ MATRIX *matrix_create(int m, int n)
 	matrix->n = n;
 	matrix->_m = m;
 
-	matrix->base = (double *) calloc((size_t) (m * n), sizeof(double));
+	matrix->base = (float *) calloc((size_t) (m * n), sizeof(float));
 	if (!matrix->base) {
 		syslog_error("Allocate memeory.");
 		free(matrix);
 		return NULL;
 	}
-	matrix->me = (double **) calloc(m, sizeof(double *));
+	matrix->me = (float **) calloc(m, sizeof(float *));
 	if (!matrix->me) {
 		syslog_error("Allocate memeory.");
 		free(matrix->base);
@@ -149,7 +149,7 @@ MATRIX *matrix_create(int m, int n)
 int matrix_clear(MATRIX * mat)
 {
 	check_matrix(mat);
-	memset((BYTE *) mat->base, 0, mat->m * mat->n * sizeof(double));
+	memset((BYTE *) mat->base, 0, mat->m * mat->n * sizeof(float));
 	return RET_OK;
 }
 
@@ -174,7 +174,7 @@ void matrix_print(MATRIX * m, char *format)
 	printf("matrix: %dx%d\n", m->m, m->n);
 
 	matrix_foreach(m, i, j) {
-		if (strchr(format, 'f'))	// double
+		if (strchr(format, 'f'))	// float
 			printf(format, m->me[i][j]);
 		else {
 			k = m->me[i][j];
@@ -196,7 +196,7 @@ MATRIX *matrix_copy(MATRIX * src)
 	CHECK_MATRIX(src);
 	copy = matrix_create(src->m, src->n);
 	CHECK_MATRIX(copy);
-	memcpy((void *) copy->base, (void *) (src->base), src->m * src->n * sizeof(double));
+	memcpy((void *) copy->base, (void *) (src->base), src->m * src->n * sizeof(float));
 
 	return copy;
 }
@@ -205,7 +205,7 @@ MATRIX *matrix_copy(MATRIX * src)
 MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method)
 {
 	int i, j, i2, j2;
-	double di, dj, d1, d2, d3, d4, u, v, d;
+	float di, dj, d1, d2, d3, d4, u, v, d;
 	MATRIX *copy;
 
 	CHECK_MATRIX(mat);
@@ -255,7 +255,7 @@ MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method)
 int matrix_pattern(MATRIX * M, char *name)
 {
 	int i, j;
-	double d;
+	float d;
 
 	check_matrix(M);
 
@@ -280,7 +280,7 @@ int matrix_pattern(MATRIX * M, char *name)
 		matrix_foreach(M, i, j)
 			M->me[i][j] = 1.0f;
 	} else if (strcmp(name, "zero") == 0) {
-		memset((BYTE *) M->base, 0, M->m * M->n * sizeof(double));
+		memset((BYTE *) M->base, 0, M->m * M->n * sizeof(float));
 	} else if (strcmp(name, "3x3disc") == 0) {
 		matrix_foreach(M, i, j)
 			M->me[i][j] = 1.0f;
@@ -340,9 +340,9 @@ int matrix_integrate(MATRIX * mat)
 //  delta = (1+4) - (2+3)
 //
 // return [r1, c1, r2, c2]
-double matrix_difference(MATRIX * mat, int r1, int c1, int r2, int c2)
+float matrix_difference(MATRIX * mat, int r1, int c1, int r2, int c2)
 {
-	double d1, d2, d3, d4;
+	float d1, d2, d3, d4;
 	r2 = MIN(r2, mat->m - 1);
 	c2 = MIN(c2, mat->n - 1);
 
@@ -363,14 +363,14 @@ int matrix_weight(MATRIX * mat, RECT * rect)
 int matrix_normal(MATRIX * mat)
 {
 	int i, j;
-	double sum;
+	float sum;
 	check_matrix(mat);
 
 	sum = 0.0f;
 	matrix_foreach(mat, i, j)
 		sum += mat->me[i][j];
 
-	if (ABS(sum) > MIN_DOUBLE_NUMBER) {
+	if (ABS(sum) > MIN_FLOAT_NUMBER) {
 		matrix_foreach(mat, i, j)
 			mat->me[i][j] /= sum;
 	}
@@ -379,23 +379,23 @@ int matrix_normal(MATRIX * mat)
 }
 
 // Guass band width
-int math_gsbw(double sigma)
+int math_gsbw(float sigma)
 {
 	int dim;
-	double d;
+	float d;
 
 	d = 3 * sigma;
 	dim = (int) d;
-	if (d > (double) dim)
+	if (d > (float) dim)
 		dim++;
 
 	return 2 * dim + 1;
 }
 
-MATRIX *matrix_gskernel(double sigma)
+MATRIX *matrix_gskernel(float sigma)
 {
 	int i, j, dim;
-	double d, g;
+	float d, g;
 	MATRIX *mat;
 
 	dim = math_gsbw(sigma) / 2;
@@ -461,7 +461,7 @@ MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance)
 #define SORT_CLASS_INDEX 5
 
 	int i, j, g, a, b, needcheck;
-	double d, dt, w;
+	float d, dt, w;
 	MATRIX *ccmat;				// cluster center matrix
 
 	CHECK_MATRIX(mat);
@@ -494,7 +494,7 @@ MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance)
 
 	// Average ccmat !!!
 	for (i = 0; i < ccmat->m; i++) {
-		if (ccmat->me[i][WEIGHT_INDEX] > MIN_DOUBLE_NUMBER) {
+		if (ccmat->me[i][WEIGHT_INDEX] > MIN_FLOAT_NUMBER) {
 			for (j = 0; j < WEIGHT_INDEX; j++)	// R, G, B
 				ccmat->me[i][j] /= ccmat->me[i][WEIGHT_INDEX];
 		}
@@ -520,7 +520,7 @@ MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance)
 				// adjust a row
 				w = mat->me[i][WEIGHT_INDEX];
 				ccmat->me[a][WEIGHT_INDEX] -= w;
-				if (ABS(ccmat->me[a][WEIGHT_INDEX]) > MIN_DOUBLE_NUMBER) {
+				if (ABS(ccmat->me[a][WEIGHT_INDEX]) > MIN_FLOAT_NUMBER) {
 					for (g = 0; g < MAT_COLORS; g++) {
 						ccmat->me[a][g] *= (ccmat->me[a][WEIGHT_INDEX] + w);
 						ccmat->me[a][g] -= w * mat->me[i][g];
@@ -529,7 +529,7 @@ MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance)
 				}
 				// adjust b row
 				ccmat->me[b][WEIGHT_INDEX] += w;
-				if (ABS(ccmat->me[b][WEIGHT_INDEX]) > MIN_DOUBLE_NUMBER) {
+				if (ABS(ccmat->me[b][WEIGHT_INDEX]) > MIN_FLOAT_NUMBER) {
 					for (g = 0; g < MAT_COLORS; g++) {
 						ccmat->me[b][g] *= (ccmat->me[b][WEIGHT_INDEX] - w);
 						ccmat->me[b][g] += w * mat->me[i][g];
@@ -564,7 +564,7 @@ int matrix_sort(MATRIX * A, int cols, int descend)
 		return RET_ERROR;
 	}
 	__matrix_qsort_column = cols;
-	qsort(A->base, A->m, A->n * sizeof(double), descend ? __dcmp_1col : __cmp_1col);
+	qsort(A->base, A->m, A->n * sizeof(float), descend ? __dcmp_1col : __cmp_1col);
 
 	return RET_OK;
 }
@@ -662,7 +662,7 @@ int matrix_dotdiv(MATRIX * A, MATRIX * B)
 
 	for (i = 0; i < A->m; i++) {
 		for (j = 0; j < A->n; j++) {
-			A->me[i][j] /= (B->me[i][j] + MIN_DOUBLE_NUMBER);
+			A->me[i][j] /= (B->me[i][j] + MIN_FLOAT_NUMBER);
 		}
 	}
 
@@ -673,7 +673,7 @@ int matrix_dotdiv(MATRIX * A, MATRIX * B)
 int matrix_multi(MATRIX * C, MATRIX * A, MATRIX * B)
 {
 	int i, j, k;
-	double d;
+	float d;
 
 	check_matrix(C);
 	check_matrix(A);
@@ -701,17 +701,17 @@ int matrix_multi(MATRIX * C, MATRIX * A, MATRIX * B)
 	return RET_OK;
 }
 
-double matrix_median(MATRIX * mat)
+float matrix_median(MATRIX * mat)
 {
 	int k;
-	double m;
+	float m;
 	MATRIX *copy;
 
 	copy = matrix_copy(mat);
 	if (!matrix_valid(mat) || !matrix_valid(copy))
 		return 0.0f;
 
-	qsort(copy->base, copy->m * copy->n, sizeof(double *), __matrix_cmp);
+	qsort(copy->base, copy->m * copy->n, sizeof(float *), __matrix_cmp);
 	k = (copy->m * copy->n) / 2;
 	m = (copy->base[k - 1] + copy->base[k]) / 2.0;
 

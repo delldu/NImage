@@ -47,7 +47,7 @@ static int __matrix_8connect(MATRIX * mat, int r, int c)
 	int e[9];
 
 	for (k = 0; k < 8; k++)
-		e[k] = ABS(mat->me[r + nb[k][0]][c + nb[k][1]]) > MIN_DOUBLE_NUMBER ? 0 : 1;
+		e[k] = ABS(mat->me[r + nb[k][0]][c + nb[k][1]]) > MIN_FLOAT_NUMBER ? 0 : 1;
 
 	e[8] = e[0];
 	for (k = 0; k < 8; k += 2)
@@ -77,7 +77,7 @@ static int __higher_cross(char orgb, IMAGE * img, int i, int j, int mid_thr)
 }
 
 // gm -- gradient m. ...
-static int __canny_histsumv(IMAGE * img, double hirate)
+static int __canny_histsumv(IMAGE * img, float hirate)
 {
 	int i, j, hist[256], maxgm, hcount;
 
@@ -124,7 +124,7 @@ static void __canny_8nbtrace(IMAGE * img, int i, int j, int lowthreashold)
 	}
 }
 
-static void __canny_edgetrace(IMAGE * img, double hr, double lr)
+static void __canny_edgetrace(IMAGE * img, float hr, float lr)
 {
 	int i, j, k;
 	int hithreshold = __canny_histsumv(img, hr);	// High Threshold
@@ -161,13 +161,13 @@ static void __canny_edgetrace(IMAGE * img, double hr, double lr)
 static int __canny_gradient(IMAGE * img)
 {
 	int i, j, g1, g2, g3, g4, gx, gy;
-	double weight, dt1, dt2;
+	float weight, dt1, dt2;
 
 	for (i = 1; i < (int) img->height - 1; i++) {
 		for (j = 1; j < (int) img->width - 1; j++) {
 			gx = img->ie[i][j + 1].r - img->ie[i][j - 1].r;
 			gy = img->ie[i + 1][j].r - img->ie[i - 1][j].r;
-			img->ie[i][j].g = (BYTE) (sqrt((double) (gx * gx + gy * gy) / 2.0f));	// <= 255
+			img->ie[i][j].g = (BYTE) (sqrt((float) (gx * gx + gy * gy) / 2.0f));	// <= 255
 		}
 	}
 
@@ -181,8 +181,8 @@ static int __canny_gradient(IMAGE * img)
 			gy = img->ie[i + 1][j].r - img->ie[i - 1][j].r;
 
 			// gm != 0 
-			if (fabs((double) gy) > fabs((double) gx)) {
-				weight = fabs((double) gx) / fabs((double) gy);
+			if (fabs((float) gy) > fabs((float) gx)) {
+				weight = fabs((float) gx) / fabs((float) gy);
 				g2 = img->ie[i - 1][j].g;
 				g4 = img->ie[i + 1][j].g;
 				if (gx * gy > 0) {
@@ -193,7 +193,7 @@ static int __canny_gradient(IMAGE * img)
 					g3 = img->ie[i + 1][j - 1].g;
 				}
 			} else {
-				weight = fabs((double) gy) / fabs((double) gx);
+				weight = fabs((float) gy) / fabs((float) gx);
 				g2 = img->ie[i][j + 1].g;
 				g4 = img->ie[i][j - 1].g;
 				if (gx * gy > 0) {
@@ -218,7 +218,7 @@ static int __canny_gradient(IMAGE * img)
 }
 
 // shape_canny('R', image, 0.9, 0.75), Canny edge
-static int __canny_edge_detect(IMAGE * img, double hr, double lr)
+static int __canny_edge_detect(IMAGE * img, float hr, float lr)
 {
 	check_image(img);
 
@@ -273,7 +273,7 @@ static int __skeleton_sort(MATRIX * mat)
 
 		for (i = 1; i < mat->m - 1; i++) {
 			for (j = 1; j < mat->n - 1; j++) {
-				if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) >= MIN_DOUBLE_NUMBER)
+				if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) >= MIN_FLOAT_NUMBER)
 					continue;
 				if (__matrix_8connect(mat, i, j) <= 1) {
 					mat->me[i][j] = 0;
@@ -290,7 +290,7 @@ static int __skeleton_sort(MATRIX * mat)
 			if (__temp_match(mat, i, j, 3, to))	// 3x3 'O'
 				mat->me[i][j + 1] = 0;
 
-			if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) < MIN_DOUBLE_NUMBER)
+			if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) < MIN_FLOAT_NUMBER)
 				continue;
 			if (__temp_match(mat, i, j, 3, ts0)) {	// 3x3 '<'
 				mat->me[i][j] = 0;
@@ -317,13 +317,13 @@ static int __contour_border(MATRIX * mat, int r, int c)
 	int di, dj, k;
 	static int d3[4][2] = { {-1, 0}, {0, -1}, {0, 1}, {1, 0} };	// 3d.txt
 
-	if (ABS(mat->me[r][c]) <= MIN_DOUBLE_NUMBER)	// Make sure (r, c) is not on the border
+	if (ABS(mat->me[r][c]) <= MIN_FLOAT_NUMBER)	// Make sure (r, c) is not on the border
 		return 0;
 
 	for (k = 0; k < 4; k++) {
 		di = d3[k][0];
 		dj = d3[k][1];
-		if (ABS(mat->me[r + di][c + dj]) <= MIN_DOUBLE_NUMBER)
+		if (ABS(mat->me[r + di][c + dj]) <= MIN_FLOAT_NUMBER)
 			return 1;
 	}
 	return 0;
@@ -400,7 +400,7 @@ static void __skeleton_trace(MATRIX * mat, MATRIX * label, int r, int c)
 	if (max <= 1)				// Power is not big enough !
 		return;
 	for (k = 0; k < 8; k++) {
-		if (e[k] == max && ABS(mat->me[r][c] - mat->me[r + nb[k][0]][c + nb[k][1]] - 1) < MIN_DOUBLE_NUMBER)
+		if (e[k] == max && ABS(mat->me[r][c] - mat->me[r + nb[k][0]][c + nb[k][1]] - 1) < MIN_FLOAT_NUMBER)
 			__skeleton_trace(mat, label, r + nb[k][0], c + nb[k][1]);
 	}
 }
@@ -468,9 +468,9 @@ static int __skeleton_matrix(MATRIX * mat)
 }
 
 // Carte to polar coordinate
-void math_topolar(int x, int y, double *r, double *a)
+void math_topolar(int x, int y, float *r, float *a)
 {
-	double dr, da;
+	float dr, da;
 
 	if (x == 0) {
 		if (y >= 0) {
@@ -495,7 +495,7 @@ void math_topolar(int x, int y, double *r, double *a)
 		*a = 180 - da;
 }
 
-int math_arcindex(double a, int arcstep)
+int math_arcindex(float a, int arcstep)
 {
 	int n;
 	n = (2 * a + arcstep) / (2 * arcstep);	// [a/arcstep + 1/2]
@@ -507,7 +507,7 @@ int math_arcindex(double a, int arcstep)
 VECTOR *shape_vector(IMAGE * img, RECT * rect, int ndim)
 {
 	BYTE g;
-	double d, r, a;
+	float d, r, a;
 	int i, j, k, n, crow, ccol, arcstep;
 	long long sum_all, sum_arc[360];
 	VECTOR *vec;
@@ -563,7 +563,7 @@ VECTOR *shape_vector(IMAGE * img, RECT * rect, int ndim)
 		for (i = 0; i < vec->m; i++) {
 			if (sum_arc[i] > sum_arc[n])
 				n = i;
-			d = (double) sum_arc[i] / sum_all;
+			d = (float) sum_arc[i] / sum_all;
 			vec->ve[i] = d;
 		}
 	} else {
@@ -590,9 +590,9 @@ VECTOR *shape_vector(IMAGE * img, RECT * rect, int ndim)
 	return vec;
 }
 
-double shape_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
+float shape_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim)
 {
-	double avgd;
+	float avgd;
 	VECTOR *fs, *gs;
 
 	fs = shape_vector(f, rect, ndim);
@@ -699,7 +699,7 @@ int shape_bestedge(IMAGE * img)
 {
 	char *p;
 	int i, j, ret;
-	double hr, lr;
+	float hr, lr;
 
 	check_image(img);
 

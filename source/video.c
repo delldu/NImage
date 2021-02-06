@@ -13,11 +13,11 @@
 
 #define FILENAME_MAXLEN 256
 
-static double __math_snr(int m, char *orig, char *now)
+static float __math_snr(int m, char *orig, char *now)
 {
 	int i, k;
 	long long s = 0, n = 0;		// signal/noise
-	double d;
+	float d;
 
 	for (i = 0; i < m; i++) {
 		s += orig[i] * orig[i];
@@ -449,9 +449,9 @@ int video_mds(char *filename, int start)
 }
 
 // inbreak detect system
-int video_ids(char *filename, int start, double threshold)
+int video_ids(char *filename, int start, float threshold)
 {
-	double d;
+	float d;
 	FRAME *bg, *fg;
 	VIDEO *video = video_open(filename, start);
 	check_video(video);

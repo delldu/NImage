@@ -16,11 +16,11 @@ extern "C" {
 
 #include "common.h"
 
-// double Vector
+// float Vector
 	typedef struct {
 		DWORD magic;
 		int m;
-		double *ve;
+		float *ve;
 	} VECTOR;
 
 
@@ -48,14 +48,14 @@ extern "C" {
 
 	int vector_valid(VECTOR * v);
 	int vector_clear(VECTOR * vec);
-	double vector_sum(VECTOR * v);
-	double vector_mean(VECTOR * v);
+	float vector_sum(VECTOR * v);
+	float vector_mean(VECTOR * v);
 	int vector_normal(VECTOR * v);
 
-	int vector_cosine(VECTOR * v1, VECTOR * v2, double *res);
-	double vector_likeness(VECTOR * v1, VECTOR * v2);
+	int vector_cosine(VECTOR * v1, VECTOR * v2, float *res);
+	float vector_likeness(VECTOR * v1, VECTOR * v2);
 
-	VECTOR *vector_gskernel(double sigma);
+	VECTOR *vector_gskernel(float sigma);
 
 	void vector_print(VECTOR * v, char *format);
 	void vector_destroy(VECTOR * v);

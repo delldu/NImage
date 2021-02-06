@@ -129,7 +129,7 @@ static void __mask_finetune(IMAGE * mask, IMAGE * src, int debug)
 int image_blend(IMAGE * src, IMAGE * mask, IMAGE * dst, int top, int left, int debug)
 {
 	int i, j, mask_is_null = 0;
-	double d;
+	float d;
 
 	check_image(src);
 	check_image(dst);
@@ -201,7 +201,7 @@ int image_blend(IMAGE * src, IMAGE * mask, IMAGE * dst, int top, int left, int d
 #define SEAM_LINE_THRESHOLD 2
 
 // a: -1, b: 0,  c: 1
-static int __abc_index(double a, double b, double c)
+static int __abc_index(float a, float b, float c)
 {
 	if (a < b)
 		return (a < c) ? -1 : 1;
@@ -211,13 +211,13 @@ static int __abc_index(double a, double b, double c)
 }
 
 // a: -1, b: 0
-static int __ab_index(double a, double b)
+static int __ab_index(float a, float b)
 {
 	return (a < b) ? -1 : 0;
 }
 
 // b: 0, c: 1
-static int __bc_index(double b, double c)
+static int __bc_index(float b, float c)
 {
 	return (b < c) ? 0 : 1;
 }
@@ -226,7 +226,7 @@ static int __bc_index(double b, double c)
 int *seam_program(MATRIX * mat, int debug)
 {
 	int i, j, index, besti, *C;
-	double a, b, c, min;
+	float a, b, c, min;
 	MATRIX *t, *loc;			// location for best way
 
 	CHECK_MATRIX(mat);
@@ -338,7 +338,7 @@ int *image_seampath(IMAGE * image_a, RECT * rect_a, IMAGE * image_b, RECT * rect
 {
 	MATRIX *mat;				// seam matrix
 	IMAGE *mask;
-	double d, r2, x2, slope, bias;
+	float d, r2, x2, slope, bias;
 	int i, j, a, b, c, *line;	// seam line;
 
 	CHECK_IMAGE(image_a);

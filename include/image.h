@@ -31,11 +31,11 @@ extern "C" {
 #define RGB_INT(r, g, b) ((r) << 16 | (g) << 8 | (b))
 
 	typedef struct {
-		double L, a, b;
+		float L, a, b;
 	} LAB;
 
 	typedef struct {
-		double L, u, v;
+		float L, u, v;
 	} Luv;
 
 	typedef struct {
@@ -143,7 +143,6 @@ extern "C" {
 
 	int image_setplane(IMAGE * img, char oargb, MATRIX * mat);
 
-	void color_rgb2hsv(BYTE R, BYTE G, BYTE B, BYTE * h, BYTE * s, BYTE * v);
 	void color_rgb2gray(BYTE r, BYTE g, BYTE b, BYTE * gray);
 	int skin_detect(IMAGE * img);
 	int skin_statics(IMAGE * img, RECT * rect);
@@ -152,35 +151,35 @@ extern "C" {
 	int color_picker();
 	int color_balance(IMAGE * img, int method, int debug);
 
-	int color_correct(IMAGE * img, double gain_r, double gain_g, double gain_b);
+	int color_correct(IMAGE * img, float gain_r, float gain_g, float gain_b);
 	int color_togray(IMAGE * img);
 	int color_torgb565(IMAGE * img);
-	double color_distance(RGBA_8888 * c1, RGBA_8888 * c2);
+	float color_distance(RGBA_8888 * c1, RGBA_8888 * c2);
 
 	int image_drawline(IMAGE * img, int r1, int c1, int r2, int c2, int color);
 	int image_drawrect(IMAGE * img, RECT * rect, int color, int fill);
 	int image_drawtext(IMAGE * image, int r, int c, char *texts, int color);
-	int image_drawkxb(IMAGE * image, double k, double b, int color);
+	int image_drawkxb(IMAGE * image, float k, float b, int color);
 
-	int image_psnr(char oargb, IMAGE * orig, IMAGE * now, double *psnr);
-	int image_paste(IMAGE * img, int r, int c, IMAGE * small, double alpha);
+	int image_psnr(char oargb, IMAGE * orig, IMAGE * now, float *psnr);
+	int image_paste(IMAGE * img, int r, int c, IMAGE * small, float alpha);
 	int image_rect_paste(IMAGE * bigimg, RECT * bigrect, IMAGE * smallimg, RECT * smallrect);
 
-	int image_statistics(IMAGE * img, char orgb, double *avg, double *stdv);
-	int image_rect_statistics(IMAGE * img, RECT * rect, char orgb, double *avg, double *stdv);
+	int image_statistics(IMAGE * img, char orgb, float *avg, float *stdv);
+	int image_rect_statistics(IMAGE * img, RECT * rect, char orgb, float *avg, float *stdv);
 	void image_destroy(IMAGE * img);
 
 // Image Color ...
 	int color_midval(IMAGE * img, char orgb);
 	VECTOR *color_vector(IMAGE * img, RECT * rect, int ndim);
-	double color_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
+	float color_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
 
 // Image Shape ...
 	VECTOR *shape_vector(IMAGE * img, RECT * rect, int ndim);
-	double shape_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
+	float shape_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
 // Image Texture ...
 	VECTOR *texture_vector(IMAGE * img, RECT * rect, int ndim);
-	double texture_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
+	float texture_likeness(IMAGE * f, IMAGE * g, RECT * rect, int ndim);
 // Contour & Skeleton
 	int image_contour(IMAGE * img);
 	int image_skeleton(IMAGE * img);
@@ -190,7 +189,7 @@ extern "C" {
 
 // Hough Transform
 	int line_detect(IMAGE * img, int debug);
-	int line_lsm(IMAGE * image, RECT * rect, double *k, double *b, int debug);
+	int line_lsm(IMAGE * image, RECT * rect, float *k, float *b, int debug);
 
 	int motion_updatebg(IMAGE * A, IMAGE * B, IMAGE * C, IMAGE * bg);
 	int motion_detect(IMAGE * fg, IMAGE * bg, int debug);
@@ -216,16 +215,16 @@ extern "C" {
 	int image_retinex(IMAGE * image, int nscale);
 
 	int image_negative(IMAGE * image);
-	int image_clahe(IMAGE * image, int grid_rows, int grid_cols, double limit);
-	int image_niblack(IMAGE * image, int radius, double scale);
+	int image_clahe(IMAGE * image, int grid_rows, int grid_cols, float limit);
+	int image_niblack(IMAGE * image, int radius, float scale);
 
 // Filter
 	int image_make_noise(IMAGE * img, char orgb, int rate);
 	int image_delete_noise(IMAGE * img);
-	int image_gauss_filter(IMAGE * image, double sigma);
-	int image_guided_filter(IMAGE * img, IMAGE * guidance, int radius, double eps, int scale, int debug);
-	int image_beeps_filter(IMAGE * img, double stdv, double dec, int debug);
-	int image_lee_filter(IMAGE * img, int radius, double eps, int debug);
+	int image_gauss_filter(IMAGE * image, float sigma);
+	int image_guided_filter(IMAGE * img, IMAGE * guidance, int radius, float eps, int scale, int debug);
+	int image_beeps_filter(IMAGE * img, float stdv, float dec, int debug);
+	int image_lee_filter(IMAGE * img, int radius, float eps, int debug);
 	int image_dehaze_filter(IMAGE * img, int radius, int debug);
 	int image_medium_filter(IMAGE * img, int radius);
 	int image_fast_filter(IMAGE * img, int n, int *kernel, int total);
@@ -240,7 +239,7 @@ extern "C" {
 	HASH64 shape_hash(IMAGE * image, RECT * rect);
 	HASH64 texture_hash(IMAGE * image, RECT * rect);
 	int hash_hamming(HASH64 f1, HASH64 f2);
-	double hash_likeness(HASH64 f1, HASH64 f2);
+	float hash_likeness(HASH64 f1, HASH64 f2);
 	void hash_dump(char *title, HASH64 finger);
 
 // Histogram
@@ -249,7 +248,7 @@ extern "C" {
 		int total;
 		int count[HISTOGRAM_MAX_COUNT];
 
-		double cdf[HISTOGRAM_MAX_COUNT];
+		float cdf[HISTOGRAM_MAX_COUNT];
 
 		int map[HISTOGRAM_MAX_COUNT];
 	} HISTOGRAM;
@@ -258,11 +257,11 @@ extern "C" {
 	void histogram_add(HISTOGRAM * h, int c);
 	void histogram_del(HISTOGRAM * h, int c);
 	int histogram_middle(HISTOGRAM * h);
-	int histogram_top(HISTOGRAM * h, double ratio);
+	int histogram_top(HISTOGRAM * h, float ratio);
 	int histogram_clip(HISTOGRAM * h, int threshold);
 	int histogram_cdf(HISTOGRAM * h);
 	int histogram_map(HISTOGRAM * h, int max);
-	double histogram_likeness(HISTOGRAM * h1, HISTOGRAM * h2);
+	float histogram_likeness(HISTOGRAM * h1, HISTOGRAM * h2);
 	void histogram_sum(HISTOGRAM * sum, HISTOGRAM * sub);
 	int histogram_rect(HISTOGRAM * hist, IMAGE * img, RECT * rect);
 	void histogram_dump(HISTOGRAM * h);

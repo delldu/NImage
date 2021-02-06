@@ -11,7 +11,7 @@ void histogram_reset(HISTOGRAM * h)
 {
 	h->total = 0;
 	memset(h->count, 0, HISTOGRAM_MAX_COUNT * sizeof(int));
-	memset(h->cdf, 0, HISTOGRAM_MAX_COUNT * sizeof(double));
+	memset(h->cdf, 0, HISTOGRAM_MAX_COUNT * sizeof(float));
 	memset(h->map, 0, HISTOGRAM_MAX_COUNT * sizeof(int));
 }
 
@@ -48,7 +48,7 @@ int histogram_middle(HISTOGRAM * h)
 	return HISTOGRAM_MAX_COUNT / 2;	// (0 + 255)/2
 }
 
-int histogram_top(HISTOGRAM * h, double ratio)
+int histogram_top(HISTOGRAM * h, float ratio)
 {
 	int i, threshold, sum;
 
@@ -110,13 +110,13 @@ int histogram_clip(HISTOGRAM * h, int threshold)
 int histogram_cdf(HISTOGRAM * h)
 {
 	int i;
-	double sum = 0;
+	float sum = 0;
 
 	if (h->total < 1)
 		return RET_ERROR;
 	for (i = 0; i < HISTOGRAM_MAX_COUNT; i++) {
 		sum += h->count[i];
-		h->cdf[i] = sum / (double) (h->total);
+		h->cdf[i] = sum / (float) (h->total);
 	}
 	return RET_OK;
 }
@@ -151,14 +151,14 @@ int histogram_rect(HISTOGRAM * hist, IMAGE * img, RECT * rect)
 	return RET_OK;
 }
 
-double histogram_likeness(HISTOGRAM * h1, HISTOGRAM * h2)
+float histogram_likeness(HISTOGRAM * h1, HISTOGRAM * h2)
 {
 	int k;
-	double d, sum;
+	float d, sum;
 
 	sum = 0.0;
 	for (k = 0; k < HISTOGRAM_MAX_COUNT; k++) {
-		d = (double) h1->count[k] / (double) h1->total * (double) h2->count[k] / (double) h2->total;
+		d = (float) h1->count[k] / (float) h1->total * (float) h2->count[k] / (float) h2->total;
 		d = sqrt(d);
 		sum += d;
 	}
@@ -186,7 +186,7 @@ void histogram_dump(HISTOGRAM * h)
 			continue;
 
 		printf("%3d, count: %6d(%10.4f %%), cdf: %10.4f(%5d), map: %3d\n",
-			   i, h->count[i], (double) (100.0 * h->count[i]) / (double) h->total, h->cdf[i],
+			   i, h->count[i], (float) (100.0 * h->count[i]) / (float) h->total, h->cdf[i],
 			   (int) (h->cdf[i] * h->total), h->map[i]);
 	}
 }
