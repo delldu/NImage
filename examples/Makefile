@@ -15,22 +15,23 @@ SOURCE :=  \
 
 INCS	:= -I../include
 
-# LIBS	:= \
-# 	-Wl,-Bstatic \
-# 	-L.. -lnimage \
-# 	-lnanomsg -lanl \
-# 	-Wl,-Bdynamic \
-# 	-lmsgpackc \
-# 	-ljpeg -lpng \
-# 	-lpthread -lm
-
-
 LIBS	:= \
+	-Wl,-Bstatic \
 	-L.. -lnimage \
 	-lnanomsg -lanl \
 	-lmsgpackc \
 	-ljpeg -lpng \
+	-lz \
+	-Wl,-Bdynamic \
 	-lpthread -lm
+
+
+# LIBS	:= \
+# 	-L.. -lnimage \
+# 	-lnanomsg -lanl \
+# 	-lmsgpackc \
+# 	-ljpeg -lpng \
+# 	-lpthread -lm
 
 DEFINES :=
 
