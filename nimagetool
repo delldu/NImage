@@ -24,7 +24,7 @@ show_cflags()
 
 show_libs()
 {
-	echo "-L/usr/local/lib -lnimage -lnanomsg -lmsgpackc -lanl -ljpeg -lpng -lpthread -lm"	
+	echo "-Wl,-Bstatic -lnimage -lnanomsg -lanl -lmsgpackc -ljpeg -lpng -lz -Wl,-Bdynamic -lpthread -lm"
 }
 
 [ "$*" = "" ] && usage

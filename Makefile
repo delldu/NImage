@@ -9,7 +9,6 @@
 
 LIB_NAME := libnimage
 INSTALL_DIR := /usr/local
-#/usr/local/
 
 INCS	:= \
 	-Iinclude \
@@ -39,8 +38,7 @@ SOURCE :=  \
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra
-LDFLAGS := -fPIC \
-	-ljpeg -lpng
+LDFLAGS := -fPIC -ljpeg -lpng
  
 
 
@@ -87,6 +85,6 @@ install:
 # 	sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
 	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 	sudo cp nimagetool ${INSTALL_DIR}/bin
-	
+
 
 

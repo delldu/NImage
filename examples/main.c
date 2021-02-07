@@ -12,11 +12,10 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "image.h"
-#include "nnmsg.h"
+#include <nimage/image.h>
+#include <nimage/nnmsg.h>
 
 #define URL "ipc:///tmp/nimage.ipc"
-// #define URL "tcp://127.0.0.1:5560"
 
 // Echo Server
 int server(char *endpoint)

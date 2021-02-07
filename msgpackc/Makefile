@@ -1,39 +1,26 @@
 #/************************************************************************************
 #***
-#***	Copyright 2020 Dell(18588220928g@163.com), All Rights Reserved.
+#***	Copyright 2021 Dell(18588220928g@163.com), All Rights Reserved.
 #***
-#***	File Author: Dell, 2020-11-22 02:26:07
+#***	File Author: Dell, 2021-02-07 13:37:06
 #***
 #************************************************************************************/
 #
+
 INSTALL_DIR := /usr/local
 
-TARGET := nimage
+LIB_NAME := libmsgpackc
 
+INCS	:= 
+	# -I$(BUILD_DIR)/include
 SOURCE :=  \
-	main.c \
+	src/unpack.c \
+	src/version.c \
+	src/zone.c \
+	src/objectc.c \
+	src/vrefbuffer.c 
 
-INCS	:= -I/usr/local/include
-
-LIBS	:= \
-	-Wl,-Bstatic \
-	-lnimage \
-	-lnanomsg -lanl \
-	-lmsgpackc \
-	-ljpeg -lpng -lz \
-	-Wl,-Bdynamic \
-	-lpthread -lm
-
-
-# LIBS	:= \
-# 	-L.. -lnimage \
-# 	-lnanomsg -lanl \
-# 	-lmsgpackc \
-# 	-ljpeg -lpng \
-# 	-lpthread -lm
-
-DEFINES :=
-
+DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra
 LDFLAGS := -fPIC
 
@@ -42,23 +29,25 @@ LDFLAGS := -fPIC
 #****************************************************************************
 CFLAGS   := ${CFLAGS} ${DEFINES}
 CXXFLAGS := ${CXXFLAGS} ${DEFINES}
-
-OBJECT := $(addsuffix .o,$(basename ${SOURCE}))
+OBJECTS := $(addsuffix .o,$(basename ${SOURCE}))
 
 #****************************************************************************
 # Compile block
 #****************************************************************************
-all: ${TARGET}
+all: staticlib
 
-${TARGET}: ${OBJECT}
-	${CC} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
+sharelib: $(OBJECTS)
+	$(LD) $(LDFLAGS) -shared -soname $(LIB_NAME).so -o $(LIB_NAME).so $(OBJECTS)
 
-install:
-# 	${STRIP} ${TARGET}
-	sudo install -m 755 ${TARGET} ${INSTALL_DIR}/bin
-	sudo cp nimage.service /lib/systemd/system/
-	sudo systemctl daemon-reload
 
+staticlib:$(OBJECTS)
+	$(AR) $(ARFLAGS) $(LIB_NAME).a $(OBJECTS)
+
+
+#****************************************************************************
+# Depend block
+#****************************************************************************
+depend:
 
 #****************************************************************************
 # common rules
@@ -69,10 +58,12 @@ install:
 %.o : %.c
 	${CC} ${CFLAGS} ${INCS} -c $< -o $@
 
-#****************************************************************************
-# Depend block
-#****************************************************************************
-depend:
 
 clean:
-	rm -f core ${OBJECT} ${TARGET}
+	rm -rf *.a *.so *.o $(OBJECTS)
+
+install:
+	sudo mkdir -p ${INSTALL_DIR}/include/msgpack
+	sudo cp include/* ${INSTALL_DIR}/include -R
+	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+
