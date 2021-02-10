@@ -115,7 +115,10 @@ TENSOR *tensor_from_image(IMAGE * image, int alpha)
 
 	CHECK_IMAGE(image);
 
-	tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
+	if (alpha)
+		tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
+	else
+		tensor = tensor_create(1, 3, image->height, image->width);	// RGB
 	CHECK_TENSOR(tensor);
 
 	R = tensor->data;
