@@ -50,7 +50,7 @@ extern "C" {
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 #if 0
 #define syslog_info(fmt, arg...)  do { \
-			syslog(LOG_INFO, "Info: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+			syslog(LOG_INFO, "Info: " fmt "\n", ##arg); \
 		} while (0)
 #define syslog_debug(fmt, arg...)  do { \
 			syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
@@ -60,7 +60,7 @@ extern "C" {
 		} while (0)
 #else
 #define syslog_info(fmt, arg...)  do { \
-		fprintf(stderr, "Info: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+		fprintf(stderr, "Info: " fmt "\n", ##arg); \
 	} while (0)
 #define syslog_debug(fmt, arg...)  do { \
 		fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \

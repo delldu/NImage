@@ -87,15 +87,27 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 
 	image_foreach(image, i, j) {
 		image->ie[i][j].r = (BYTE) ((*R++) * 255);
-		image->ie[i][j].g = (BYTE) ((*G++) * 255);
-		image->ie[i][j].b = (BYTE) ((*B++) * 255);
-		image->ie[i][j].a = (BYTE) ((*A++) * 255);
+	}
+
+	if (tensor->chan >= 2) {
+		image_foreach(image, i, j)
+			image->ie[i][j].g = (BYTE) ((*G++) * 255);
+	}
+
+	if (tensor->chan >= 3) {
+		image_foreach(image, i, j)
+			image->ie[i][j].b = (BYTE) ((*B++) * 255);
+	}
+
+	if (tensor->chan >= 4) {
+		image_foreach(image, i, j)
+			image->ie[i][j].a = (BYTE) ((*A++) * 255);
 	}
 
 	return image;
 }
 
-TENSOR *tensor_from_image(IMAGE * image)
+TENSOR *tensor_from_image(IMAGE * image, int alpha)
 {
 	int i, j;
 	TENSOR *tensor;
@@ -109,12 +121,15 @@ TENSOR *tensor_from_image(IMAGE * image)
 	R = tensor->data;
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
-	A = B + tensor->height * tensor->width;
 	image_foreach(image, i, j) {
 		*R++ = (float) image->ie[i][j].r / 255.0;
 		*G++ = (float) image->ie[i][j].g / 255.0;
 		*B++ = (float) image->ie[i][j].b / 255.0;
-		*A++ = (float) image->ie[i][j].a / 255.0;
+	}
+	if (alpha) {
+		A = B + tensor->height * tensor->width;
+		image_foreach(image, i, j)
+			*A++ = (float) image->ie[i][j].a / 255.0;
 	}
 
 	return tensor;

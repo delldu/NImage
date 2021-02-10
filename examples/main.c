@@ -66,7 +66,7 @@ int client(char *endpoint, char *input_file, char *output_file)
 	if (!image_valid(send_image))
 		goto finish;
 
-	send_tensor = tensor_from_image(send_image);
+	send_tensor = tensor_from_image(send_image, 1);
 	check_tensor(send_tensor);
 
 	if (tensor_valid(send_tensor)) {
