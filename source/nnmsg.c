@@ -368,9 +368,9 @@ TENSOR *response_recv(int socket, int *rescode)
 	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 		return NULL;
 	}
-	syslog_info("Response tensor parsing ... ");
+	// syslog_info("Response tensor parsing ... ");
 	tensor = response_decode(buf, size, rescode);
-	syslog_info("Response tensor parsed OK.");
+	// syslog_info("Response tensor parsed OK.");
 
 	nn_freemsg(buf);
 
