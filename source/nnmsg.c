@@ -102,7 +102,7 @@ int client_open(char *endpoint)
 *	Tensor: uint16 [BxCxHxW], float [d1, ..., dn]
 *	float option
 ****************************************************************************/
-void request_encode(int reqcode, TENSOR * tensor, float option, msgpack_sbuffer *sbuf)
+void request_encode(int reqcode, TENSOR * tensor, msgpack_sbuffer *sbuf)
 {
 	int i, n;
 	float *f;
@@ -130,12 +130,9 @@ void request_encode(int reqcode, TENSOR * tensor, float option, msgpack_sbuffer 
 		for (i = 0; i < n; i++)
 			msgpack_pack_float(&pk, *f++);
 	}
-
-	// Encode option
-	msgpack_pack_float(&pk, option);
 }
 
-int request_send(int socket, int reqcode, TENSOR * tensor, float option)
+int request_send(int socket, int reqcode, TENSOR * tensor)
 {
 	int ret;
 	msgpack_sbuffer sbuf;
@@ -143,7 +140,7 @@ int request_send(int socket, int reqcode, TENSOR * tensor, float option)
 	check_tensor(tensor);
 
 	msgpack_sbuffer_init(&sbuf);
-	request_encode(reqcode, tensor, option, &sbuf);
+	request_encode(reqcode, tensor, &sbuf);
 
 	// syslog_info("Request send ... size = %d", sbuf.size);
 	if ((ret = nn_send(socket, sbuf.data, sbuf.size, 0)) < 0)
@@ -155,7 +152,7 @@ int request_send(int socket, int reqcode, TENSOR * tensor, float option)
 	return (ret >= 0) ? RET_OK : RET_ERROR;
 }
 
-TENSOR *request_decode(BYTE *buf, int size, int *reqcode, float *option)
+TENSOR *request_decode(BYTE *buf, int size, int *reqcode)
 {
 	int n;
 	WORD dims[4];
@@ -206,24 +203,16 @@ TENSOR *request_decode(BYTE *buf, int size, int *reqcode, float *option)
 				*f++ = (float) (p->via.f64);
 		}
 	}
-	// Decode tensor option
-	*option = 0;
-	ret = msgpack_unpack_next(&msg, (char const *) buf, size, &off);
-	if (ret == MSGPACK_UNPACK_SUCCESS) {
-		msgpack_object obj = msg.data;
-		if (obj.type == MSGPACK_OBJECT_FLOAT32)
-			*option = (float) obj.via.f64;
-	}
 	// Check buffer decode over status
 	if (ret == MSGPACK_UNPACK_PARSE_ERROR) {
-		syslog_error("The data in buf is invalid format.");
+		syslog_error("The data in msgpack buffer is invalid format.");
 	}
 	msgpack_unpacked_destroy(&msg);
 
 	return tensor;
 }
 
-TENSOR *request_recv(int socket, int *reqcode, float *option)
+TENSOR *request_recv(int socket, int *reqcode)
 {
 	int size;
 	BYTE *buf;
@@ -235,7 +224,7 @@ TENSOR *request_recv(int socket, int *reqcode, float *option)
 	}
 
 	syslog_info("Request tensor parsing ... ");
-	tensor = request_decode(buf, size, reqcode, option);
+	tensor = request_decode(buf, size, reqcode);
 	syslog_info("Response tensor parsed OK.");
 
 	nn_freemsg(buf);		// Message has been saved ...

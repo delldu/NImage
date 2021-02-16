@@ -18,8 +18,8 @@ extern "C" {
 	int server_open(char *endpoint);
 	int client_open(char *endpoint);
 
-	int request_send(int socket, int reqcode, TENSOR * tensor, float option);
-	TENSOR *request_recv(int socket, int *reqcode, float *option);
+	int request_send(int socket, int reqcode, TENSOR * tensor);
+	TENSOR *request_recv(int socket, int *reqcode);
 
 	int response_send(int, TENSOR * tensor, int rescode);
 	TENSOR *response_recv(int socket, int *rescode);

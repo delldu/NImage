@@ -21,7 +21,6 @@
 int server(char *endpoint)
 {
 	int socket, reqcode, count;
-	float option;
 	TENSOR *tensor;
 
 	if ((socket = server_open(endpoint)) < 0)
@@ -32,13 +31,13 @@ int server(char *endpoint)
 		if (count % 100 == 0)
 			syslog_info("Service %d times", count);
 
-		tensor = request_recv(socket, &reqcode, &option);
+		tensor = request_recv(socket, &reqcode);
 
 		if (!tensor_valid(tensor)) {
 			syslog_error("Request recv bad tensor ...");
 			continue;
 		}
-		syslog_info("Request Code = %d, Option = %f", reqcode, option);
+		syslog_info("Request Code = %d", reqcode);
 		
 		response_send(socket, tensor, reqcode);
 		tensor_destroy(tensor);
@@ -71,7 +70,7 @@ int client(char *endpoint, char *input_file, char *output_file)
 
 	if (tensor_valid(send_tensor)) {
 		// Send
-		ret = request_send(socket, 6789, send_tensor, 3.14f);
+		ret = request_send(socket, 6789, send_tensor);
 
 		if (ret == RET_OK) {
 			// Recv
