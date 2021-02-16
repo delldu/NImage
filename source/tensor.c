@@ -124,13 +124,15 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 	R = tensor->data;
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
+	if (with_alpha)
+		A = B + tensor->height * tensor->width;
+
 	image_foreach(image, i, j) {
 		*R++ = (float) image->ie[i][j].r / 255.0;
 		*G++ = (float) image->ie[i][j].g / 255.0;
 		*B++ = (float) image->ie[i][j].b / 255.0;
 	}
 	if (with_alpha) {
-		A = B + tensor->height * tensor->width;
 		image_foreach(image, i, j)
 			*A++ = (float) image->ie[i][j].a / 255.0;
 	}
