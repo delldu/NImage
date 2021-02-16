@@ -107,7 +107,7 @@ IMAGE *image_from_tensor(TENSOR * tensor, int k)
 	return image;
 }
 
-TENSOR *tensor_from_image(IMAGE * image, int alpha)
+TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 {
 	int i, j;
 	TENSOR *tensor;
@@ -115,7 +115,7 @@ TENSOR *tensor_from_image(IMAGE * image, int alpha)
 
 	CHECK_IMAGE(image);
 
-	if (alpha)
+	if (with_alpha)
 		tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
 	else
 		tensor = tensor_create(1, 3, image->height, image->width);	// RGB
@@ -129,7 +129,7 @@ TENSOR *tensor_from_image(IMAGE * image, int alpha)
 		*G++ = (float) image->ie[i][j].g / 255.0;
 		*B++ = (float) image->ie[i][j].b / 255.0;
 	}
-	if (alpha) {
+	if (with_alpha) {
 		A = B + tensor->height * tensor->width;
 		image_foreach(image, i, j)
 			*A++ = (float) image->ie[i][j].a / 255.0;
