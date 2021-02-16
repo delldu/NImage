@@ -19,6 +19,7 @@ extern "C" {
 #include "matrix.h"
 #include "vector.h"
 #include "tensor.h"
+#include "nnmsg.h"
 
 #define IMAGE_VERSION "1.0.0"
 
