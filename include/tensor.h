@@ -32,18 +32,19 @@ extern "C" {
 		} \
 	} while(0)
 
-
-	// Support Tensor
+	// Tensor
 	typedef struct {
 		DWORD magic;			// TENSOR_MAGIC
 		WORD batch, chan, height, width;
-		float *data;
+		float *data; 			// TENSOR format is: BxCxHxW with float
 	} TENSOR;
 
 	int tensor_valid(TENSOR * tensor);
 	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
 	TENSOR *tensor_copy(TENSOR * src);
 	void tensor_destroy(TENSOR * tensor);
+
+	float *tensor_startrow(TENSOR *tensor, int b, int c, int h);
 
 #if defined(__cplusplus)
 }

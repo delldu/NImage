@@ -155,6 +155,9 @@ extern "C" {
 	int color_correct(IMAGE * img, float gain_r, float gain_g, float gain_b);
 	int color_togray(IMAGE * img);
 	int color_torgb565(IMAGE * img);
+
+	void color_rgb2lab(BYTE R, BYTE G, BYTE B, float *L, float *a, float *b);
+	void color_lab2rgb(float L, float a, float b, BYTE *R, BYTE *G, BYTE *B);
 	float color_distance(RGBA_8888 * c1, RGBA_8888 * c2);
 
 	int image_drawline(IMAGE * img, int r1, int c1, int r2, int c2, int color);

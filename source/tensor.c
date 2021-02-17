@@ -139,3 +139,14 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 
 	return tensor;
 }
+
+float *tensor_startrow(TENSOR *tensor, int b, int c, int h)
+{
+	int offset;
+	if (b < 0 || b >= tensor->batch || c < 0 || c >= tensor->chan || h < 0 || h >= tensor->height)
+		return NULL;
+	offset = b * tensor->chan * tensor->height * tensor->width \
+			+ c * tensor->height * tensor->width \
+			+ h * tensor->width;
+	return tensor->data + offset;
+}

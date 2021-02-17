@@ -20,20 +20,18 @@
 // D50: 96.72, 100.00,  81.43
 // D65: 94.81, 100.00, 107.32
 
-
 // Follow CIE 1931, D65
+// #define  LAB_X_R  0.433953f		/* = xyzXr / 0.950456 */
+// #define  LAB_X_G  0.376219f		/* = xyzXg / 0.950456 */
+// #define  LAB_X_B  0.189828f		/* = xyzXb / 0.950456 */
 
-#define  LAB_X_R  0.433953f		/* = xyzXr / 0.950456 */
-#define  LAB_X_G  0.376219f		/* = xyzXg / 0.950456 */
-#define  LAB_X_B  0.189828f		/* = xyzXb / 0.950456 */
+// #define  LAB_Y_R  0.212671f		/* = xyzYr */
+// #define  LAB_Y_G  0.715160f		/* = xyzYg */
+// #define  LAB_Y_B  0.072169f		/* = xyzYb */
 
-#define  LAB_Y_R  0.212671f		/* = xyzYr */
-#define  LAB_Y_G  0.715160f		/* = xyzYg */
-#define  LAB_Y_B  0.072169f		/* = xyzYb */
-
-#define  LAB_Z_R  0.017758f		/* = xyzZr / 1.088754 */
-#define  LAB_Z_G  0.109477f		/* = xyzZg / 1.088754 */
-#define  LAB_Z_B  0.872766f		/* = xyzZb / 1.088754 */
+// #define  LAB_Z_R  0.017758f		/* = xyzZr / 1.088754 */
+// #define  LAB_Z_G  0.109477f		/* = xyzZg / 1.088754 */
+// #define  LAB_Z_B  0.872766f		/* = xyzZb / 1.088754 */
 
 #define CUBE_CELL_OFFSET(r,c,d) (((r)*cols + (c))*(levs) + (d))
 
@@ -61,29 +59,9 @@ do {                                                                  \
 	(cr) = (112 * _r - 94 * _g  -18 * _b  + 128*256 + 128) >> 8; \
 } while (0)
 
-
-/*
-* Y = 16 + 0.2568R + 0.5051G + 0.0979B   ==> (263, 517, 100)
-*Cg = 128 - 0.318R  + 0.4392G - 0.1212B  ==> (-326, 450, -124)
-*Cr = 128 + 0.4392R - 0.3677G - 0.0714B  ==> (450,  -377,  -73)
-*/
-
-#define RGB_TO_YCGCR( r, g, b, y, cg, cr )        \
-do {                                                                  \
-     int _r = (r), _g = (g), _b = (b);                       \
-                                                                      \
-     (y)  = (   263 * _r + 517 * _g + 100 * _b  +  16*1024) >> 10; \
-     (cg) = ( - 326 * _r + 450 * _g - 124 * _b  + 128*1024) >> 10; \
-     (cr) = (   450 * _r - 377 * _g -  73 * _b  + 128*1024) >> 10; \
-} while (0)
-
 // xxxx, how to use them ?
 extern int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2);
 extern void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr);
-extern void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cg, BYTE * cr);
-extern void color_rgb2luv(BYTE R, BYTE G, BYTE B, float *L, float *u, float *v);
-extern void color_luv2rgb(float L, float u, float v, BYTE * R, BYTE * G, BYTE * B);
-extern Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B);
 extern int color_prmgain(IMAGE * img, float *r_gain, float *g_gain, float *b_gain);
 extern int *color_count(IMAGE * image, int rows, int cols, int levs);
 
@@ -124,145 +102,63 @@ int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2)
 	return (c1->b - c2->b);
 }
 
-// xxxx how to use ?
+// CIELAB values range as follows: 
+// L lies between 0 and 100, and a and b lie between -110 and 110. 
+// which is the D65 standard.
+
+// TENSOR *tensor_rgb2lab(IMAGE *image);
+// TENSOR *tensor_lab2rgb(TENSOR *tenosr);
+// Drawable --> `
 void color_rgb2lab(BYTE R, BYTE G, BYTE B, float *L, float *a, float *b)
 {
-	float x, y, z;
+	float r0, g0, b0, x, y, z;
 
-	x = LAB_X_R * R + LAB_X_G * G + LAB_X_B * B;
-	y = LAB_Y_R * R + LAB_Y_G * G + LAB_Y_B * B;
-	z = LAB_Z_R * R + LAB_Z_G * G + LAB_Z_B * B;
-	x /= 255.f;
-	y /= 255.f;
-	z /= 255.f;
+	r0 = (float)R/255.f; g0 = (float)G/255.f; b0 = (float)B/255.f;
 
-//  printf("R = %d, G = %d, B = %d, x = %f, y = %f, z = %f\n", R, G, B, x, y, z);
+	r0 = (r0 > 0.04045) ? powf((r0 + 0.055) / 1.055, 2.4) : r0 / 12.92;
+	g0 = (g0 > 0.04045) ? powf((g0 + 0.055) / 1.055, 2.4) : g0 / 12.92;
+	b0 = (b0 > 0.04045) ? powf((b0 + 0.055) / 1.055, 2.4) : b0 / 12.92;
 
-	if (x > 0.008856f)
-		x = pow(x, 0.333333f);
-	else
-		x = 7.787f * x + 0.137931f;	// 0.137913 = 16/116
+	x = (r0 * 0.412453 + g0 * 0.357680 + b0 * 0.180423) / 0.95047;
+	y = (r0 * 0.212671 + g0 * 0.715160 + b0 * 0.072169) / 1.00000;
+	z = (r0 * 0.019334 + g0 * 0.119193 + b0 * 0.950227) / 1.08883;
 
-	if (z > 0.008856f)
-		z = pow(z, 0.333333f);
-	else
-		z = 7.787f * z + 0.137931f;
+	x = (x > 0.008856) ? powf(x, 1/3) : (7.787 * x) + 16/116;
+	y = (y > 0.008856) ? powf(y, 1/3) : (7.787 * y) + 16/116;
+	z = (z > 0.008856) ? powf(z, 1/3) : (7.787 * z) + 16/116;
 
-	if (y > 0.008856f) {
-		y = pow(y, 0.333333f);
-		*L = 116.f * y - 16.f;
-	} else {
-		*L = 903.3f * y;
-		y = 7.787 * y + 0.137931f;
-	}
-
+	*L = 116.f * y - 16.f;
 	*a = 500.f * (x - y);
 	*b = 200.f * (y - z);
-
-//  printf(" ==> L = %f, a = %f, b = %f\n", *L, *a, *b);
 }
 
-void color_rgb2luv(BYTE R, BYTE G, BYTE B, float *L, float *u, float *v)
+void color_lab2rgb(float L, float a, float b, BYTE *R, BYTE *G, BYTE *B)
 {
-	static int rgb2luv_init = 0;
-	static float X0, Z0, Y0, u20, v20;
+	float r0, g0, b0, x, y, z;
 
-	float x, y, X, Y, Z, d, u2, v2, r, g, b;
+	y = (L + 16.f) / 116.f;
+	x = a / 500.f + y;
+	z = y - b / 200.f;
 
-	if (rgb2luv_init == 0) {
-		X0 = (0.607 + 0.174 + 0.201);
-		Y0 = (0.299 + 0.587 + 0.114);
-		Z0 = (0.066 + 1.117);
+	x = 0.95047 * ((x * x * x > 0.008856) ? x * x * x : (x - 16/116) / 7.787);
+	y = 1.00000 * ((y * y * y > 0.008856) ? y * y * y : (y - 16/116) / 7.787);
+	z = 1.08883 * ((z * z * z > 0.008856) ? z * z * z : (z - 16/116) / 7.787);
 
-		u20 = 4 * X0 / (X0 + 15 * Y0 + 3 * Z0);
-		v20 = 9 * Y0 / (X0 + 15 * Y0 + 3 * Z0);
-		rgb2luv_init = 1;
-	}
+	r0 = x *  3.24048 + y * -1.53715 + z * -0.49853;
+	g0 = x * -0.96925 + y *  1.87599 + z *  0.04155;
+	b0 = x *  0.05564 + y * -0.20404 + z *  1.05731;
 
-	r = (R <= 20) ? (float) (8.715e-4 * R) : (float) pow((R + 25.245) / 280.245, 2.22);
-	g = (G <= 20) ? (float) (8.715e-4 * G) : (float) pow((G + 25.245) / 280.245, 2.22);
-	b = (B <= 20) ? (float) (8.715e-4 * B) : (float) pow((B + 25.245) / 280.245, 2.22);
+	r0 = (r0 > 0.0031308) ? (1.055 * powf(r0, 1/2.4) - 0.055) : 12.92 * r0;
+	g0 = (g0 > 0.0031308) ? (1.055 * powf(g0, 1/2.4) - 0.055) : 12.92 * g0;
+	b0 = (b0 > 0.0031308) ? (1.055 * powf(b0, 1/2.4) - 0.055) : 12.92 * b0;
 
-	X = 0.412453 * r + 0.357580 * g + 0.180423 * b;
-	Y = 0.212671 * r + 0.715160 * g + 0.072169 * b;
-	Z = 0.019334 * r + 0.119193 * g + 0.950227 * b;
+	r0 = CLAMP(r0, 0.0, 1.0);
+	g0 = CLAMP(g0, 0.0, 1.0);
+	b0 = CLAMP(b0, 0.0, 1.0);
 
-	if (X == 0.0 && Y == 0.0 && Z == 0.0) {
-		x = 1.0 / 3.0;
-		y = 1.0 / 3.0;
-	} else {
-		d = X + Y + Z;
-		x = X / d;
-		y = Y / d;
-	}
-
-	d = -2 * x + 12 * y + 3;
-	u2 = 4 * x / d;
-	v2 = 9 * y / d;
-
-	if (Y > 0.008856)
-		*L = 116.0 * pow(Y, 1.0 / 3.0) - 16;
-	else
-		*L = 903.3 * Y;
-
-	*u = 13.0 * (*L) * (u2 - u20);
-	*v = 13.0 * (*L) * (v2 - v20);
-}
-
-
-void color_luv2rgb(float L, float u, float v, BYTE * R, BYTE * G, BYTE * B)
-{
-	static int luv2rgb_init = 0;
-	static float X0, Y0, Z0, u20, v20;
-	int k;
-	float x, y, X, Y, Z, d, u2, v2, vec[3];
-
-	if (luv2rgb_init == 0) {
-		X0 = (0.607 + 0.174 + 0.201);
-		Y0 = (0.299 + 0.587 + 0.114);
-		Z0 = (0.066 + 1.117);
-
-		u20 = 4 * X0 / (X0 + 15 * Y0 + 3 * Z0);
-		v20 = 9 * Y0 / (X0 + 15 * Y0 + 3 * Z0);
-		luv2rgb_init = 1;
-	}
-
-	if (L > 0) {
-		Y = (L < 8.0) ? L / 903.3 : pow((L + 16.0) / 116.0, 3.0);
-		u2 = u / 13.0 / L + u20;
-		v2 = v / 13.0 / L + v20;
-
-		d = 6 + 3 * u2 - 8 * v2;
-		x = 4.5 * u2 / d;
-		y = 2.0 * v2 / d;
-
-		X = x / y * Y;
-		Z = (1 - x - y) / y * Y;
-	} else {
-		X = Y = Z = 0.0;
-	}
-
-	vec[0] = (3.240479 * X - 1.537150 * Y - 0.498536 * Z);
-	vec[1] = (-0.969256 * X + 1.875992 * Y + 0.041556 * Z);
-	vec[2] = (0.055648 * X - 0.204043 * Y + 1.057311 * Z);
-	for (k = 0; k < 3; k++) {
-		if (vec[k] <= 0.018)
-			vec[k] = 255 * 4.5 * vec[k];
-		else
-			vec[k] = 255 * (1.099 * pow(vec[k], 0.45) - 0.099);
-
-		if (vec[k] > 255)
-			vec[k] = 255;
-		else if (vec[k] < 0)
-			vec[k] = 0;
-
-		if (k == 0)
-			*R = (BYTE) round(vec[k]);
-		else if (k == 1)
-			*G = (BYTE) round(vec[k]);
-		else
-			*B = (BYTE) round(vec[k]);
-	}
+	*R = (BYTE)(r0 * 255.f);
+	*G = (BYTE)(g0 * 255.f);
+	*B = (BYTE)(b0 * 255.f);
 }
 
 void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr)
@@ -271,16 +167,6 @@ void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr)
 	RGB_TO_YCBCR(R, G, B, y2, cb2, cr2);
 	*y = (BYTE) y2;
 	*cb = (BYTE) cb2;
-	*cr = (BYTE) cr2;
-}
-
-// xxxx3333
-void color_rgb2ycgcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cg, BYTE * cr)
-{
-	int y2, cg2, cr2;
-	RGB_TO_YCGCR(R, G, B, y2, cg2, cr2);
-	*y = (BYTE) y2;
-	*cg = (BYTE) cg2;
 	*cr = (BYTE) cr2;
 }
 
@@ -506,33 +392,6 @@ int skin_statics(IMAGE * img, RECT * rect)
 	return sum;
 }
 
-// fast to luv
-Luv *color_rgbf2luv(BYTE R, BYTE G, BYTE B)
-{
-	static int f2init = 0;
-	static Luv Luvtable[0xffff + 1];
-
-	int k;
-	BYTE r, g, b;
-	float L, u, v;
-
-	if (f2init == 0) {
-		for (k = 0; k < 0xffff + 1; k++) {
-			r = RGB565_R(k);
-			g = RGB565_G(k);
-			b = RGB565_B(k);
-			color_rgb2luv(r, g, b, &L, &u, &v);
-			Luvtable[k].L = L;
-			Luvtable[k].u = u;
-			Luvtable[k].v = v;
-		}
-		f2init = 1;
-	}
-
-	k = RGB565_NO(R, G, B);
-	return &Luvtable[k];
-}
-
 // GWM -- Gray World Method
 int color_rect_gwmgain(IMAGE * img, RECT * rect, float *r_gain, float *g_gain, float *b_gain)
 {
@@ -732,7 +591,6 @@ float color_distance(RGBA_8888 * c1, RGBA_8888 * c2)
 					a[n1] = da;
 					b[n1] = db;
 				}
-
 			}
 		}
 		first = 0;
