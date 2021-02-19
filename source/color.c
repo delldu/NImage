@@ -333,6 +333,7 @@ int color_cluster(IMAGE * image, int num)
 	image->K = num;
 	for (c = 0; c < num && c < ARRAY_SIZE(image->KColors); c++) {
 		image->KColors[c] = RGB_INT((BYTE) ccmat->me[c][0], (BYTE) ccmat->me[c][1], (BYTE) ccmat->me[c][2]);
+		image->KCounts[c] = (int)ccmat->me[c][3]; // r, g, b, count, orig class, sorted class no
 	}
 
 	matrix_destroy(ccmat);

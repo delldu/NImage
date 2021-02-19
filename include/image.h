@@ -45,7 +45,7 @@ extern "C" {
 		RGBA_8888 **ie, *base;
 
 		// Extentend for cluster & color mask
-		int K, KColors[256], KRadius, KInstance;
+		int K, KColors[256], KCounts[256], KRadius, KInstance;
 	} IMAGE;
 
 #define IMAGE_RGBA 0
