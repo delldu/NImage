@@ -90,6 +90,9 @@ extern "C" {
 	void time_reset();
 	void time_spend(char *prompt);
 
+// Resize
+void resize(int h, int w, int maxhw, int times, int *nh, int *nw);
+
 
 #if defined(__cplusplus)
 }

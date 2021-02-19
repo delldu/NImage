@@ -34,3 +34,21 @@ void time_spend(char *prompt)
 
 	time_reset();
 }
+
+// example: maxhw == 512, times == 8
+void resize(int h, int w, int maxhw, int times, int *nh, int *nw)
+{
+	int m;
+	float scale;
+
+	*nh = h; *nw = w;
+	m = MAX(h, w);
+	if (m > maxhw) {
+		scale = 1.0 * maxhw / m;
+		*nh = (int)(scale * h);
+		*nw = (int)(scale * w);
+	}
+
+	*nh = times * (*nh / times);
+	*nw = times * (*nw / times);
+}
