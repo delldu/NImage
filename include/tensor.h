@@ -44,7 +44,9 @@ extern "C" {
 	TENSOR *tensor_copy(TENSOR * src);
 	void tensor_destroy(TENSOR * tensor);
 
-	float *tensor_startrow(TENSOR *tensor, int b, int c, int h);
+	float *tensor_start_row(TENSOR *tensor, int b, int c, int h);
+	float *tensor_start_chan(TENSOR *tensor, int b, int c);
+	TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
 
 #if defined(__cplusplus)
 }

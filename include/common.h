@@ -79,11 +79,6 @@ extern "C" {
 #define GET_FOURCC3(abcd) ((BYTE)(((abcd) >> 8) & 0xff))
 #define GET_FOURCC4(abcd) ((BYTE)(((abcd) >> 0) & 0xff))
 
-#define MAKE_TWOCC(a,b) (((DWORD)(a) << 8) | ((DWORD)(b) << 0))
-#define GET_TWOCC1(ab) ((BYTE)(((ab) >> 8) & 0xff))
-#define GET_TWOCC2(ab) ((BYTE)(((ab) >> 0) & 0xff))
-
-
 	typedef struct {
 		int r, c, h, w;
 	} RECT;

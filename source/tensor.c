@@ -8,6 +8,7 @@
 
 #include "tensor.h"
 #include "image.h"
+#include "matrix.h"
 
 #define TENSOR_MAGIC MAKE_FOURCC('T', 'E', 'N', 'S')
 
@@ -140,7 +141,7 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 	return tensor;
 }
 
-float *tensor_startrow(TENSOR *tensor, int b, int c, int h)
+float *tensor_start_row(TENSOR *tensor, int b, int c, int h)
 {
 	int offset;
 	if (b < 0 || b >= tensor->batch || c < 0 || c >= tensor->chan || h < 0 || h >= tensor->height)
@@ -149,4 +150,110 @@ float *tensor_startrow(TENSOR *tensor, int b, int c, int h)
 			+ c * tensor->height * tensor->width \
 			+ h * tensor->width;
 	return tensor->data + offset;
+}
+
+float *tensor_start_chan(TENSOR *tensor, int b, int c)
+{
+	int offset;
+	if (b < 0 || b >= tensor->batch || c < 0 || c >= tensor->chan)
+		return NULL;
+	offset = b * tensor->chan * tensor->height * tensor->width \
+			+ c * tensor->height * tensor->width;
+	return tensor->data + offset;
+}
+
+TENSOR *tensor_zoom(TENSOR *source, int nh, int nw)
+{
+	int b, c;
+	MATRIX *s_mat, *d_mat;
+	float *s_data, *d_data;
+	TENSOR *zoom = NULL;
+
+	CHECK_TENSOR(source);
+	zoom = tensor_create(source->batch, source->chan, nh, nw); CHECK_TENSOR(zoom);
+
+	s_mat = matrix_create(source->height, source->width); CHECK_MATRIX(s_mat);
+	for (b = 0; b < source->batch; b++) {
+		for (c = 0; c < source->chan; c++) {
+			s_data = tensor_start_chan(source, b, c);
+			memcpy(s_mat->base, s_data, s_mat->m * s_mat->n * sizeof(float));
+			d_mat = matrix_zoom(s_mat, nh, nw, ZOOM_METHOD_BLINE);
+			if (matrix_valid(d_mat)) {
+				d_data = tensor_start_chan(zoom, b, c);
+				memcpy(d_data, d_mat->base, nh * nw * sizeof(float));
+				matrix_destroy(d_mat);
+			}
+		}
+	}
+	matrix_destroy(s_mat);
+
+	return zoom;
+}
+
+TENSOR *tensor_rgb2lab(IMAGE *image)
+{
+	int i, j;
+	TENSOR *tensor;
+	float *R, *G, *B, *A, L, a, b;
+
+	CHECK_IMAGE(image);
+
+	tensor = tensor_create(1, sizeof(RGBA_8888), image->height, image->width);
+	CHECK_TENSOR(tensor);
+
+	R = tensor->data;
+	G = R + tensor->height * tensor->width;
+	B = G + tensor->height * tensor->width;
+	A = B + tensor->height * tensor->width;
+
+	image_foreach(image, i, j) {
+		color_rgb2lab(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b, &L, &a, &b);
+		L = (L - 50.f)/100.f; a /= 110.f; b /= 110.f;
+		*R++ = L; *G++ = a; *B++ = b; *A++ = (image->ie[i][j].a > 127)? 1.0 : 0.f;
+	}
+
+	return tensor;
+}
+
+IMAGE *tensor_lab2rgb(TENSOR *tensor, int k)
+{
+	int i, j;
+	IMAGE *image;
+	BYTE r0, g0, b0;
+	float *R, *G, *B, *A, L, a, b;
+
+	CHECK_TENSOR(tensor);
+
+	if (k < 0 || k >= tensor->batch) {
+		syslog_error("image index over tensor batch size.");
+		return NULL;
+	}
+	if (tensor->chan < 3) {
+		syslog_error("tensor channel < 3, it's difficult to create image.");
+		return NULL;
+	}
+
+	image = image_create(tensor->height, tensor->width);
+	CHECK_IMAGE(image);
+	R = tensor->data + k * (tensor->chan * tensor->height * tensor->width);
+	G = R + tensor->height * tensor->width;
+	B = G + tensor->height * tensor->width;
+	A = B + tensor->height * tensor->width;
+
+	image_foreach(image, i, j) {
+		L = *R++; a = *G++; b = *B++;
+		L = L * 100.f + 50.f; a *= 110.f; b *= 110.f;
+		color_lab2rgb(L, a, b, &r0, &g0, &b0);
+		image->ie[i][j].r = r0;
+		image->ie[i][j].g = g0;
+		image->ie[i][j].b = b0;
+		image->ie[i][j].a = 255;
+	}
+
+	if (tensor->chan >= 4) {
+		image_foreach(image, i, j)
+			image->ie[i][j].a = (BYTE) ((*A++) * 255);
+	}
+
+	return image;
 }

@@ -279,6 +279,10 @@ extern "C" {
 // Tensor
 	IMAGE *image_from_tensor(TENSOR * tensor, int k);
 	TENSOR *tensor_from_image(IMAGE * image, int with_alpha);
+
+	TENSOR *tensor_rgb2lab(IMAGE *image);
+	IMAGE *tensor_lab2rgb(TENSOR *tensor, int k);
+
 #if defined(__cplusplus)
 }
 #endif

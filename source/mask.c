@@ -114,6 +114,7 @@ int mask_valid(MASK * img)
 	return (img->format == IMAGE_MASK && img->K > 0) ? 1 : 0;
 }
 
+// xxxx8888
 int color_instance(MASK * image, int KRadius)
 {
 	// KRadius -- radius, define neighbours
