@@ -282,6 +282,7 @@ extern "C" {
 
 	TENSOR *tensor_rgb2lab(IMAGE *image);
 	IMAGE *tensor_lab2rgb(TENSOR *tensor, int k);
+	int tensor_setmask(TENSOR *tensor, float mask);
 
 #if defined(__cplusplus)
 }

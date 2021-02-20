@@ -257,3 +257,20 @@ IMAGE *tensor_lab2rgb(TENSOR *tensor, int k)
 
 	return image;
 }
+
+int tensor_setmask(TENSOR *tensor, float mask)
+{
+	int i, j;
+	float *alpha;
+
+	check_tensor(tensor);
+	if (tensor->chan < 4)
+		return RET_ERROR;
+
+	for (i = 0; i < tensor->height; i++) {
+		alpha = tensor_start_row(tensor, 0 /*batch*/, 3 /*channel*/, i);
+		for (j = 0; j < tensor->width; j++)
+			*alpha++ = mask;
+	}
+	return RET_OK;
+}
