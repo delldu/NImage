@@ -107,7 +107,7 @@ int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2)
 // which is the D65 standard.
 
 // TENSOR *tensor_rgb2lab(IMAGE *image);
-// TENSOR *tensor_lab2rgb(TENSOR *tenosr);
+// TENSOR *tensor_lab2rgb(TENSOR *tenosr, int k);
 // Drawable --> `
 void color_rgb2lab(BYTE R, BYTE G, BYTE B, float *L, float *a, float *b)
 {

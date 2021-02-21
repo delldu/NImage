@@ -238,7 +238,7 @@ MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method)
 				d3 = mat->me[i2 + 1][j2];
 				d4 = mat->me[i2 + 1][j2 + 1];
 				d = (1.0 - u) * (1.0 - v) * d1 + (1.0 - u) * v * d2 + u * (1.0 - v) * d3 + u * v * d4;
-				copy->me[i][j] = (int) d;
+				copy->me[i][j] = d;
 			}
 		}
 	} else {
