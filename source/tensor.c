@@ -233,8 +233,7 @@ IMAGE *tensor_lab2rgb(TENSOR *tensor, int k)
 		return NULL;
 	}
 
-	image = image_create(tensor->height, tensor->width);
-	CHECK_IMAGE(image);
+	image = image_create(tensor->height, tensor->width); CHECK_IMAGE(image);
 	R = tensor->data + k * (tensor->chan * tensor->height * tensor->width);
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
@@ -267,8 +266,8 @@ int tensor_setmask(TENSOR *tensor, float mask)
 	if (tensor->chan < 4)
 		return RET_ERROR;
 
+	alpha = tensor_start_chan(tensor, 0 /*batch*/, 3 /*channel*/);
 	for (i = 0; i < tensor->height; i++) {
-		alpha = tensor_start_row(tensor, 0 /*batch*/, 3 /*channel*/, i);
 		for (j = 0; j < tensor->width; j++)
 			*alpha++ = mask;
 	}
