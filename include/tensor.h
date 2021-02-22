@@ -43,6 +43,7 @@ extern "C" {
 	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
 	TENSOR *tensor_copy(TENSOR * src);
 	void tensor_destroy(TENSOR * tensor);
+	void tensor_dump(TENSOR * tensor, int b, int c, int h, int w);
 
 	float *tensor_start_row(TENSOR *tensor, int b, int c, int h);
 	float *tensor_start_chan(TENSOR *tensor, int b, int c);

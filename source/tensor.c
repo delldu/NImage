@@ -53,9 +53,11 @@ TENSOR *tensor_copy(TENSOR * src)
 	return dst;
 }
 
-void tensor_dump(TENSOR * tensor)
+void tensor_dump(TENSOR * tensor, int b, int c, int h, int w)
 {
-	printf("Tensor dims: %dx%dx%dx%d\n", tensor->batch, tensor->chan, tensor->height, tensor->width);
+	// printf("Tensor dims: %dx%dx%dx%d\n", tensor->batch, tensor->chan, tensor->height, tensor->width);
+	float *row = tensor_start_row(tensor, b, c, h);
+	printf("Tensor(%d, %d, %d, %d): %.4f\n", b, c, h, w, row[w]);
 }
 
 void tensor_destroy(TENSOR * tensor)
