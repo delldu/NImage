@@ -59,7 +59,7 @@ int client_open(char *endpoint)
 	int socket;
 	int buffer_size = 128*1024*1024;	// 128 M
 	int max_recv_size = 256*1024*1024;	// 256 M
-	int recv_timeout = 60 * 1000;		// 60 seconds
+	int recv_timeout = 600 * 1000;		// 60 seconds
 
     // struct timeval timeout={5, 0};    // seconds
     if ((socket = nn_socket(AF_SP, NN_REQ)) < 0) {
