@@ -24,7 +24,6 @@ extern "C" {
 #include <linux/videodev2.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
-
 #include "frame.h"
 
 #define VIDEO_MAGIC MAKE_FOURCC('V','I','D','E')
@@ -43,7 +42,7 @@ extern "C" {
 		DWORD magic;			// VIDEO_MAGIC
 		DWORD format;
 		WORD width, height;
-		int frame_index, frame_size, frame_speed;
+		int frame_index, frame_size, frame_speed, frame_numbers;
 		FRAME *frames[VIDEO_BUFFER_NUMS];
 		int video_source;
 
@@ -56,7 +55,7 @@ extern "C" {
 #define check_video(video) \
 	do { \
 		if (! video_valid(video)) { \
-			syslog_error("Bad video.\n"); \
+			syslog_error("Bad video."); \
 			return RET_ERROR; \
 		} \
 	} while(0)
@@ -64,7 +63,7 @@ extern "C" {
 #define CHECK_VIDEO(video) \
 	do { \
 		if (! video_valid(video)) { \
-			syslog_error("Bad video.\n"); \
+			syslog_error("Bad video."); \
 			return NULL; \
 		} \
 	} while(0)
@@ -75,6 +74,7 @@ extern "C" {
 
 
 	int video_valid(VIDEO * v);
+	int video_eof(VIDEO *v);
 	VIDEO *video_open(char *filename, int start);
 	FRAME *video_read(VIDEO * v);
 	void video_info(VIDEO * v);

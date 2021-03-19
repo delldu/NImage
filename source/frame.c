@@ -187,7 +187,7 @@ int frame_binding(FRAME * f, BYTE * buf)
 		f->U = f->V = NULL;
 		break;
 	default:
-		syslog_error("Invalid format");
+		syslog_error("Invalid format.");
 		return RET_ERROR;
 		break;
 	}
@@ -234,12 +234,12 @@ int frame_toimage(FRAME * f, IMAGE * img)
 	y = cb = cr = r = g = b = 0;
 
 	if (!frame_goodbuf(f)) {
-		syslog_error("Frame buffer");
+		syslog_error("Bad frame buffer.");
 		return RET_ERROR;
 	}
 
 	if (f->width != img->width || f->height != img->height) {
-		syslog_error("Frame and image size is not same");
+		syslog_error("Frame and image size is not same.");
 		return RET_ERROR;
 	}
 
@@ -346,6 +346,160 @@ int frame_toimage(FRAME * f, IMAGE * img)
 		}
 		break;
 	default:
+		break;
+	}
+
+	return RET_OK;
+}
+
+int frame_totensor(FRAME * f, TENSOR *tensor)
+{
+	int i, j, y, cb, cr, r, g, b;
+	BYTE *us, *vs, *ys;
+	float *tensor_r, *tensor_g, *tensor_b;
+
+	check_frame(f);
+	check_tensor(tensor);
+
+	if (tensor->chan != 3) {
+		syslog_error("Tensor channel is not 3.");
+		return RET_ERROR;
+	}
+
+	y = cb = cr = r = g = b = 0;
+	if (!frame_goodbuf(f)) {
+		syslog_error("Bad frame buffer.");
+		return RET_ERROR;
+	}
+
+	if (f->width != tensor->width || f->height != tensor->height) {
+		syslog_error("Frame and image size is not same.");
+		return RET_ERROR;
+	}
+
+	tensor_r = tensor_start_chan(tensor, 0 /*batch*/, 0 /*channel */);
+	tensor_g = tensor_start_chan(tensor, 0 /*batch*/, 1 /*channel */);
+	tensor_b = tensor_start_chan(tensor, 0 /*batch*/, 2 /*channel */);
+
+	ys = f->Y;
+	switch (f->format) {
+	case FRAME_FMT_YV12:
+	case FRAME_FMT_YUV420P:
+		// Y -Page + 1/4  U-Page + 1/4 V-Page
+		us = f->U;
+		vs = f->V;
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++;
+				if (i % 2 == 0 && j % 2 == 0) {
+					cb = *us++;
+					cr = *vs++;
+				}
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_YUV420:
+		// (YUV) ... Y ... Y ... Y
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++;
+				if (i % 2 == 0 && j % 2 == 0) {
+					cb = *ys++;
+					cr = *ys++;
+				}
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_YUV422:
+		// (YUV) ... (Y) ... (YUV) .. (Y)
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++;
+				if (j % 2 == 0) {
+					cb = *ys++;
+					cr = *ys++;
+				}
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_YUV422P:
+		us = f->U;
+		vs = f->V;
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++;
+				if (j % 2 == 0) {
+					cb = *us++;
+					cr = *vs++;
+				}
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_YUV444:
+		// Y/U/V ...
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++; cb = *ys++; cr = *ys++;
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_YUV444P:
+		// Y-Pgae + U-Page + V-Page
+		us = f->U;
+		vs = f->V;
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				y = *ys++; cb = *us++; cr = *vs++; 
+				YCBCR_TO_RGB(y, cb, cr, r, g, b);
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	case FRAME_FMT_RGB24:
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				r = *ys++; g = *ys++; b = *ys++;
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}	
+		break;
+	case FRAME_FMT_RGBA32:
+		for (i = 0; i < tensor->height; i++) {
+			for (j = 0; j < tensor->width; j++) {
+				r = *ys++; g = *ys++; b = *ys++;
+				ys++;
+				*tensor_r++ = (float)(r/255.0);
+				*tensor_g++ = (float)(g/255.0);
+				*tensor_b++ = (float)(b/255.0);
+			}
+		}
+		break;
+	default:
+		syslog_error("Bad frame format.");
 		break;
 	}
 

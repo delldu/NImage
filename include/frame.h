@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 #include "image.h"
+#include "tensor.h"
 
 	typedef struct {
 		DWORD magic;			// FRAME_MAGIC
@@ -49,6 +50,7 @@ extern "C" {
 	int frame_size(DWORD fmt, int w, int h);
 	int frame_binding(FRAME * f, BYTE * buf);
 	int frame_toimage(FRAME * f, IMAGE * img);
+	int frame_totensor(FRAME * f, TENSOR *tensor);
 	DWORD frame_format(char *name);
 	FRAME *frame_create(DWORD fmt, WORD width, WORD height);
 	void frame_destroy(FRAME * f);

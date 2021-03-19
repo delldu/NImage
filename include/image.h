@@ -60,7 +60,7 @@ extern "C" {
 #define check_image(img) \
 	do { \
 		if (! image_valid(img)) { \
-			syslog_error("Bad image.\n"); \
+			syslog_error("Bad image."); \
 			return RET_ERROR; \
 		} \
 	} while(0)
@@ -68,7 +68,7 @@ extern "C" {
 #define CHECK_IMAGE(img) \
 	do { \
 		if (! image_valid(img)) { \
-			syslog_error("Bad image.\n"); \
+			syslog_error("Bad image."); \
 			return NULL; \
 		} \
 	} while(0)
@@ -81,7 +81,7 @@ extern "C" {
 #define check_rgb(orgb) \
 	do { \
 		if (! strchr("ARGB", orgb)) { \
-			syslog_error("Bad color %c (ARGB).\n", orgb); \
+			syslog_error("Bad color %c (ARGB).", orgb); \
 			return RET_ERROR; \
 		} \
 	} while (0)
@@ -89,7 +89,7 @@ extern "C" {
 #define check_argb(orgb) \
 	do { \
 		if (! strchr("ARGB", orgb)) { \
-			syslog_error("Bad color %c (ARGB).\n", orgb); \
+			syslog_error("Bad color %c (ARGB).", orgb); \
 			return RET_ERROR; \
 		} \
 	} while (0)
@@ -97,7 +97,7 @@ extern "C" {
 #define CHECK_RGB(orgb) \
 	do { \
 		if (! strchr("RGB", orgb)) { \
-			syslog_error("Bad color %c (RGB).\n", orgb); \
+			syslog_error("Bad color %c (RGB).", orgb); \
 			return NULL; \
 		} \
 	} while (0)

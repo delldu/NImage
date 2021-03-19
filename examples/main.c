@@ -99,7 +99,7 @@ int client(char *endpoint, char *input_file, char *output_file)
 
 void help(char *cmd)
 {
-	printf("This is simple an example for nimage, client send image to server and server echo back\n");
+	printf("This is a simple example for nimage, client send image to server and server echo back\n");
 
 	printf("Usage: %s [option]\n", cmd);
 	printf("    h, --help                   Display this help.\n");

@@ -19,7 +19,7 @@ extern "C" {
 #define check_tensor(tensor) \
 	do { \
 		if (! tensor_valid(tensor)) { \
-			syslog_error("Bad tensor.\n"); \
+			syslog_error("Bad tensor."); \
 			return RET_ERROR; \
 		} \
 	} while(0)
@@ -27,7 +27,7 @@ extern "C" {
 #define CHECK_TENSOR(tensor) \
 	do { \
 		if (! tensor_valid(tensor)) { \
-			syslog_error("Bad tensor.\n"); \
+			syslog_error("Bad tensor."); \
 			return NULL; \
 		} \
 	} while(0)
