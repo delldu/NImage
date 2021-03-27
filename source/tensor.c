@@ -53,11 +53,9 @@ TENSOR *tensor_copy(TENSOR * src)
 	return dst;
 }
 
-void tensor_dump(TENSOR * tensor, int b, int c, int h, int w)
+void tensor_show(TENSOR * tensor)
 {
-	// printf("Tensor dims: %dx%dx%dx%d\n", tensor->batch, tensor->chan, tensor->height, tensor->width);
-	float *row = tensor_start_row(tensor, b, c, h);
-	printf("Tensor(%d, %d, %d, %d): %.4f\n", b, c, h, w, row[w]);
+	syslog_info("Tensor dims: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
 }
 
 void tensor_destroy(TENSOR * tensor)
@@ -274,4 +272,69 @@ int tensor_setmask(TENSOR *tensor, float mask)
 			*alpha++ = mask;
 	}
 	return RET_OK;
+}
+
+/********************************************************************************
+*
+*	Grid Sample:
+*
+*   Input with shape (B, C, H_in, W_in)
+*   Grid with shape (B, 2, H_out, W_out), values according suppose X in
+*		int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap, MATRIX *output_mat);
+*
+*   Output will have shape (B, C, H_out, W_out)
+*
+*********************************************************************************/
+
+TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid)
+{
+	int b, c, n;
+	float *input_d, *output_d, *grid_d;
+	MATRIX *input_mat, *output_mat, *grid_imap, *grid_jmap;
+	TENSOR *output;
+
+	CHECK_TENSOR(input);
+	CHECK_TENSOR(grid);
+
+	if (grid->chan != 2) {
+		syslog_error("Grid must Bx2xHxW tensor.");
+		return NULL;
+	}
+
+	// Create temp matrixs for sample
+	input_mat = matrix_create(input->height, input->width); CHECK_MATRIX(input_mat);
+	output_mat = matrix_create(grid->height, grid->width); CHECK_MATRIX(output_mat);
+	grid_imap = matrix_create(grid->height, grid->width); CHECK_MATRIX(grid_imap);
+	grid_jmap = matrix_create(grid->height, grid->width); CHECK_MATRIX(grid_jmap);
+
+	output = tensor_create(input->batch, input->chan, grid->height, grid->width); CHECK_TENSOR(output);
+
+	n = grid->height * grid->width;
+	for (b = 0; b < output->batch; b++) {
+		for (c = 0; c < output->chan; c++) {
+			// Prepare grid i, j
+			grid_d = tensor_start_chan(grid, b, 0);
+			memcpy(grid_imap->base, grid_d, n * sizeof(float));
+			grid_d = tensor_start_chan(grid, b, 1);
+			memcpy(grid_jmap->base, grid_d, n * sizeof(float));
+
+			// Create source data
+			input_d = tensor_start_chan(input, b, c);
+			memcpy(input_mat->base, input_d, input->height * input->width * sizeof(float));
+
+			// Sampling ...
+			matrix_sample(input_mat, grid_imap, grid_jmap, output_mat);
+
+			// Save destion data
+			output_d = tensor_start_chan(output, b, c);
+			memcpy(output_d, output_mat->base, n * sizeof(float));
+		}
+	}
+
+	matrix_destroy(grid_jmap);
+	matrix_destroy(grid_imap);
+	matrix_destroy(output_mat);
+	matrix_destroy(input_mat);
+
+	return output;
 }

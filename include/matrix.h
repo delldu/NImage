@@ -85,6 +85,8 @@ extern "C" {
 
 	float matrix_median(MATRIX * mat);
 
+	// Support grid sample
+	int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap, MATRIX *output_mat);
 
 	void matrix_destroy(MATRIX * m);
 

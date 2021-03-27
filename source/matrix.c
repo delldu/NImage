@@ -201,7 +201,6 @@ MATRIX *matrix_copy(MATRIX * src)
 	return copy;
 }
 
-// NO Lua interface
 MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method)
 {
 	int i, j, i2, j2;
@@ -219,19 +218,19 @@ MATRIX *matrix_zoom(MATRIX * mat, int nm, int nn, int method)
 	dj = 1.0 * mat->n / copy->n;
 
 	if (method == ZOOM_METHOD_BLINE) {
-		/**********************************************************************
+		/**************************************************************************************
 		d1    d2
-		    (p)
+		   (p)
 		d3    d4
-		f(i+u,j+v) = (1-u)(1-v)f(i,j) + (1-u)vf(i,j+1) + u(1-v)f(i+1,j) + uvf(i+1,j+1)
-		**********************************************************************/
+		f(i+u,j+v) = (1-u)*(1-v)*f(i,j) + (1-u)*v*f(i,j+1) + u*(1-v)*f(i+1,j) + u*v*f(i+1,j+1)
+		***************************************************************************************/
 		matrix_foreach(copy, i, j) {
 			i2 = (int) (di * i);
 			u = di * i - i2;
 			j2 = (int) (dj * j);
 			v = dj * j - j2;
-			if (i2 == (int) mat->m - 1 || j2 == mat->n - 1) {
-				copy->me[i][j] = mat->me[i2][j2];
+			if (i2 >= (int) mat->m - 1 || j2 >= (int)mat->n - 1) {
+				copy->me[i][j] = mat->me[ mat->m - 1][ mat->n - 1];
 			} else {
 				d1 = mat->me[i2][j2];
 				d2 = mat->me[i2][j2 + 1];
@@ -501,7 +500,6 @@ MATRIX *matrix_wkmeans(MATRIX * mat, int k, distancef_t distance)
 	}
 
 	int count = 0;
-//  int start_time = time_ticks();
 	do {
 		count++;
 		needcheck = 0;
@@ -718,4 +716,53 @@ float matrix_median(MATRIX * mat)
 	matrix_destroy(copy);
 
 	return m;
+}
+
+/****************************************************************************
+*  Suppose X: 
+*        imap'value range is [0, 1.0]
+*        jmap'value range is [0, 1.0]
+****************************************************************************/
+int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap, MATRIX *output_mat)
+{
+	int i, j, i2, j2;
+	float di, dj, d1, d2, d3, d4, u, v, d;
+
+	check_matrix(mat);
+	check_matrix(imap);
+	check_matrix(jmap);
+	check_matrix(output_mat);
+
+	// Backward scale ratio
+	di = 1.0 * mat->m / output_mat->m;
+	dj = 1.0 * mat->n / output_mat->n;
+	/**************************************************************************************
+	d1    d2
+	   (p)
+	d3    d4
+	f(i+u,j+v) = (1-u)*(1-v)*f(i,j) + (1-u)*v*f(i,j+1) + u*(1-v)*f(i+1,j) + u*v*f(i+1,j+1)
+	***************************************************************************************/
+	for (i = 0; i < output_mat->m; i++) {
+		for (j = 0; j < output_mat->n; j++) {
+			d = di * imap->me[i][j] * i;
+			i2 = (int) d;
+			u = d - i2;
+
+			d = dj * jmap->me[i][j] * j;
+			j2 = (int)d;
+			v = d - j2;
+			// Boundery check
+			if (i2 < 0 || i2 >= (int) mat->m - 1 || j2 < 0 || j2 >= (int)mat->n - 1) {
+				output_mat->me[i][j] = 0;
+			} else {
+				d1 = mat->me[i2][j2];
+				d2 = mat->me[i2][j2 + 1];
+				d3 = mat->me[i2 + 1][j2];
+				d4 = mat->me[i2 + 1][j2 + 1];
+				d = (1.0 - u) * (1.0 - v) * d1 + (1.0 - u) * v * d2 + u * (1.0 - v) * d3 + u * v * d4;
+				output_mat->me[i][j] = d;
+			}
+		}
+	}
+	return RET_OK;
 }
