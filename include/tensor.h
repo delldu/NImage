@@ -47,10 +47,13 @@ extern "C" {
 
 	float *tensor_start_row(TENSOR *tensor, int b, int c, int h);
 	float *tensor_start_chan(TENSOR *tensor, int b, int c);
+	float *tensor_start_batch(TENSOR *tensor, int b);
+
 	TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
 
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
 	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
+	int tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
 
 #if defined(__cplusplus)
 }

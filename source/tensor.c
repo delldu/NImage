@@ -162,6 +162,16 @@ float *tensor_start_chan(TENSOR *tensor, int b, int c)
 	return tensor->data + offset;
 }
 
+float *tensor_start_batch(TENSOR *tensor, int b)
+{
+	int offset;
+	if (b < 0 || b >= tensor->batch)
+		return NULL;
+	offset = b * tensor->chan * tensor->height * tensor->width;
+	return tensor->data + offset;
+}
+
+
 TENSOR *tensor_zoom(TENSOR *source, int nh, int nw)
 {
 	int b, c;
@@ -363,4 +373,18 @@ TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
 	}
 
 	return output;
+}
+
+int tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
+{
+	check_tensor(tensor);
+
+	if (nb * nc * nh * nw == tensor->batch * tensor->chan * tensor->height * tensor->width) {
+		tensor->batch = nb;
+		tensor->chan = nc;
+		tensor->height = nh;
+		tensor->width = nw;
+		return RET_OK;		
+	}
+	return RET_ERROR;
 }
