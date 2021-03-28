@@ -50,6 +50,7 @@ extern "C" {
 	TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
 
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
+	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
 
 #if defined(__cplusplus)
 }

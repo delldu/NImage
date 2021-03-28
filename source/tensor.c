@@ -338,3 +338,29 @@ TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid)
 
 	return output;
 }
+
+// [start, stop), for example: [0, 2)
+TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
+{
+	int b, c, n;
+	float *from, *to;
+	TENSOR *output;
+
+	CHECK_TENSOR(tensor);
+	if (start >= tensor->chan || start >= stop)
+		return NULL;
+
+	output = tensor_create(tensor->batch, stop - start, tensor->height, tensor->width);
+	CHECK_TENSOR(output);
+
+	n = tensor->height * tensor->width;
+	for (b = 0; b < tensor->batch; b++) {
+		for (c = start; c < stop; c++) {
+			from = tensor_start_chan(tensor, b, c);
+			to = tensor_start_chan(output, b, c - start);
+			memcpy(to, from, n * sizeof(float));
+		}
+	}
+
+	return output;
+}
