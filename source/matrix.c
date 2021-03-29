@@ -744,11 +744,10 @@ int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap, MATRIX *output_mat)
 	***************************************************************************************/
 	for (i = 0; i < output_mat->m; i++) {
 		for (j = 0; j < output_mat->n; j++) {
-			d = di * imap->me[i][j] * i;
+			d = di * imap->me[i][j] * output_mat->m;
 			i2 = (int) d;
 			u = d - i2;
-
-			d = dj * jmap->me[i][j] * j;
+			d = dj * jmap->me[i][j] * output_mat->n;
 			j2 = (int)d;
 			v = d - j2;
 			// Boundery check
