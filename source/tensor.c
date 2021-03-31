@@ -375,6 +375,48 @@ TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
 	return output;
 }
 
+TENSOR *tensor_stack_chan(int n, TENSOR *tensor[])
+{
+	int i, b, channels, len;
+	float *from, *to;
+	TENSOR *output;
+
+	if (n < 1) {
+		syslog_error("n < 1, nothing to stack.");
+		return NULL;
+	}
+
+	// Check height, width
+	channels = 0;
+	for (i = 0; i < n; i++) {
+		CHECK_TENSOR(tensor[i]);
+		if (i >= 1) {
+			if (tensor[i]->batch != tensor[0]->batch || 
+				tensor[i]->height != tensor[0]->height ||
+				tensor[i]->width != tensor[0]->width) {
+				syslog_error("Tensor batch, height or width is not same, so can not stack.");
+				return NULL;
+			}
+		}
+		channels += tensor[i]->chan;
+	}
+
+	output = tensor_create(tensor[0]->batch, channels, tensor[0]->height, tensor[0]->width);
+	CHECK_TENSOR(output);
+
+	for (b = 0; b < output->batch; b++) {
+		to = tensor_start_batch(output, b);
+		for (i = 0; i < n; i++) {
+			from = tensor_start_batch(tensor[i], b);
+			len = tensor[i]->chan * tensor[i]->height * tensor[i]->width;
+			memcpy(to, from, len * sizeof(float));
+		}
+	}
+
+	return output;
+}
+
+
 int tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 {
 	check_tensor(tensor);

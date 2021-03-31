@@ -53,6 +53,8 @@ extern "C" {
 
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
 	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
+	TENSOR *tensor_cat_chan(int n, TENSOR *tensor[]);
+
 	int tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
 
 #if defined(__cplusplus)
