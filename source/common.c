@@ -30,7 +30,7 @@ void time_reset()
 
 void time_spend(char *prompt)
 {
-	printf("%s spend %ld ms.\n", prompt, get_time() - __system_ms_time);
+	syslog_info("%s spend %ld ms.", prompt, get_time() - __system_ms_time);
 
 	time_reset();
 }
