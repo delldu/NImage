@@ -39,6 +39,16 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	return t;
 }
 
+int tensor_zero(TENSOR *tensor)
+{
+	int n;
+	check_tensor(tensor);
+	n = tensor->batch * tensor->chan * tensor->height * tensor->width;
+	memset(tensor->data, 0, n * sizeof(float));
+
+	return RET_OK;
+}
+
 TENSOR *tensor_copy(TENSOR * src)
 {
 	TENSOR *dst;
@@ -375,41 +385,36 @@ TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
 	return output;
 }
 
-TENSOR *tensor_stack_chan(int n, TENSOR *tensor[])
+TENSOR *tensor_stack_chan(int n, TENSOR *tensors[])
 {
-	int i, b, channels, len;
+	int i, b, len;
 	float *from, *to;
 	TENSOR *output;
 
-	if (n < 1) {
-		syslog_error("n < 1, nothing to stack.");
-		return NULL;
-	}
-
-	// Check height, width
-	channels = 0;
+	len = 0;
 	for (i = 0; i < n; i++) {
-		CHECK_TENSOR(tensor[i]);
+		CHECK_TENSOR(tensors[i]);
 		if (i >= 1) {
-			if (tensor[i]->batch != tensor[0]->batch || 
-				tensor[i]->height != tensor[0]->height ||
-				tensor[i]->width != tensor[0]->width) {
+			if (tensors[i]->batch != tensors[0]->batch || 
+				tensors[i]->height != tensors[0]->height ||
+				tensors[i]->width != tensors[0]->width) {
 				syslog_error("Tensor batch, height or width is not same, so can not stack.");
 				return NULL;
 			}
 		}
-		channels += tensor[i]->chan;
+		len += tensors[i]->chan;
 	}
 
-	output = tensor_create(tensor[0]->batch, channels, tensor[0]->height, tensor[0]->width);
+	output = tensor_create(tensors[0]->batch, len, tensors[0]->height, tensors[0]->width);
 	CHECK_TENSOR(output);
 
 	for (b = 0; b < output->batch; b++) {
 		to = tensor_start_batch(output, b);
 		for (i = 0; i < n; i++) {
-			from = tensor_start_batch(tensor[i], b);
-			len = tensor[i]->chan * tensor[i]->height * tensor[i]->width;
+			from = tensor_start_batch(tensors[i], b);
+			len = tensors[i]->chan * tensors[i]->height * tensors[i]->width;
 			memcpy(to, from, len * sizeof(float));
+			to += len;
 		}
 	}
 

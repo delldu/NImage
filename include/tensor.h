@@ -42,6 +42,7 @@ extern "C" {
 	int tensor_valid(TENSOR * tensor);
 	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
 	TENSOR *tensor_copy(TENSOR * src);
+	int tensor_zero(TENSOR *tensor);
 	void tensor_destroy(TENSOR * tensor);
 	void tensor_show(TENSOR * tensor);
 
