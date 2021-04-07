@@ -707,7 +707,7 @@ int shape_bestedge(IMAGE * img)
 		img->ie[i][j].r = image_getvalue(img, 'A', i, j);
 
 	img->format = IMAGE_GRAY;
-	image_gauss_filter(img, 2);
+	image_gauss_filter(img, 2.0);
 
 	p = getenv("CANNY_EDGE_HI_THRESHOLD");
 	hr = (p) ? atof(p) : 0.80;
