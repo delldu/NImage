@@ -17,11 +17,33 @@
 
 #define URL "ipc:///tmp/nimage.ipc"
 
-// Echo Server
+// Edge detect server
+TENSOR *do_service(TENSOR *recv_tensor)
+{
+	IMAGE *image;
+
+	TENSOR *send_tensor;
+	CHECK_TENSOR(recv_tensor);
+
+	image = image_from_tensor(recv_tensor, 0 /* batch */);
+	CHECK_IMAGE(image);
+
+	if (shape_bestedge(image) != RET_OK) {
+		syslog_error("Edge detection.");
+		image_destroy(image);
+		return NULL;
+	}
+
+	send_tensor = tensor_from_image(image, 0 /*without alpha */);
+	image_destroy(image);
+
+	return send_tensor;
+}
+
 int server(char *endpoint)
 {
 	int socket, reqcode, count;
-	TENSOR *tensor;
+	TENSOR *tensor, *send_tensor;
 
 	if ((socket = server_open(endpoint)) < 0)
 		return RET_ERROR;
@@ -38,8 +60,13 @@ int server(char *endpoint)
 			continue;
 		}
 		syslog_info("Request Code = %d", reqcode);
+
+		send_tensor = do_service(tensor);
+		if (tensor_valid(send_tensor)) {
+			response_send(socket, send_tensor, reqcode);
+			tensor_destroy(send_tensor);
+		}
 		
-		response_send(socket, tensor, reqcode);
 		tensor_destroy(tensor);
 
 		count++;
