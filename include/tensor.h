@@ -51,6 +51,7 @@ extern "C" {
 	float *tensor_start_batch(TENSOR *tensor, int b);
 
 	TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
+	TENSOR *tensor_zeropad(TENSOR *source, int nh, int nw);
 
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
 	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);

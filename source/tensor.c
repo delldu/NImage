@@ -210,6 +210,29 @@ TENSOR *tensor_zoom(TENSOR *source, int nh, int nw)
 	return zoom;
 }
 
+TENSOR *tensor_zeropad(TENSOR *source, int nh, int nw)
+{
+	int b, c, i, j;
+	float *s_row, *d_row;
+	TENSOR *destion = NULL;
+
+	CHECK_TENSOR(source);
+	destion = tensor_create(source->batch, source->chan, nh, nw); CHECK_TENSOR(destion);
+
+	for (b = 0; b < source->batch; b++) {
+		for (c = 0; c < source->chan; c++) {
+			for (i = 0; i < source->height && i < nh; i++) {
+				s_row = tensor_start_row(source, b, c, i);
+				d_row = tensor_start_row(destion, b, c, i);
+				for (j = 0; j < source->width && j < nw; j++)
+					d_row[j] = s_row[j];
+			}
+		}
+	}
+
+	return destion;
+}
+
 TENSOR *tensor_rgb2lab(IMAGE *image)
 {
 	int i, j;
