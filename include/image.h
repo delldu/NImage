@@ -160,6 +160,9 @@ extern "C" {
 	void color_lab2rgb(float L, float a, float b, BYTE *R, BYTE *G, BYTE *B);
 	float color_distance(RGBA_8888 * c1, RGBA_8888 * c2);
 
+	void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr);
+	void color_ycbcr2rgb(BYTE y, BYTE cb, BYTE cr, BYTE *R, BYTE *G, BYTE *B);
+
 	int image_drawline(IMAGE * img, int r1, int c1, int r2, int c2, int color);
 	int image_drawrect(IMAGE * img, RECT * rect, int color, int fill);
 	int image_drawtext(IMAGE * image, int r, int c, char *texts, int color);

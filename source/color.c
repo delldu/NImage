@@ -59,9 +59,18 @@ do {                                                                  \
 	(cr) = (112 * _r - 94 * _g  -18 * _b  + 128*256 + 128) >> 8; \
 } while (0)
 
+#define YCBCR_TO_RGB( y, cb, cr, r, g, b )       \
+do {                                                                  \
+	int _y = (y) - 16, _cb = (cb) - 128, _cr = (cr) - 128;             \
+	                                                          \
+	(r) = (298 * _y + 409 * _cr) >> 8; \
+	(g) = (298 * _y - 100 * _cb  - 208 * _cr) >> 8; \
+	(b) = (298 * _y + 517 * _cb) >> 8; \
+} while (0)
+
+
 // xxxx, how to use them ?
 extern int color_rgbcmp(RGBA_8888 * c1, RGBA_8888 * c2);
-extern void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr);
 extern int color_prmgain(IMAGE * img, float *r_gain, float *g_gain, float *b_gain);
 extern int *color_count(IMAGE * image, int rows, int cols, int levs);
 
@@ -171,6 +180,15 @@ void color_rgb2ycbcr(BYTE R, BYTE G, BYTE B, BYTE * y, BYTE * cb, BYTE * cr)
 	*y = (BYTE) y2;
 	*cb = (BYTE) cb2;
 	*cr = (BYTE) cr2;
+}
+
+void color_ycbcr2rgb(BYTE y, BYTE cb, BYTE cr, BYTE *R, BYTE *G, BYTE *B)
+{
+	int r2, g2, b2;
+	YCBCR_TO_RGB(y, cb, cr, r2, g2, b2);
+	*R = (BYTE) r2;
+	*G = (BYTE) g2;
+	*B = (BYTE) b2;
 }
 
 // Y, U, V
