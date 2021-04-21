@@ -80,11 +80,10 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
-	sudo mkdir -p ${INSTALL_DIR}/include/nimage
-	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
-# 	sudo cp ${LIB_NAME}.so ${INSTALL_DIR}/lib
-	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
-	sudo cp nimagetool ${INSTALL_DIR}/bin
+	mkdir -p ${INSTALL_DIR}/include/nimage
+	cp include/*.h ${INSTALL_DIR}/include/nimage 
+	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+	cp nimagetool ${INSTALL_DIR}/bin
 
 
 
