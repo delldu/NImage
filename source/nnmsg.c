@@ -253,6 +253,11 @@ int client_open(char *endpoint)
 	    return -1;
     }
 
+    if (service_avaible(socket) != RET_OK) {
+    	client_close(socket);
+    	return -1;
+    }
+
     return socket;
 }
 
