@@ -144,17 +144,20 @@ TENSOR *tensor_recv_timeout(int socket, int timeout, int *msgcode)
 	struct nn_pollfd pfd[1];
 	int rc = 0;
 
+	*msgcode = 0;
+
 	if (timeout > 0) {
 		pfd[0].fd = socket;
-		pfd[0].events = NN_POLLIN | NN_POLLOUT;
+		pfd[0].events = NN_POLLIN;
+
 		rc = nn_poll(pfd, ARRAY_SIZE(pfd), timeout);
 
 		if (rc == 0) {
-		    syslog_error("nn_poll: Timeout");
+		    syslog_info("nn_poll: Timeout");
 		    return NULL;
 		}
 		if (rc == -1) {
-		    syslog_error("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		    syslog_info("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 		    return NULL;
 		}
 		if (pfd [0].revents & NN_POLLIN) {
@@ -332,8 +335,8 @@ int service_avaible(int socket)
 	tensor_destroy(send);
 
 	recv = tensor_recv_timeout(socket, 2000, &recv_msgcode); // 2000 ms
-	check_tensor(recv);
-	tensor_destroy(recv);
+	if (tensor_valid(recv))
+		tensor_destroy(recv);
 
 	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
 }
