@@ -42,7 +42,7 @@ TENSOR *do_service(TENSOR *recv_tensor)
 
 int server(char *endpoint)
 {
-	int socket, reqcode, count;
+	int socket, msgcode, count;
 	TENSOR *tensor, *send_tensor;
 
 	if ((socket = server_open(endpoint)) < 0)
@@ -53,17 +53,17 @@ int server(char *endpoint)
 		if (count % 100 == 0)
 			syslog_info("Service %d times", count);
 
-		tensor = request_recv(socket, &reqcode);
+		tensor = tensor_recv(socket, &msgcode);
 
 		if (!tensor_valid(tensor)) {
 			syslog_error("Request recv bad tensor ...");
 			continue;
 		}
-		syslog_info("Request Code = %d", reqcode);
+		syslog_info("Request Code = %d", msgcode);
 
 		send_tensor = do_service(tensor);
 		if (tensor_valid(send_tensor)) {
-			response_send(socket, send_tensor, reqcode);
+			tensor_send(socket, msgcode, send_tensor);
 			tensor_destroy(send_tensor);
 		}
 		
@@ -97,11 +97,11 @@ int client(char *endpoint, char *input_file, char *output_file)
 
 	if (tensor_valid(send_tensor)) {
 		// Send
-		ret = request_send(socket, 6789, send_tensor);
+		ret = tensor_send(socket, 6789, send_tensor);
 
 		if (ret == RET_OK) {
 			// Recv
-			recv_tensor = response_recv(socket, &rescode);
+			recv_tensor = tensor_recv(socket, &rescode);
 
 			if (tensor_valid(recv_tensor)) {
 				// Process recv tensor ...
