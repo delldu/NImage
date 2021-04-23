@@ -296,6 +296,8 @@ TENSOR *service_request_withcode(int socket, int *reqcode)
 
 	tensor = tensor_recv(socket, reqcode);
     if (*reqcode == HELLO_REQUEST_MESSAGE) {
+    	syslog_info("Got hello message from client, happy !.");
+
         tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
         tensor_destroy(tensor);
         return NULL;
@@ -335,8 +337,11 @@ int service_avaible(int socket)
 	tensor_destroy(send);
 
 	recv = tensor_recv_timeout(socket, 2000, &recv_msgcode); // 2000 ms
-	if (tensor_valid(recv))
+	if (tensor_valid(recv)) {
+    	syslog_info("Got hello message from server, happy !!.");
+
 		tensor_destroy(recv);
+	}
 
 	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
 }
