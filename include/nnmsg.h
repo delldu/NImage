@@ -33,6 +33,8 @@ extern "C" {
 	int service_response(int socket, int msgcode, TENSOR *tensor);
 	int service_avaible(int socket);
 
+	int socket_readable(int socket, int timeout);
+
 	void client_close(int socket);
 	void server_close(int socket);
 

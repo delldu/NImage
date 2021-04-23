@@ -87,11 +87,12 @@ extern "C" {
 		for (j = 0; j < (rect)->w; j++)
 
 // Time
+	TIME time_now();	// ms
 	void time_reset();
 	void time_spend(char *prompt);
 
-// Resize
-void resize(int h, int w, int maxhw, int times, int *nh, int *nw);
+// Space resize
+void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw);
 
 
 #if defined(__cplusplus)

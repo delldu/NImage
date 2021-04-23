@@ -141,29 +141,12 @@ TENSOR *tensor_recv_timeout(int socket, int timeout, int *msgcode)
 	int size;
 	BYTE *buf;
 	TENSOR *tensor;
-	struct nn_pollfd pfd[1];
-	int rc = 0;
 
 	*msgcode = 0;
 
-	if (timeout > 0) {
-		pfd[0].fd = socket;
-		pfd[0].events = NN_POLLIN;
-
-		rc = nn_poll(pfd, ARRAY_SIZE(pfd), timeout);
-
-		if (rc == 0) {
-		    syslog_info("nn_poll: Timeout");
-		    return NULL;
-		}
-		if (rc == -1) {
-		    syslog_info("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
-		    return NULL;
-		}
-		if (pfd [0].revents & NN_POLLIN) {
-		    syslog_info("Message can be received from socket");
-		}
-	}
+	// Make sure there are something on socket ...
+	if (timeout > 0 && ! socket_readable(socket, timeout))
+		return NULL;
 
 	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
 	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
@@ -178,6 +161,37 @@ TENSOR *tensor_recv_timeout(int socket, int timeout, int *msgcode)
 
 	return tensor;
 }
+
+int socket_readable(int socket, int timeout)
+{
+	int rc = 0;
+	struct nn_pollfd pfd[1];
+
+	if (timeout > 0) {
+		pfd[0].fd = socket;
+		pfd[0].events = NN_POLLIN;
+
+		rc = nn_poll(pfd, ARRAY_SIZE(pfd), timeout);
+
+		if (rc == 0) {
+		    syslog_info("nn_poll: Timeout");
+		    return 0;
+		}
+		if (rc == -1) {
+		    syslog_info("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		    return 0;
+		}
+		if (pfd [0].revents & NN_POLLIN) {
+		    syslog_info("Socket now be readable");
+		    return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+
 
 int server_open(char *endpoint)
 {

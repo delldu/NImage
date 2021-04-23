@@ -12,7 +12,7 @@
 static TIME __system_ms_time;
 
 // return ms
-TIME get_time()
+TIME time_now()
 {
 	TIME ms;
 	struct timeval t;
@@ -25,30 +25,30 @@ TIME get_time()
 
 void time_reset()
 {
-	__system_ms_time = get_time();
+	__system_ms_time = time_now();
 }
 
 void time_spend(char *prompt)
 {
-	syslog_info("%s spend %ld ms.", prompt, get_time() - __system_ms_time);
+	syslog_info("%s spend %ld ms.", prompt, time_now() - __system_ms_time);
 
 	time_reset();
 }
 
 // example: maxhw == 512, times == 8
-void resize(int h, int w, int maxhw, int times, int *nh, int *nw)
+void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw)
 {
 	int m;
 	float scale;
 
 	*nh = h; *nw = w;
 	m = MAX(h, w);
-	if (m > maxhw) {
+	if (maxhw > 0 && m > maxhw) {
 		scale = 1.0 * maxhw / m;
 		*nh = (int)(scale * h);
 		*nw = (int)(scale * w);
 	}
 
-	*nh = times * (*nh / times);
-	*nw = times * (*nw / times);
+	*nh = times * ((*nh + times - 1) / times + 1);
+	*nw = times * ((*nw + times - 1) / times + 1);
 }
