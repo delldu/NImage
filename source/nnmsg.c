@@ -174,15 +174,15 @@ int socket_readable(int socket, int timeout)
 		rc = nn_poll(pfd, ARRAY_SIZE(pfd), timeout);
 
 		if (rc == 0) {
-		    syslog_info("nn_poll: Timeout");
+		    // syslog_info("nn_poll: Timeout");
 		    return 0;
 		}
 		if (rc == -1) {
-		    syslog_info("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		    // syslog_info("nn_poll: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 		    return 0;
 		}
 		if (pfd [0].revents & NN_POLLIN) {
-		    syslog_info("Socket now be readable");
+		    // syslog_info("Socket now be readable");
 		    return 1;
 		}
 	}
@@ -310,7 +310,7 @@ TENSOR *service_request_withcode(int socket, int *reqcode)
 
 	tensor = tensor_recv(socket, reqcode);
     if (*reqcode == HELLO_REQUEST_MESSAGE) {
-    	syslog_info("Got hello message from client, happy !.");
+    	syslog_info("Got hello message from client, happy !");
 
         tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
         tensor_destroy(tensor);
@@ -352,7 +352,7 @@ int service_avaible(int socket)
 
 	recv = tensor_recv_timeout(socket, 2000, &recv_msgcode); // 2000 ms
 	if (tensor_valid(recv)) {
-    	syslog_info("Got hello message from server, happy !!.");
+    	syslog_info("Got hello message from server, happy !!");
 
 		tensor_destroy(recv);
 	}
