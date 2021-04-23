@@ -268,11 +268,26 @@ void server_close(int socket)
 
 TENSOR *service_request(int socket, int expected_msgcode)
 {
-	TENSOR *tensor;
 	int recv_msgcode;
+	TENSOR *tensor;
 
-	tensor = tensor_recv(socket, &recv_msgcode);
-    if (recv_msgcode == HELLO_REQUEST_MESSAGE) {
+	tensor = service_request_withcode(socket, &recv_msgcode);
+	// NOT our service ...
+	if (tensor && recv_msgcode != expected_msgcode) {
+		syslog_error("Message 0x%x is not for our service (0x%x)", recv_msgcode, expected_msgcode);
+		tensor_send(socket, OUT_OF_SERVICE, tensor);
+		tensor_destroy(tensor);
+		return NULL;
+	}
+	return tensor;
+}
+
+TENSOR *service_request_withcode(int socket, int *reqcode)
+{
+	TENSOR *tensor;
+
+	tensor = tensor_recv(socket, reqcode);
+    if (*reqcode == HELLO_REQUEST_MESSAGE) {
         tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
         tensor_destroy(tensor);
         return NULL;
@@ -285,15 +300,9 @@ TENSOR *service_request(int socket, int expected_msgcode)
 		tensor_destroy(tensor);
 		return NULL;
 	}
-	// NOT our service ...
-	if (recv_msgcode != expected_msgcode) {
-		syslog_error("Message 0x%x is not for our service (0x%x)", recv_msgcode, expected_msgcode);
-		tensor_send(socket, OUT_OF_SERVICE, tensor);
-		tensor_destroy(tensor);
-		return NULL;
-	}
 	return tensor;
 }
+
 
 int service_response(int socket, int msgcode, TENSOR *tensor)
 {

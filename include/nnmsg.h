@@ -28,6 +28,7 @@ extern "C" {
 	TENSOR *tensor_recv(int socket, int *reqcode);
 	TENSOR *tensor_recv_timeout(int socket, int timeout, int *rescode);
 
+	TENSOR *service_request_withcode(int socket, int *reqcode);
 	TENSOR *service_request(int socket, int expected_msgcode);
 	int service_response(int socket, int msgcode, TENSOR *tensor);
 	int service_avaible(int socket);
