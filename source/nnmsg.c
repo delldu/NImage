@@ -265,3 +265,61 @@ void server_close(int socket)
 {
 	nn_shutdown(socket, 0);
 }
+
+TENSOR *service_request(int socket, int expected_msgcode)
+{
+	TENSOR *tensor;
+	int recv_msgcode;
+
+	tensor = tensor_recv(socket, &recv_msgcode);
+    if (recv_msgcode == HELLO_REQUEST_MESSAGE) {
+        tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
+        tensor_destroy(tensor);
+        return NULL;
+    }
+	if (! tensor_valid(tensor)) {
+		syslog_error("Receive error tensor or timeout");
+		// Create a fake tensor to client ...
+		tensor = tensor_create(1, 1, 1, 1); CHECK_TENSOR(tensor);
+		tensor_send(socket, ERROR_TIMEOUT_MESSAGE, tensor);
+		tensor_destroy(tensor);
+		return NULL;
+	}
+	// NOT our service ...
+	if (recv_msgcode != expected_msgcode) {
+		syslog_error("Message 0x%x is not for our service (0x%x)", recv_msgcode, expected_msgcode);
+		tensor_send(socket, OUT_OF_SERVICE, tensor);
+		tensor_destroy(tensor);
+		return NULL;
+	}
+	return tensor;
+}
+
+int service_response(int socket, int msgcode, TENSOR *tensor)
+{
+	if (tensor_valid(tensor))
+		return tensor_send(socket, msgcode, tensor);
+
+	// If service failure, echo response !!!
+	tensor = tensor_create(1, 1, 1, 1); check_tensor(tensor);
+	tensor_send(socket, INVALID_SERVICE_MESSAGE, tensor);
+	tensor_destroy(tensor);
+
+	return RET_ERROR;
+}
+
+int service_avaible(int socket)
+{
+	int recv_msgcode;
+	TENSOR *send, *recv;
+
+	send = tensor_create(1, 1, 1, 1); check_tensor(send);
+	tensor_send(socket, HELLO_REQUEST_MESSAGE, send);
+	tensor_destroy(send);
+
+	recv = tensor_recv_timeout(socket, 2000, &recv_msgcode); // 2000 ms
+	check_tensor(recv);
+	tensor_destroy(recv);
+
+	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
+}
