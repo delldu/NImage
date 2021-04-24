@@ -333,7 +333,7 @@ int service_avaible(int socket)
 	tensor_send(socket, HELLO_REQUEST_MESSAGE, send);
 	tensor_destroy(send);
 
-	recv = tensor_recv_timeout(socket, 2000, &recv_msgcode); // 2000 ms
+	recv = tensor_recv_timeout(socket, 5000, &recv_msgcode); // 5000 ms
 	if (tensor_valid(recv)) {
     	syslog_info("Got hello message from server, happy !!");
 
