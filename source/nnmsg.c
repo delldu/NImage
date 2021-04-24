@@ -271,7 +271,7 @@ int client_open(char *endpoint)
     }
 
     if (service_avaible(socket) != RET_OK) {
-    	syslog_error("Sorry, We couldnot get hello response from server in 5 seconds, so stop !");
+    	syslog_error("Sorry, We could not get hello response from server in 5 seconds, so stop !");
     	client_close(socket);
     	return -1;
     }
