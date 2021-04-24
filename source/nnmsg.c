@@ -271,6 +271,7 @@ int client_open(char *endpoint)
     }
 
     if (service_avaible(socket) != RET_OK) {
+    	syslog_error("Sorry, We couldnot get hello response from server in 5 seconds, so stop !");
     	client_close(socket);
     	return -1;
     }
@@ -336,9 +337,10 @@ int service_avaible(int socket)
 	recv = tensor_recv_timeout(socket, 5000, &recv_msgcode); // 5000 ms
 	if (tensor_valid(recv)) {
     	syslog_info("Got hello message from server, happy !!");
-
 		tensor_destroy(recv);
 	}
+	// CheckPoint("HELLO_REQUEST_MESSAGE = 0x%x, recv_msgcode = 0x%x, HELLO_RESPONSE_MESSAGE = 0x%x",
+	// 	HELLO_REQUEST_MESSAGE, recv_msgcode, HELLO_RESPONSE_MESSAGE);
 
 	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
 }
