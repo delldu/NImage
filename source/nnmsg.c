@@ -288,30 +288,13 @@ void server_close(int socket)
 	nn_shutdown(socket, 0);
 }
 
-TENSOR *service_request(int socket, int expected_msgcode)
-{
-	int recv_msgcode;
-	TENSOR *tensor;
-
-	tensor = service_request_withcode(socket, &recv_msgcode);
-	// NOT our service ...
-	if (tensor && recv_msgcode != expected_msgcode) {
-		syslog_error("Message 0x%x is not for our service (0x%x)", recv_msgcode, expected_msgcode);
-		tensor_send(socket, OUT_OF_SERVICE, tensor);
-		tensor_destroy(tensor);
-		return NULL;
-	}
-	return tensor;
-}
-
-TENSOR *service_request_withcode(int socket, int *reqcode)
+TENSOR *service_request(int socket, int *reqcode)
 {
 	TENSOR *tensor;
 
 	tensor = tensor_recv(socket, reqcode);
     if (*reqcode == HELLO_REQUEST_MESSAGE) {
     	syslog_info("Got hello message from client, happy !");
-
         tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
         tensor_destroy(tensor);
         return NULL;

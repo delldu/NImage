@@ -15,11 +15,11 @@ extern "C" {
 
 #include "tensor.h"
 
-	#define HELLO_REQUEST_MESSAGE  0x9001
-	#define HELLO_RESPONSE_MESSAGE 0x9002
-	#define ERROR_TIMEOUT_MESSAGE 0x9003
-	#define OUT_OF_SERVICE 0x0904
-	#define INVALID_SERVICE_MESSAGE 0x0905
+	#define HELLO_REQUEST_MESSAGE  0xFF01
+	#define HELLO_RESPONSE_MESSAGE 0xFF02
+	#define ERROR_TIMEOUT_MESSAGE 0xFF03
+	#define OUTOF_SERVICE 0xFF04
+	#define INVALID_SERVICE_MESSAGE 0xFF05
 
 	int server_open(char *endpoint);
 	int client_open(char *endpoint);
@@ -28,8 +28,7 @@ extern "C" {
 	TENSOR *tensor_recv(int socket, int *reqcode);
 	TENSOR *tensor_recv_timeout(int socket, int timeout, int *rescode);
 
-	TENSOR *service_request_withcode(int socket, int *reqcode);
-	TENSOR *service_request(int socket, int expected_msgcode);
+	TENSOR *service_request(int socket, int *reqcode);
 	int service_response(int socket, int msgcode, TENSOR *tensor);
 	int service_avaible(int socket);
 
