@@ -444,17 +444,51 @@ TENSOR *tensor_stack_chan(int n, TENSOR *tensors[])
 	return output;
 }
 
-
-int tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
+TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 {
-	check_tensor(tensor);
+	int b, c, n;
+	float *src, *dst;
+	TENSOR *zoom, *output;
 
+	CHECK_TENSOR(tensor);
+	if (nb < 1 || nc < 1 || nh < 1 || nw < 1)
+		return NULL;
+
+	// Capacity is same ...
 	if (nb * nc * nh * nw == tensor->batch * tensor->chan * tensor->height * tensor->width) {
-		tensor->batch = nb;
-		tensor->chan = nc;
-		tensor->height = nh;
-		tensor->width = nw;
-		return RET_OK;		
+		output = tensor_copy(tensor);
+		CHECK_TENSOR(output);
+		output->batch = nb;
+		output->chan = nc;
+		output->height = nh;
+		output->width = nw;
+		return output;
 	}
-	return RET_ERROR;
+
+	// Different capacity ...
+	if (tensor->height == nh && tensor->width == nw)
+		zoom = tensor_copy(tensor);
+	else
+		zoom = tensor_zoom(tensor, nh, nw);
+	CHECK_TENSOR(zoom);
+
+	if (zoom->batch == nb && zoom->chan == nc)
+		return zoom;
+
+	// zoom->batch != nb || zoom->channel != nc
+	output = tensor_create(nb, nc, nh, nw);
+	CHECK_TENSOR(output);
+
+	n = output->height * output->width;
+	for (b = 0; b < output->batch; b++) {
+		for (c = 0; c < output->chan; c++) {
+			src = tensor_start_chan(zoom, MIN(b, zoom->batch - 1), MIN(c, zoom->chan - 1));
+			dst = tensor_start_chan(output, b, c);
+			memcpy(dst, src, n * sizeof(float));
+		}
+	}
+
+	tensor_destroy(zoom);
+
+	return output;
 }
