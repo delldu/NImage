@@ -190,9 +190,6 @@ int socket_readable(int socket, int timeout)
 	return 0;
 }
 
-
-
-
 int server_open(char *endpoint)
 {
 	int socket;
