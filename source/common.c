@@ -48,6 +48,9 @@ void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw)
 		w = (int)(scale * w);
 	}
 
-	*nh = times * ((h + times - 1) / times + 1);
-	*nw = times * ((w + times - 1) / times + 1);
+	h = (h + times - 1)/times;
+	w = (w + times - 1)/times;
+
+	*nh =  h * times;
+	*nw =  w * times;
 }
