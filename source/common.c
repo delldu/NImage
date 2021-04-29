@@ -41,14 +41,13 @@ void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw)
 	int m;
 	float scale;
 
-	*nh = h; *nw = w;
 	m = MAX(h, w);
 	if (maxhw > 0 && m > maxhw) {
 		scale = 1.0 * maxhw / m;
-		*nh = (int)(scale * h);
-		*nw = (int)(scale * w);
+		h = (int)(scale * h);
+		w = (int)(scale * w);
 	}
 
-	*nh = times * ((*nh + times - 1) / times + 1);
-	*nw = times * ((*nw + times - 1) / times + 1);
+	*nh = times * ((h + times - 1) / times + 1);
+	*nw = times * ((w + times - 1) / times + 1);
 }
