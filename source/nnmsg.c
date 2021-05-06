@@ -224,7 +224,7 @@ int server_open(char *endpoint)
 	    return -1;
     }
 
-	syslog_info("Service already ...\n");
+	syslog_info("Service already ...");
 
 	return socket;
 }
@@ -236,7 +236,6 @@ int client_open(char *endpoint)
 	int max_recv_size = 256*1024*1024;	// 256 M
 	int recv_timeout = 600 * 1000;		// 60 seconds
 
-    // struct timeval timeout={5, 0};    // seconds
     if ((socket = nn_socket(AF_SP, NN_REQ)) < 0) {
 	    syslog_error("nn_socket: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 	    return -1;
@@ -268,7 +267,7 @@ int client_open(char *endpoint)
     }
 
     if (service_avaible(socket) != RET_OK) {
-    	syslog_error("Sorry, We could not get hello response from server in 5 seconds, so stop !");
+    	syslog_error("Sorry, We could not got hello response from server in 5 seconds, so stop !");
     	client_close(socket);
     	return -1;
     }
@@ -336,8 +335,6 @@ int service_avaible(int socket)
     	syslog_info("Got hello message from server, happy !!");
 		tensor_destroy(recv);
 	}
-	// CheckPoint("HELLO_REQUEST_MESSAGE = 0x%x, recv_msgcode = 0x%x, HELLO_RESPONSE_MESSAGE = 0x%x",
-	// 	HELLO_REQUEST_MESSAGE, recv_msgcode, HELLO_RESPONSE_MESSAGE);
 
 	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
 }
