@@ -113,7 +113,8 @@ TENSOR *tensor_decode(BYTE *buf, int size, int *msgcode)
 
 int tensor_send(int socket, int msgcode, TENSOR * tensor)
 {
-	int ret;
+	int n, left;
+	void *start;
 	msgpack_sbuffer sbuf;
 
 	check_tensor(tensor);
@@ -122,13 +123,24 @@ int tensor_send(int socket, int msgcode, TENSOR * tensor)
 	tensor_encode(msgcode, tensor, &sbuf);
 
 	// syslog_info("Tensor send ... size = %d", sbuf.size);
-	if ((ret = nn_send(socket, sbuf.data, sbuf.size, 0)) < 0)
-	    syslog_error("nn_send: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
-	// syslog_info("Tensor send OK");
+	// Safe send ...
+	start = sbuf.data;
+	left = sbuf.size;
+	while (left > 0) {
+		do {
+			n = nn_send(socket, start, left, 0);
+		} while (n < 0 && errno == EINTR);
+		if (n < 0) {
+		    syslog_error("nn_send: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
+		    break;
+		}
+		start += n;
+		left -= n;
+	}
 
 	msgpack_sbuffer_destroy(&sbuf);
 
-	return (ret >= 0) ? RET_OK : RET_ERROR;
+	return (n >= 0) ? RET_OK : RET_ERROR;
 }
 
 TENSOR *tensor_recv(int socket, int *msgcode)
@@ -148,7 +160,11 @@ TENSOR *tensor_recv_timeout(int socket, int timeout, int *msgcode)
 	if (timeout > 0 && ! socket_readable(socket, timeout))
 		return NULL;
 
-	if ((size = nn_recv(socket, &buf, NN_MSG, 0)) < 0) {
+	// Safe read
+	do {
+		size = nn_recv(socket, &buf, NN_MSG, 0);
+	} while (size < 0 && errno == EINTR);
+	if (size < 0) {
 	    syslog_error("nn_recv: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
 		return NULL;
 	}
@@ -290,7 +306,7 @@ TENSOR *service_request(int socket, int *reqcode)
 	TENSOR *tensor;
 
 	tensor = tensor_recv(socket, reqcode);
-    if (*reqcode == HELLO_REQUEST_MESSAGE) {
+    if (*reqcode == (int)HELLO_REQUEST_MESSAGE) {
     	syslog_info("Got hello message from client, happy !");
         tensor_send(socket, HELLO_RESPONSE_MESSAGE, tensor);
         tensor_destroy(tensor);
@@ -336,5 +352,5 @@ int service_avaible(int socket)
 		tensor_destroy(recv);
 	}
 
-	return (recv_msgcode == HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
+	return (recv_msgcode == (int)HELLO_RESPONSE_MESSAGE)? RET_OK : RET_ERROR;
 }
