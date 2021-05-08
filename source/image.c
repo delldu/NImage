@@ -1808,3 +1808,34 @@ int image_show(IMAGE * image, char *title)
 
 	return system(str);
 }
+
+// Return [0.0, 1.0]
+float image_entropy(IMAGE *img)
+{
+#define COLOR_QUANT_LEVEL 8
+	int i, j;
+	BYTE n;
+	float x, e;
+	HISTOGRAM h;
+
+	check_image(img);
+
+	histogram_reset(&h);
+	image_foreach(img, i, j) {
+		color_rgb2gray(img->ie[i][j].r, img->ie[i][j].g, img->ie[i][j].b, &n);
+		histogram_add(&h, (int)(n/COLOR_QUANT_LEVEL));
+	}
+	// h.total > 1 
+	e = 0.0f;
+	for (i = 0; i < 256/COLOR_QUANT_LEVEL; i++) {
+		x = (float)h.count[i]/h.total;
+		if (x > MIN_FLOAT_NUMBER)
+			e += - x * logf(x);
+	}
+	e = MAX(e/log(2.0), 0.0);
+
+	e = e / 5.0;  // Max == 5.0
+
+	return e;
+#undef COLOR_QUANT_LEVEL	
+}

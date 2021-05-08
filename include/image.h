@@ -273,6 +273,8 @@ extern "C" {
 	int histogram_rect(HISTOGRAM * hist, IMAGE * img, RECT * rect);
 	void histogram_dump(HISTOGRAM * h);
 
+	float image_entropy(IMAGE *img);	// Return [0.0, 1.0]
+
 // Mask is all you need
 #define MASK IMAGE
 
