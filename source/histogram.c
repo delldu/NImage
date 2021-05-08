@@ -139,13 +139,15 @@ int histogram_map(HISTOGRAM * h, int max)
 int histogram_rect(HISTOGRAM * hist, IMAGE * img, RECT * rect)
 {
 	int i, j;
+	BYTE n;
 	check_image(img);
 
 	image_rectclamp(img, rect);
 	histogram_reset(hist);
 	for (i = rect->r; i < rect->r + rect->h; i++) {
 		for (j = rect->c; j < rect->c + rect->w; j++) {
-			histogram_add(hist, img->ie[i][j].r);
+			color_rgb2gray(img->ie[i][j].r, img->ie[i][j].g, img->ie[i][j].b, &n);
+			histogram_add(hist, n);
 		}
 	}
 	return RET_OK;

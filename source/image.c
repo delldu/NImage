@@ -1621,7 +1621,6 @@ int image_clahe(IMAGE * image, int grid_rows, int grid_cols, float limit)
 	w = (image->width + grid_cols - 1) / grid_cols;
 	limit = MAX(1, (limit * h * w / 256.0));
 
-	color_togray(image);
 	for (i = 0; i < grid_rows; i++) {
 		for (j = 0; j < grid_cols; j++) {
 			rect.r = i * h;
@@ -1688,20 +1687,31 @@ int image_clahe(IMAGE * image, int grid_rows, int grid_cols, float limit)
 			d3 = &hist[d3r][d3c];
 			d4 = &hist[d4r][d4c];
 
-			for (i2 = rect.r; i2 < rect.r + rect.h; i2++) {
+			for (i2 = rect.r; i2 < rect.r + rect.h && i2 < image->height; i2++) {
 				u = (float) (i2 - rect.r) / (float) rect.h;
 
-				for (j2 = rect.c; j2 < rect.c + rect.w; j2++) {
+				for (j2 = rect.c; j2 < rect.c + rect.w && j2 < image->width; j2++) {
 					v = (float) (j2 - rect.c) / (float) rect.w;
 
+					// R
 					g = image->ie[i2][j2].r;
 					d = (1.0 - u) * (1.0 - v) * d1->map[g] + (1.0 - u) * v * d2->map[g] + u * (1.0 - v) * d3->map[g] +
 						u * v * d4->map[g];
-
 					g = (d > 255) ? 255 : (int) d;
-
 					image->ie[i2][j2].r = g;
+
+					// G
+					g = image->ie[i2][j2].g;
+					d = (1.0 - u) * (1.0 - v) * d1->map[g] + (1.0 - u) * v * d2->map[g] + u * (1.0 - v) * d3->map[g] +
+						u * v * d4->map[g];
+					g = (d > 255) ? 255 : (int) d;
 					image->ie[i2][j2].g = g;
+
+					// B
+					g = image->ie[i2][j2].b;
+					d = (1.0 - u) * (1.0 - v) * d1->map[g] + (1.0 - u) * v * d2->map[g] + u * (1.0 - v) * d3->map[g] +
+						u * v * d4->map[g];
+					g = (d > 255) ? 255 : (int) d;
 					image->ie[i2][j2].b = g;
 				}
 			}
