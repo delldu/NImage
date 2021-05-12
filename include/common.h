@@ -94,6 +94,8 @@ extern "C" {
 // Space resize
 void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw);
 
+// Return 1 else return 0 if lock suucces
+int lock(char *endpoint);
 
 #if defined(__cplusplus)
 }

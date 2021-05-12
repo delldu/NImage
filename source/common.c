@@ -9,6 +9,10 @@
 
 #include "common.h"
 
+// flock ...
+#include <sys/file.h>
+#include <errno.h>
+
 static TIME __system_ms_time;
 
 // return ms
@@ -53,4 +57,31 @@ void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw)
 
 	*nh =  h * times;
 	*nw =  w * times;
+}
+
+int lock(char *endpoint)
+{
+	int i, n, fd, rc;
+	char filename[256];
+	char tempstr[256];
+
+	n = strlen(endpoint);
+	for (i = 0; i < n && i < (int)sizeof(tempstr) - 1; i++) {
+		if (endpoint[i] == '/' || endpoint[i] == ':')
+			tempstr[i] = '_';
+		else
+			tempstr[i] = endpoint[i];
+	}
+	tempstr[i] = '\0';
+
+	snprintf(filename, sizeof(filename), "/tmp/%s.lock", tempstr);
+
+	fd = open(filename, O_CREAT|O_RDWR, 0666);
+	if ((rc = flock(fd, LOCK_EX|LOCK_NB))) {
+		rc = (EWOULDBLOCK == errno)? 1 : 0; 
+	} else {
+		rc = 0;
+	}
+
+	return rc == 0;
 }
