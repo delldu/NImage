@@ -492,3 +492,50 @@ TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 
 	return output;
 }
+
+extern int math_gsbw(float sigma);
+extern int matrix_gauss_filter(MATRIX * mat, float sigma);
+
+// sigma == 0.5, window size is 5x5
+int tensor_dilate_smooth(TENSOR *tensor, float sigma)
+{
+	MATRIX *mat;
+	float *from, *to, d;
+	int i, j, i2, j2, b, c, n, radius;
+
+	check_tensor(tensor);
+	mat = matrix_create(tensor->height, tensor->width); check_matrix(mat);
+	n = tensor->height * tensor->width;
+	radius = math_gsbw(sigma)/2;
+
+	for (b = 0; b < tensor->batch; b++) {
+		for (c = 0; c < tensor->chan; c++) {
+			from = tensor_start_chan(tensor, b, c);
+			to = mat->base;
+
+			// matrix get data from tensor
+			memcpy(to, from, n * sizeof(float));
+
+			// Dilate
+			for (i = radius; i < mat->m - radius; i++) {
+				for (j = radius; j < mat->n - radius; j++) {
+					if (mat->me[i][j] < 0.5)
+						continue;
+					d = mat->me[i][j];
+					for (i2 = i - radius; i2 <= i + radius; i2++) {
+						for (j2 = j - radius; j2 <= j + radius; j2++)
+							mat->me[i2][j2] = d;
+					}
+				}
+			}
+
+			matrix_gauss_filter(mat, sigma);
+
+			// save matrix data to tensor
+			memcpy(from, to, n * sizeof(float));
+		}
+	}
+	matrix_destroy(mat);
+
+	return RET_OK;
+}

@@ -59,6 +59,8 @@ extern "C" {
 
 	TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
 
+	int tensor_dilate_smooth(TENSOR *tensor, float sigma);
+
 #if defined(__cplusplus)
 }
 #endif
