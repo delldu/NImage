@@ -80,6 +80,9 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
+	make -C msgpackc && make -C msgpackc install
+	make -C nanomsg && make -C nanomsg install
+
 	mkdir -p ${INSTALL_DIR}/include/nimage
 	cp include/*.h ${INSTALL_DIR}/include/nimage 
 	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
