@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/device4.dir/tests/device4.c.o -o device4  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 

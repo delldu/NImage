@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/nanocat.dir/tools/nanocat.c.o CMakeFiles/nanocat.dir/tools/options.c.o -o nanocat  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg: libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 

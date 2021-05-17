@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/bug328.dir/tests/bug328.c.o -o bug328  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 

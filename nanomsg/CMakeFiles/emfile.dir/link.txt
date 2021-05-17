@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/emfile.dir/tests/emfile.c.o -o emfile  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 

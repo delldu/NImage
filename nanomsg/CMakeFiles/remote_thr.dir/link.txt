@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/remote_thr.dir/perf/remote_thr.c.o -o remote_thr  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 
