@@ -1,1 +1,0 @@
-/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/reqttl.dir/tests/reqttl.c.o -o reqttl  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 

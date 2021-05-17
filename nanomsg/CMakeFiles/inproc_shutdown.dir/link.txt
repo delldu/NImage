@@ -1,1 +1,0 @@
-/usr/bin/cc  -Wall -Wextra  -rdynamic CMakeFiles/inproc_shutdown.dir/tests/inproc_shutdown.c.o -o inproc_shutdown  -Wl,-rpath,/home/dell/ZDisk/Workspace/abc/t/nanomsg libnanomsg.so.5.1.0 -lanl -lrt -lpthread -lnsl -lpthread 
