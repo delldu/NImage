@@ -42,7 +42,8 @@ extern "C" {
 	int tensor_valid(TENSOR * tensor);
 	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
 	TENSOR *tensor_copy(TENSOR * src);
-	int tensor_zero(TENSOR *tensor);
+	int tensor_zero_(TENSOR *tensor);
+	int tensor_clamp_(TENSOR *tensor, float low, float high);
 	void tensor_destroy(TENSOR * tensor);
 	void tensor_show(TENSOR * tensor);
 
@@ -56,10 +57,15 @@ extern "C" {
 	TENSOR *tensor_make_grid(int batch, int height, int width);
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
 	TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow);
+	TENSOR *tensor_make_cell(int batch, int height, int width);
 
 	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
 	TENSOR *tensor_stack_chan(int n, TENSOR *tensor[]);
 
+	TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop);
+	TENSOR *tensor_stack_row(int n, TENSOR *tensor[]);
+
+	int tensor_view_(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
 	TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
 
 	int tensor_dilate_smooth(TENSOR *tensor, float sigma);

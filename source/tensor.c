@@ -39,7 +39,7 @@ TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
 	return t;
 }
 
-int tensor_zero(TENSOR *tensor)
+int tensor_zero_(TENSOR *tensor)
 {
 	int n;
 	check_tensor(tensor);
@@ -48,6 +48,20 @@ int tensor_zero(TENSOR *tensor)
 
 	return RET_OK;
 }
+
+int tensor_clamp_(TENSOR *tensor, float low, float high)
+{
+	int i, n;
+	float d;
+	check_tensor(tensor);
+	n = tensor->batch * tensor->chan * tensor->height * tensor->width;
+	for (i = 0; i < n; i++) {
+		d = CLAMP(tensor->data[i], low, high);
+		tensor->data[i] = d;
+	}
+	return RET_OK;
+}
+
 
 TENSOR *tensor_copy(TENSOR * src)
 {
@@ -322,7 +336,7 @@ int tensor_setmask(TENSOR *tensor, float mask)
 *
 *	Make Grid Tensor:
 *
-*   Return:
+*   return:
 *      Bx2xHxW Tensor, (-1, -1)
 *
 *********************************************************************************/
@@ -435,10 +449,39 @@ TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid)
 	return output;
 }
 
+TENSOR *tensor_make_cell(int batch, int height, int width)
+{
+	int i, j, b;
+	float *imap, *jmap, d;
+	TENSOR *cell;
+
+	cell = tensor_create(batch, 2, height, width); CHECK_TENSOR(cell);
+
+	for (b = 0; b < cell->batch; b++) {
+		imap = tensor_start_chan(cell, b, 0);
+		jmap = tensor_start_chan(cell, b, 1);
+
+		d = 2.0/cell->height;
+		for (i = 0; i < cell->height; i++) {
+			for(j = 0; j < cell->width; j++)
+				*imap++ = d;
+		}
+
+		d = 2.0/cell->width;
+		for (i = 0; i < cell->height; i++) {
+			for(j = 0; j < cell->width; j++)
+				*jmap++ = d;
+		}
+	}
+
+	return cell;
+}
+
+
 TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow)
 {
 	int i, j, b;
-	float *imap, *jmap, *uflow, *vflow, d;
+	float *imap, *jmap, *uflow, *vflow;
 	TENSOR *grid, *output;
 
 	CHECK_TENSOR(image);
@@ -490,68 +533,23 @@ TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow)
 	return output;
 }
 
-
-// [start, stop), for example: [0, 2)
-TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
+int tensor_view_(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 {
-	int b, c, n;
-	float *from, *to;
-	TENSOR *output;
+	check_tensor(tensor);
 
-	CHECK_TENSOR(tensor);
-	if (start >= tensor->chan || start >= stop)
-		return NULL;
-
-	output = tensor_create(tensor->batch, stop - start, tensor->height, tensor->width);
-	CHECK_TENSOR(output);
-
-	n = tensor->height * tensor->width;
-	for (b = 0; b < tensor->batch; b++) {
-		for (c = start; c < stop; c++) {
-			from = tensor_start_chan(tensor, b, c);
-			to = tensor_start_chan(output, b, c - start);
-			memcpy(to, from, n * sizeof(float));
-		}
+	// Capacity is same ...
+	if (nb * nc * nh * nw == tensor->batch * tensor->chan * tensor->height * tensor->width) {
+		tensor->batch = nb;
+		tensor->chan = nc;
+		tensor->height = nh;
+		tensor->width = nw;
+		return RET_OK;
 	}
 
-	return output;
+	// Different capacity ...
+	return RET_ERROR;
 }
 
-TENSOR *tensor_stack_chan(int n, TENSOR *tensors[])
-{
-	int i, b, len;
-	float *from, *to;
-	TENSOR *output;
-
-	len = 0;
-	for (i = 0; i < n; i++) {
-		CHECK_TENSOR(tensors[i]);
-		if (i >= 1) {
-			if (tensors[i]->batch != tensors[0]->batch || 
-				tensors[i]->height != tensors[0]->height ||
-				tensors[i]->width != tensors[0]->width) {
-				syslog_error("Tensor batch, height or width is not same, so can not stack.");
-				return NULL;
-			}
-		}
-		len += tensors[i]->chan;
-	}
-
-	output = tensor_create(tensors[0]->batch, len, tensors[0]->height, tensors[0]->width);
-	CHECK_TENSOR(output);
-
-	for (b = 0; b < output->batch; b++) {
-		to = tensor_start_batch(output, b);
-		for (i = 0; i < n; i++) {
-			from = tensor_start_batch(tensors[i], b);
-			len = tensors[i]->chan * tensors[i]->height * tensors[i]->width;
-			memcpy(to, from, len * sizeof(float));
-			to += len;
-		}
-	}
-
-	return output;
-}
 
 TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 {
@@ -647,4 +645,133 @@ int tensor_dilate_smooth(TENSOR *tensor, float sigma)
 	matrix_destroy(mat);
 
 	return RET_OK;
+}
+
+// [start, stop), for example: [0, 2)
+TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
+{
+	int b, c, n;
+	float *from, *to;
+	TENSOR *output;
+
+	CHECK_TENSOR(tensor);
+	if (start >= tensor->chan || start >= stop)
+		return NULL;
+
+	output = tensor_create(tensor->batch, stop - start, tensor->height, tensor->width);
+	CHECK_TENSOR(output);
+
+	n = tensor->height * tensor->width;
+	for (b = 0; b < tensor->batch; b++) {
+		for (c = start; c < stop; c++) {
+			from = tensor_start_chan(tensor, b, c);
+			to = tensor_start_chan(output, b, c - start);
+			memcpy(to, from, n * sizeof(float));
+		}
+	}
+
+	return output;
+}
+
+TENSOR *tensor_stack_chan(int n, TENSOR *tensors[])
+{
+	int i, b, len;
+	float *from, *to;
+	TENSOR *output;
+
+	len = 0;
+	for (i = 0; i < n; i++) {
+		CHECK_TENSOR(tensors[i]);
+		if (i >= 1) {
+			if (tensors[i]->batch != tensors[0]->batch || 
+				tensors[i]->height != tensors[0]->height ||
+				tensors[i]->width != tensors[0]->width) {
+				syslog_error("Tensor batch, height or width is not same, so can not stack.");
+				return NULL;
+			}
+		}
+		len += tensors[i]->chan;
+	}
+
+	output = tensor_create(tensors[0]->batch, len, tensors[0]->height, tensors[0]->width);
+	CHECK_TENSOR(output);
+
+	for (b = 0; b < output->batch; b++) {
+		to = tensor_start_batch(output, b);
+		for (i = 0; i < n; i++) {
+			from = tensor_start_batch(tensors[i], b);
+			len = tensors[i]->chan * tensors[i]->height * tensors[i]->width;
+			memcpy(to, from, len * sizeof(float));
+			to += len;
+		}
+	}
+
+	return output;
+}
+
+// [start, stop), for example: [0, 2)
+TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop)
+{
+	int b, c, h, n;
+	float *from, *to;
+	TENSOR *output;
+
+	CHECK_TENSOR(tensor);
+	if (start >= tensor->height || start >= stop)
+		return NULL;
+
+	output = tensor_create(tensor->batch, tensor->chan, stop - start, tensor->width);
+	CHECK_TENSOR(output);
+
+	n = tensor->width;
+	for (b = 0; b < tensor->batch; b++) {
+		for (c = 0; c < tensor->chan; c++) {
+			for (h = start; h < stop; h++) {
+				from = tensor_start_row(tensor, b, c, h);
+				to = tensor_start_row(output, b, c, h - start);
+			}
+			memcpy(to, from, n * sizeof(float));
+		}
+	}
+
+	return output;
+}
+
+TENSOR *tensor_stack_row(int n, TENSOR *tensors[])
+{
+	int i, b, c, len;
+	float *from, *to;
+	TENSOR *output;
+
+	len = 0;
+	for (i = 0; i < n; i++) {
+		CHECK_TENSOR(tensors[i]);
+		if (i >= 1) {
+			if (tensors[i]->batch != tensors[0]->batch || 
+				tensors[i]->chan != tensors[0]->chan ||
+				tensors[i]->width != tensors[0]->width) {
+				syslog_error("Tensor batch, channel or width is not same, so can not stack.");
+				return NULL;
+			}
+		}
+		len += tensors[i]->height;
+	}
+
+	output = tensor_create(tensors[0]->batch, tensors[0]->chan, len, tensors[0]->width);
+	CHECK_TENSOR(output);
+
+	for (b = 0; b < output->batch; b++) {
+		for (c = 0; c < output->chan; c++) {
+			to = tensor_start_chan(output, b, c);
+			for (i = 0; i < n; i++) {
+				from = tensor_start_chan(tensors[i], b, c);
+				len = tensors[i]->height * tensors[i]->width;
+				memcpy(to, from, len * sizeof(float));
+				to += len;
+			}
+
+		}
+	}
+
+	return output;
 }
