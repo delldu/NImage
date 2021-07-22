@@ -18,7 +18,7 @@ int tensor_valid(TENSOR * tensor)
 			tensor->height < 1 || tensor->width < 1 || tensor->magic != TENSOR_MAGIC) ? 0 : 1;
 }
 
-TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w)
+TENSOR *tensor_create(int b, int c, int h, int w)
 {
 	TENSOR *t;
 
@@ -136,7 +136,7 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 {
 	int i, j;
 	TENSOR *tensor;
-	float *R, *G, *B, *A;
+	float *R, *G, *B, *A = NULL;
 
 	CHECK_IMAGE(image);
 
@@ -533,9 +533,12 @@ TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow)
 	return output;
 }
 
-int tensor_view_(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
+int tensor_view_(TENSOR *tensor, int nb, int nc, int nh, int nw)
 {
 	check_tensor(tensor);
+
+	CheckPoint("tensor: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
+	CheckPoint("view: %dx%dx%dx%d", nb, nc, nh, nw);
 
 	// Capacity is same ...
 	if (nb * nc * nh * nw == tensor->batch * tensor->chan * tensor->height * tensor->width) {
@@ -543,15 +546,20 @@ int tensor_view_(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
 		tensor->chan = nc;
 		tensor->height = nh;
 		tensor->width = nw;
+
+		CheckPoint("--------------xxxxxxxxxxxx--------------------- OK !!!!!");
+
 		return RET_OK;
 	}
+
+	CheckPoint("--------------xxxxxxxxxxxx--------------------- NO !!!!!");
 
 	// Different capacity ...
 	return RET_ERROR;
 }
 
 
-TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw)
+TENSOR *tensor_reshape(TENSOR *tensor, int nb, int nc, int nh, int nw)
 {
 	int b, c, n;
 	float *src, *dst;
@@ -716,12 +724,17 @@ TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop)
 	float *from, *to;
 	TENSOR *output;
 
+	CheckPoint("start = %d, stop = %d", start, stop);
+	tensor_show(tensor);
+
 	CHECK_TENSOR(tensor);
 	if (start >= tensor->height || start >= stop)
 		return NULL;
 
 	output = tensor_create(tensor->batch, tensor->chan, stop - start, tensor->width);
 	CHECK_TENSOR(output);
+
+	CheckPoint();
 
 	n = tensor->width;
 	for (b = 0; b < tensor->batch; b++) {
@@ -733,6 +746,8 @@ TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop)
 			memcpy(to, from, n * sizeof(float));
 		}
 	}
+
+	CheckPoint();
 
 	return output;
 }

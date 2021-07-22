@@ -35,12 +35,12 @@ extern "C" {
 	// Tensor
 	typedef struct {
 		DWORD magic;			// TENSOR_MAGIC
-		WORD batch, chan, height, width;
+		int batch, chan, height, width;
 		float *data; 			// TENSOR format is: BxCxHxW with float
 	} TENSOR;
 
 	int tensor_valid(TENSOR * tensor);
-	TENSOR *tensor_create(WORD b, WORD c, WORD h, WORD w);
+	TENSOR *tensor_create(int b, int c, int h, int w);
 	TENSOR *tensor_copy(TENSOR * src);
 	int tensor_zero_(TENSOR *tensor);
 	int tensor_clamp_(TENSOR *tensor, float low, float high);
@@ -65,8 +65,8 @@ extern "C" {
 	TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop);
 	TENSOR *tensor_stack_row(int n, TENSOR *tensor[]);
 
-	int tensor_view_(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
-	TENSOR *tensor_reshape(TENSOR *tensor, WORD nb, WORD nc, WORD nh, WORD nw);
+	int tensor_view_(TENSOR *tensor, int nb, int nc, int nh, int nw);
+	TENSOR *tensor_reshape(TENSOR *tensor, int nb, int nc, int nh, int nw);
 
 	int tensor_dilate_smooth(TENSOR *tensor, float sigma);
 
