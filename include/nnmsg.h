@@ -18,8 +18,8 @@ extern "C" {
 	#define HELLO_REQUEST_MESSAGE  0xFF010000
 	#define HELLO_RESPONSE_MESSAGE 0xFF020000
 	#define ERROR_TIMEOUT_MESSAGE 0xFF030000
-	#define OUTOF_SERVICE 0xFF040000
-	#define INVALID_SERVICE_MESSAGE 0xFF050000
+	#define OUTOF_SERVICE_MESSAGE 0xFF040000
+	#define SERVICE_ERROR_MESSAGE 0xFF050000
 
 	int server_open(char *endpoint);
 	int client_open(char *endpoint);

@@ -21,7 +21,7 @@ extern "C" {
 #include "tensor.h"
 #include "nnmsg.h"
 
-#define IMAGE_VERSION "1.0.0"
+#define IMAGE_VERSION "1.1.0"
 
 	typedef struct {
 		BYTE r, g, b, a;

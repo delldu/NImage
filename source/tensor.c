@@ -317,6 +317,59 @@ int tensor_setmask(TENSOR *tensor, float mask)
 	return RET_OK;
 }
 
+
+/********************************************************************************
+*
+*	Make Grid Tensor:
+*
+*   Return:
+*      Bx2xHxW Tensor, (-1, -1)
+*
+*********************************************************************************/
+TENSOR *tensor_make_grid(int batch, int height, int width)
+{
+	int i, j, b;
+	float *imap, *jmap, d;
+	TENSOR *grid;
+
+	grid = tensor_create(batch, 2, height, width); CHECK_TENSOR(grid);
+
+	for (b = 0; b < grid->batch; b++) {
+		imap = tensor_start_chan(grid, b, 0);
+		jmap = tensor_start_chan(grid, b, 1);
+
+		/*****************************************************
+		* Imap:
+		*   0				0
+		*   1				1
+		*   2				2
+		* ...				...
+		* 512				512
+		*****************************************************/
+		for (i = 0; i < grid->height; i++) {
+			d = (2.0 * i)/grid->height - 1.0;
+			for(j = 0; j < grid->width; j++)
+				*imap++ = d;	// same cols
+		}
+		/*****************************************************
+		* Jmap:
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*****************************************************/
+		for (i = 0; i < grid->height; i++) {
+			for(j = 0; j < grid->width; j++) {
+				d = (2.0 * j)/grid->width - 1.0;
+				*jmap++ = d;	// same rows
+			}
+		}
+	}
+
+	return grid;
+}
+
+
 /********************************************************************************
 *
 *	Grid Sample:
@@ -381,6 +434,62 @@ TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid)
 
 	return output;
 }
+
+TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow)
+{
+	int i, j, b;
+	float *imap, *jmap, *uflow, *vflow, d;
+	TENSOR *grid, *output;
+
+	CHECK_TENSOR(image);
+	CHECK_TENSOR(flow);
+
+	if (flow->chan != 2) {
+		syslog_error("Flow must be Bx2xHxW tensor.");
+		return NULL;
+	}
+
+	grid = tensor_create(flow->batch, 2, flow->height, flow->width); CHECK_TENSOR(grid);
+
+	for (b = 0; b < grid->batch; b++) {
+		imap = tensor_start_chan(grid, b, 0);
+		jmap = tensor_start_chan(grid, b, 1);
+
+		uflow = tensor_start_chan(flow, b, 0);
+		vflow = tensor_start_chan(flow, b, 1);
+
+		/*****************************************************
+		* Imap:
+		*   0				0
+		*   1				1
+		*   2				2
+		* ...				...
+		* 512				512
+		*****************************************************/
+		for (i = 0; i < grid->height; i++) {
+			for(j = 0; j < grid->width; j++)
+				*imap++ = (i + *vflow++)/grid->height;	// same cols
+		}
+		/*****************************************************
+		* Jmap:
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*   0	1	2	...		960
+		*****************************************************/
+		for (i = 0; i < grid->height; i++) {
+			for(j = 0; j < grid->width; j++)
+				*jmap++ = (j + *uflow++)/grid->width;	// same rows
+		}
+	}
+
+	output = tensor_grid_sample(image, grid);
+
+	tensor_destroy(grid);
+
+	return output;
+}
+
 
 // [start, stop), for example: [0, 2)
 TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)

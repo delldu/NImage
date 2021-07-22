@@ -53,7 +53,10 @@ extern "C" {
 	TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
 	TENSOR *tensor_zeropad(TENSOR *source, int nh, int nw);
 
+	TENSOR *tensor_make_grid(int batch, int height, int width);
 	TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
+	TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow);
+
 	TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
 	TENSOR *tensor_stack_chan(int n, TENSOR *tensor[]);
 

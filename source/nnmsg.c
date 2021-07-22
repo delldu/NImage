@@ -331,7 +331,7 @@ int service_response(int socket, int msgcode, TENSOR *tensor)
 
 	// If service failure, echo response !!!
 	tensor = tensor_create(1, 1, 1, 1); check_tensor(tensor);
-	tensor_send(socket, INVALID_SERVICE_MESSAGE, tensor);
+	tensor_send(socket, SERVICE_ERROR_MESSAGE, tensor);
 	tensor_destroy(tensor);
 
 	return RET_ERROR;
