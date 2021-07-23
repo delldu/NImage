@@ -79,7 +79,18 @@ TENSOR *tensor_copy(TENSOR * src)
 
 void tensor_show(TENSOR * tensor)
 {
-	syslog_info("Tensor dims: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
+	int i, n, show_numbers = 10;
+
+	syslog_info("Tensor: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
+	n = tensor->batch * tensor->chan * tensor->height * tensor->width;
+	for (i = 0; i < show_numbers; i++) {
+		printf("%.4f ", tensor->data[i]);
+	}
+	printf("... ");
+	for (i = n - show_numbers; i < n; i++) {
+		printf("%.4f ", tensor->data[i]);
+	}
+	printf("\n");
 }
 
 void tensor_destroy(TENSOR * tensor)
@@ -343,7 +354,7 @@ int tensor_setmask(TENSOR *tensor, float mask)
 TENSOR *tensor_make_grid(int batch, int height, int width)
 {
 	int i, j, b;
-	float *imap, *jmap, d;
+	float *imap, *jmap, d, delta;
 	TENSOR *grid;
 
 	grid = tensor_create(batch, 2, height, width); CHECK_TENSOR(grid);
@@ -360,8 +371,9 @@ TENSOR *tensor_make_grid(int batch, int height, int width)
 		* ...				...
 		* 512				512
 		*****************************************************/
+		delta = 2.0/grid->height;
 		for (i = 0; i < grid->height; i++) {
-			d = (2.0 * i)/grid->height - 1.0;
+			d = i * delta - 1.0; 	// offset == half delta
 			for(j = 0; j < grid->width; j++)
 				*imap++ = d;	// same cols
 		}
@@ -372,9 +384,10 @@ TENSOR *tensor_make_grid(int batch, int height, int width)
 		*   0	1	2	...		960
 		*   0	1	2	...		960
 		*****************************************************/
+		delta = 2.0/grid->width;
 		for (i = 0; i < grid->height; i++) {
 			for(j = 0; j < grid->width; j++) {
-				d = (2.0 * j)/grid->width - 1.0;
+				d = j * delta - 1.0;	// offset == half delta
 				*jmap++ = d;	// same rows
 			}
 		}
@@ -537,9 +550,6 @@ int tensor_view_(TENSOR *tensor, int nb, int nc, int nh, int nw)
 {
 	check_tensor(tensor);
 
-	CheckPoint("tensor: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
-	CheckPoint("view: %dx%dx%dx%d", nb, nc, nh, nw);
-
 	// Capacity is same ...
 	if (nb * nc * nh * nw == tensor->batch * tensor->chan * tensor->height * tensor->width) {
 		tensor->batch = nb;
@@ -547,12 +557,8 @@ int tensor_view_(TENSOR *tensor, int nb, int nc, int nh, int nw)
 		tensor->height = nh;
 		tensor->width = nw;
 
-		CheckPoint("--------------xxxxxxxxxxxx--------------------- OK !!!!!");
-
 		return RET_OK;
 	}
-
-	CheckPoint("--------------xxxxxxxxxxxx--------------------- NO !!!!!");
 
 	// Different capacity ...
 	return RET_ERROR;
@@ -671,7 +677,7 @@ TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop)
 
 	n = tensor->height * tensor->width;
 	for (b = 0; b < tensor->batch; b++) {
-		for (c = start; c < stop; c++) {
+		for (c = start; c < stop && c < tensor->chan; c++) {
 			from = tensor_start_chan(tensor, b, c);
 			to = tensor_start_chan(output, b, c - start);
 			memcpy(to, from, n * sizeof(float));
@@ -724,9 +730,6 @@ TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop)
 	float *from, *to;
 	TENSOR *output;
 
-	CheckPoint("start = %d, stop = %d", start, stop);
-	tensor_show(tensor);
-
 	CHECK_TENSOR(tensor);
 	if (start >= tensor->height || start >= stop)
 		return NULL;
@@ -734,20 +737,16 @@ TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop)
 	output = tensor_create(tensor->batch, tensor->chan, stop - start, tensor->width);
 	CHECK_TENSOR(output);
 
-	CheckPoint();
-
 	n = tensor->width;
 	for (b = 0; b < tensor->batch; b++) {
 		for (c = 0; c < tensor->chan; c++) {
-			for (h = start; h < stop; h++) {
+			for (h = start; h < stop && h < tensor->height; h++) {
 				from = tensor_start_row(tensor, b, c, h);
 				to = tensor_start_row(output, b, c, h - start);
+				memcpy(to, from, n * sizeof(float));
 			}
-			memcpy(to, from, n * sizeof(float));
 		}
 	}
-
-	CheckPoint();
 
 	return output;
 }
