@@ -372,10 +372,11 @@ TENSOR *tensor_make_grid(int batch, int height, int width)
 		* 512				512
 		*****************************************************/
 		delta = 2.0/grid->height;
+		d = -1.0 + delta/2.0;	// First
 		for (i = 0; i < grid->height; i++) {
-			d = i * delta - 1.0; 	// offset == half delta
 			for(j = 0; j < grid->width; j++)
 				*imap++ = d;	// same cols
+			d += delta;
 		}
 		/*****************************************************
 		* Jmap:
@@ -386,9 +387,10 @@ TENSOR *tensor_make_grid(int batch, int height, int width)
 		*****************************************************/
 		delta = 2.0/grid->width;
 		for (i = 0; i < grid->height; i++) {
+			d = -1.0 + delta/2.0;	// First
 			for(j = 0; j < grid->width; j++) {
-				d = j * delta - 1.0;	// offset == half delta
-				*jmap++ = d;	// same rows
+				*jmap++ = d;
+				d += delta;
 			}
 		}
 	}
