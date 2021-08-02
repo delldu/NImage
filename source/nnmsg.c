@@ -9,8 +9,8 @@
 #include "nnmsg.h"
 
 #include <msgpack.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/reqrep.h>
+#include <nn.h>
+#include <reqrep.h>
 
 #include <unistd.h>
 #include <fcntl.h>
