@@ -54,7 +54,7 @@ OBJECTS := $(addsuffix .o,$(basename ${SOURCE}))
 #****************************************************************************
 # Compile block
 #****************************************************************************
-all: staticlib
+all: premake staticlib
 
 sharelib: $(OBJECTS)
 	$(LD) $(LDFLAGS) -shared -soname $(LIB_NAME).so -o $(LIB_NAME).so $(OBJECTS)
@@ -90,5 +90,6 @@ install:
 	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 	cp nimagetool ${INSTALL_DIR}/bin
 
-
+premake:
+	sudo apt-get install -y libjpeg-dev libpng-dev
 
