@@ -12,6 +12,7 @@ INSTALL_DIR := /usr/local
 
 INCS	:= \
 	-Iinclude \
+	-Imsgpackc/include \
 	-I/usr/local/include
 
 SOURCE :=  \
