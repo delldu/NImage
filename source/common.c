@@ -197,7 +197,7 @@ int getoct(char *p, int width) {
   return result;
 }
 
-char *load_fromtar(char *tar_filename, char *file_name, int *file_size) {
+char *file_untar(char *tar_filename, char *file_name, int *file_size) {
   gzFile gzfile;
   union tar_buffer buffer;
   int len, err, fsize;
