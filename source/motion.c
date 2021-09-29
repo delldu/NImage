@@ -15,7 +15,7 @@
 #define OBJECT_DETECTION_LO_THRESHOLD                                          \
   (3.15f / 10000.0f) // 4 sigma == 99.9937 --> 63/10000 --> 31.5/10000
 //#define OBJECT_DETECTION_LO_THRESHOLD (1.0f/1000.0f) // 4 sigma == 99.9937 -->
-//63/10000 --> 31.5/10000
+// 63/10000 --> 31.5/10000
 
 #define OBJECT_DETECTION_HI_THRESHOLD 0.10f // 10.0%
 #define OBJECT_DETECTION_MIN_POINTS 3

@@ -20,8 +20,9 @@
 #define FRAME_FMT_YUV444 MAKE_FOURCC('Y', '4', '4', '4')  /*!< 24 YUV 4:4:4 */
 #define FRAME_FMT_YUV444P MAKE_FOURCC('4', '4', '4', 'P') /*!< 24 YUV 4:4:4 */
 #define FRAME_FMT_RGB24 MAKE_FOURCC('R', 'G', 'B', '3')   /*!< 24 RGB-8-8-8 */
-#define FRAME_FMT_RGBA32 MAKE_FOURCC('R', 'G', 'B', 'A')  /*!< 32 RGB-8-8-8-8  \
-                                                           */
+#define FRAME_FMT_RGBA32                                                       \
+  MAKE_FOURCC('R', 'G', 'B', 'A') /*!< 32 RGB-8-8-8-8                          \
+                                   */
 
 /*
 From Keith Jack's excellent book "Video Demystified" (ISBN 1-878707-09-4)

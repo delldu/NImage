@@ -106,8 +106,13 @@ void time_spend(char *prompt);
 // Space resize
 void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw);
 
-// Return 1 else return 0 if lock suucces
+// if lock success, return 1, else return 0 
 int lock(char *endpoint);
+
+int file_size(char *filename);
+char *file_load(char *filename, int *size);
+int file_save(char *filename, char *buf, int size);
+char *load_fromtar(char *tar_filename, char *file_name, int *file_size);
 
 #if defined(__cplusplus)
 }

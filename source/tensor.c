@@ -398,8 +398,8 @@ TENSOR *tensor_make_grid(int batch, int height, int width) {
  *
  *   Input with shape (B, C, H_in, W_in)
  *   Grid with shape (B, 2, H_out, W_out), values according suppose X in
- *		int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap, MATRIX
- **output_mat);
+ *		int matrix_sample(MATRIX * mat, MATRIX *imap, MATRIX *jmap,
+ *MATRIX *output_mat);
  *
  *   Output will have shape (B, C, H_out, W_out)
  *
