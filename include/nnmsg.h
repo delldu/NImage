@@ -21,23 +21,23 @@ extern "C" {
 #define OUTOF_SERVICE_MESSAGE 0xFF040000
 #define SERVICE_ERROR_MESSAGE 0xFF050000
 
-int server_open(char *endpoint);
-int client_open(char *endpoint);
+	int server_open(char *endpoint);
+	int client_open(char *endpoint);
 
-int tensor_send(int socket, int reqcode, TENSOR *tensor);
-TENSOR *tensor_recv(int socket, int *reqcode);
-TENSOR *tensor_recv_timeout(int socket, int timeout, int *rescode);
+	int tensor_send(int socket, int reqcode, TENSOR * tensor);
+	TENSOR *tensor_recv(int socket, int *reqcode);
+	TENSOR *tensor_recv_timeout(int socket, int timeout, int *rescode);
 
-TENSOR *service_request(int socket, int *reqcode);
-int service_response(int socket, int msgcode, TENSOR *tensor);
-int service_avaible(int socket);
+	TENSOR *service_request(int socket, int *reqcode);
+	int service_response(int socket, int msgcode, TENSOR * tensor);
+	int service_avaible(int socket);
 
-int socket_readable(int socket, int timeout);
+	int socket_readable(int socket, int timeout);
 
-void client_close(int socket);
-void server_close(int socket);
+	void client_close(int socket);
+	void server_close(int socket);
 
 #if defined(__cplusplus)
 }
 #endif
-#endif // _NNMSG_H
+#endif							// _NNMSG_H

@@ -17,12 +17,12 @@ extern "C" {
 #include "image.h"
 #include "tensor.h"
 
-typedef struct {
-  DWORD magic; // FRAME_MAGIC
-  DWORD format;
-  WORD height, width;
-  BYTE *Y, *U, *V;
-} FRAME;
+	typedef struct {
+		DWORD magic;			// FRAME_MAGIC
+		DWORD format;
+		WORD height, width;
+		BYTE *Y, *U, *V;
+	} FRAME;
 
 #define check_frame(frame)                                                     \
   do {                                                                         \
@@ -42,18 +42,18 @@ typedef struct {
   for (i = 0; i < frame->height; i++)                                          \
     for (j = 0; j < frame->width; j++)
 
-int frame_valid(FRAME *f);
-int frame_goodfmt(DWORD fmt);
-int frame_goodbuf(FRAME *f);
-int frame_size(DWORD fmt, int w, int h);
-int frame_binding(FRAME *f, BYTE *buf);
-int frame_toimage(FRAME *f, IMAGE *img);
-int frame_totensor(FRAME *f, TENSOR *tensor);
-DWORD frame_format(char *name);
-FRAME *frame_create(DWORD fmt, WORD width, WORD height);
-void frame_destroy(FRAME *f);
+	int frame_valid(FRAME * f);
+	int frame_goodfmt(DWORD fmt);
+	int frame_goodbuf(FRAME * f);
+	int frame_size(DWORD fmt, int w, int h);
+	int frame_binding(FRAME * f, BYTE * buf);
+	int frame_toimage(FRAME * f, IMAGE * img);
+	int frame_totensor(FRAME * f, TENSOR * tensor);
+	DWORD frame_format(char *name);
+	FRAME *frame_create(DWORD fmt, WORD width, WORD height);
+	void frame_destroy(FRAME * f);
 
 #if defined(__cplusplus)
 }
 #endif
-#endif // _FRAME_H
+#endif							// _FRAME_H

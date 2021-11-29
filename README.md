@@ -19,13 +19,13 @@ ii  libnanomsg-dev                      0.8~beta+dfsg-1        amd64            
 ii  libpng-dev:amd64                    1.6.34-1ubuntu0.18.04. amd64                  PNG library - development (version 1.6)
 ```
 
-#### 1.1.2 make libmsgpackc
+#### 1.1.2 Make libmsgpackc
 ```
 cd msgpackc
 make && make install
 ```
 
-###   1.2 make libnimage
+###   1.2 Make libnimage
 `make && make install`
 
 ## 2. Demo
@@ -35,4 +35,7 @@ make
 ./nimage -s
 ./nimage -c /tmp/lena.jpg -o output.jpg
 ```
-
+## 3. Source format
+```
+indent -kr -i4 -l120 -ts 4
+```

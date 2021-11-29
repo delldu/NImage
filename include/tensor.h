@@ -32,44 +32,47 @@ extern "C" {
   } while (0)
 
 // Tensor
-typedef struct {
-  DWORD magic; // TENSOR_MAGIC
-  int batch, chan, height, width;
-  float *data; // TENSOR format is: BxCxHxW with float
-} TENSOR;
+	typedef struct {
+		DWORD magic;			// TENSOR_MAGIC
+		int batch, chan, height, width;
+		float *data;			// TENSOR format is: BxCxHxW with float
+	} TENSOR;
 
-int tensor_valid(TENSOR *tensor);
-TENSOR *tensor_create(int b, int c, int h, int w);
-TENSOR *tensor_copy(TENSOR *src);
-int tensor_zero_(TENSOR *tensor);
-int tensor_clamp_(TENSOR *tensor, float low, float high);
-void tensor_destroy(TENSOR *tensor);
-void tensor_show(TENSOR *tensor);
+	int tensor_valid(TENSOR * tensor);
+	TENSOR *tensor_create(int b, int c, int h, int w);
+	TENSOR *tensor_copy(TENSOR * src);
+	int tensor_zero_(TENSOR * tensor);
+	int tensor_clamp_(TENSOR * tensor, float low, float high);
+	void tensor_destroy(TENSOR * tensor);
+	void tensor_show(TENSOR * tensor);
 
-float *tensor_start_row(TENSOR *tensor, int b, int c, int h);
-float *tensor_start_chan(TENSOR *tensor, int b, int c);
-float *tensor_start_batch(TENSOR *tensor, int b);
+	float *tensor_start_row(TENSOR * tensor, int b, int c, int h);
+	float *tensor_start_chan(TENSOR * tensor, int b, int c);
+	float *tensor_start_batch(TENSOR * tensor, int b);
 
-TENSOR *tensor_zoom(TENSOR *source, int nh, int nw);
-TENSOR *tensor_zeropad(TENSOR *source, int nh, int nw);
+	TENSOR *tensor_zoom(TENSOR * source, int nh, int nw);
+	TENSOR *tensor_zeropad(TENSOR * source, int nh, int nw);
 
-TENSOR *tensor_make_grid(int batch, int height, int width);
-TENSOR *tensor_grid_sample(TENSOR *input, TENSOR *grid);
-TENSOR *tensor_flow_backwarp(TENSOR *image, TENSOR *flow);
-TENSOR *tensor_make_cell(int batch, int height, int width);
+	TENSOR *tensor_make_grid(int batch, int height, int width);
+	TENSOR *tensor_grid_sample(TENSOR * input, TENSOR * grid);
+	TENSOR *tensor_flow_backwarp(TENSOR * image, TENSOR * flow);
+	TENSOR *tensor_make_cell(int batch, int height, int width);
 
-TENSOR *tensor_slice_chan(TENSOR *tensor, int start, int stop);
-TENSOR *tensor_stack_chan(int n, TENSOR *tensor[]);
+	TENSOR *tensor_slice_chan(TENSOR * tensor, int start, int stop);
+	TENSOR *tensor_stack_chan(int n, TENSOR * tensor[]);
 
-TENSOR *tensor_slice_row(TENSOR *tensor, int start, int stop);
-TENSOR *tensor_stack_row(int n, TENSOR *tensor[]);
+	TENSOR *tensor_slice_row(TENSOR * tensor, int start, int stop);
+	TENSOR *tensor_stack_row(int n, TENSOR * tensor[]);
 
-int tensor_view_(TENSOR *tensor, int nb, int nc, int nh, int nw);
-TENSOR *tensor_reshape(TENSOR *tensor, int nb, int nc, int nh, int nw);
+	int tensor_view_(TENSOR * tensor, int nb, int nc, int nh, int nw);
+	TENSOR *tensor_reshape(TENSOR * tensor, int nb, int nc, int nh, int nw);
 
-int tensor_dilate_smooth(TENSOR *tensor, float sigma);
+	int tensor_dilate_smooth(TENSOR * tensor, float sigma);
+
+	int tensor_save(TENSOR * tensor, char *fname);
+	TENSOR *tensor_load(char *fname);
 
 #if defined(__cplusplus)
 }
 #endif
-#endif // _TENSOR_H
+#endif							// _TENSOR_H
