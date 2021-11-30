@@ -109,7 +109,7 @@ extern "C" {
 // if lock success, return 1, else return 0 
 	int lock(char *endpoint);
 
-	int file_exists(char *filename);
+	int file_exist(char *filename);
 	int file_size(char *filename);
 	char *file_load(char *filename, int *size);
 	int file_save(char *filename, char *buf, int size);

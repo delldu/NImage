@@ -143,7 +143,7 @@ int file_save(char *filename, char *buf, int size)
 
 int make_dir(char *dirname)
 {
-	return mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+	return (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)? RET_OK : RET_ERROR;
 }
 
 // For tar files
