@@ -109,9 +109,11 @@ extern "C" {
 // if lock success, return 1, else return 0 
 	int lock(char *endpoint);
 
+	int file_exists(char *filename);
 	int file_size(char *filename);
 	char *file_load(char *filename, int *size);
 	int file_save(char *filename, char *buf, int size);
+	int make_dir(char *dirname);
 
 // load data from tgz file
 	char *file_untar(char *tar_filename, char *file_name, int *file_size);

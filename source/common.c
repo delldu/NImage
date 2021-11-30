@@ -91,6 +91,11 @@ int lock(char *endpoint)
 	return rc == 0;
 }
 
+int file_exist(char *filename)
+{
+	return (access(filename, F_OK) == 0);
+}
+
 int file_size(char *filename)
 {
 	struct stat s;
@@ -134,6 +139,11 @@ int file_save(char *filename, char *buf, int size)
 		close(fd);
 	}
 	return ret;
+}
+
+int make_dir(char *dirname)
+{
+	return mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
 }
 
 // For tar files
