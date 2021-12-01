@@ -265,6 +265,8 @@ VIDEO *__file_open(char *filename, int start)
 		goto fail;
 
 	snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -f rawvideo - 2>/dev/null", filename);
+
+	// snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -vcodec rawvideo -pix_fmt rgba - 2>/dev/null", filename);
 	if ((fp = popen(cmdline, "r")) == NULL) {
 		syslog_error("Open %s.", cmdline);
 		goto fail;

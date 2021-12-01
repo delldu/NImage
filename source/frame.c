@@ -225,13 +225,13 @@ DWORD frame_format(char *name)
 
 int frame_toimage(FRAME * f, IMAGE * img)
 {
-	int i, j, y, cb, cr, r, g, b;
+	int i, j, y, cb, cr, r, g, b, a;
 	BYTE *us, *vs, *ys;
 
 	check_frame(f);
 	check_image(img);
 
-	y = cb = cr = r = g = b = 0;
+	y = cb = cr = r = g = b = a = 0;
 
 	if (!frame_goodbuf(f)) {
 		syslog_error("Bad frame buffer.");
@@ -260,6 +260,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_YUV420:
@@ -274,6 +275,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_YUV422:
@@ -288,6 +290,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_YUV422P:
@@ -303,6 +306,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_YUV444:
@@ -315,6 +319,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_YUV444P:
@@ -329,6 +334,7 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = 255;
 		}
 		break;
 	case FRAME_FMT_RGB24:
@@ -339,10 +345,11 @@ int frame_toimage(FRAME * f, IMAGE * img)
 			r = *ys++;
 			g = *ys++;
 			b = *ys++;
-			ys++;
+			a = *ys++;
 			img->ie[i][j].r = r;
 			img->ie[i][j].g = g;
 			img->ie[i][j].b = b;
+			img->ie[i][j].a = a;
 		}
 		break;
 	default:
@@ -354,19 +361,19 @@ int frame_toimage(FRAME * f, IMAGE * img)
 
 int frame_totensor(FRAME * f, TENSOR * tensor)
 {
-	int i, j, y, cb, cr, r, g, b;
+	int i, j, y, cb, cr, r, g, b, a;
 	BYTE *us, *vs, *ys;
-	float *tensor_r, *tensor_g, *tensor_b;
+	float *tensor_r, *tensor_g, *tensor_b, *tensor_a;
 
 	check_frame(f);
 	check_tensor(tensor);
 
-	if (tensor->chan != 3) {
-		syslog_error("Tensor channel is not 3.");
+	if (tensor->chan != 4) {
+		syslog_error("Tensor channel is not 4.");
 		return RET_ERROR;
 	}
 
-	y = cb = cr = r = g = b = 0;
+	y = cb = cr = r = g = b = a = 0;
 	if (!frame_goodbuf(f)) {
 		syslog_error("Bad frame buffer.");
 		return RET_ERROR;
@@ -380,6 +387,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 	tensor_r = tensor_start_chan(tensor, 0 /*batch */ , 0 /*channel */ );
 	tensor_g = tensor_start_chan(tensor, 0 /*batch */ , 1 /*channel */ );
 	tensor_b = tensor_start_chan(tensor, 0 /*batch */ , 2 /*channel */ );
+	tensor_a = tensor_start_chan(tensor, 0 /*batch */ , 3 /*channel */ );
 
 	ys = f->Y;
 	switch (f->format) {
@@ -399,6 +407,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -415,6 +424,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -431,6 +441,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -448,6 +459,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -462,6 +474,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -478,6 +491,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -490,6 +504,7 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = 1.0;
 			}
 		}
 		break;
@@ -499,10 +514,11 @@ int frame_totensor(FRAME * f, TENSOR * tensor)
 				r = *ys++;
 				g = *ys++;
 				b = *ys++;
-				ys++;
+				a = *ys++;
 				*tensor_r++ = (float) (r / 255.0);
 				*tensor_g++ = (float) (g / 255.0);
 				*tensor_b++ = (float) (b / 255.0);
+				*tensor_a++ = (float) (a / 255.0);
 			}
 		}
 		break;

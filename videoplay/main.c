@@ -61,7 +61,7 @@ int play_video_with_tensor(char *input_filename, int start, int n,
 
   video_info(video);
 
-  tensor = tensor_create(1, 3, video->height, video->width);
+  tensor = tensor_create(1, 4, video->height, video->width);
   check_tensor(tensor);
 
   // Real start
@@ -72,7 +72,7 @@ int play_video_with_tensor(char *input_filename, int start, int n,
     // Test Tensor
     frame_totensor(video_read(video), tensor);
 
-    image = image_from_tensor(tensor, 0 /* without alpha */);
+    image = image_from_tensor(tensor, 0 /* batch*/);
     snprintf(output_file_name, sizeof(output_file_name), "%s/%06d.png",
              output_dir, start++);
     image_save(image, output_file_name);
