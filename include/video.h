@@ -26,7 +26,7 @@ extern "C" {
 
 #define VIDEO_MAGIC MAKE_FOURCC('V', 'I', 'D', 'E')
 
-#define VIDEO_BUFFER_NUMS 3
+#define VIDEO_BUFFER_NUMS 5
 #define VIDEO_FROM_CAMERA 1		// From camera, file, network ...
 
 	struct video_buffer_s {
@@ -73,6 +73,7 @@ extern "C" {
 	int video_eof(VIDEO * v);
 	VIDEO *video_open(char *filename, int start);
 	FRAME *video_read(VIDEO * v);
+	FRAME *video_buffer(VIDEO *v, int offset);
 	void video_info(VIDEO * v);
 	void video_close(VIDEO * v);
 

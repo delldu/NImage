@@ -70,13 +70,21 @@ int play_video_with_tensor(char *input_filename, int start, int n,
     syslog_info("Playing frame %d ...", start);
 
     // Test Tensor
-    frame_totensor(video_read(video), tensor);
+    video_read(video);
+    video_read(video);
+    video_read(video);
+    video_read(video);
+    video_read(video);
 
-    image = image_from_tensor(tensor, 0 /* batch*/);
-    snprintf(output_file_name, sizeof(output_file_name), "%s/%06d.png",
-             output_dir, start++);
-    image_save(image, output_file_name);
-    image_destroy(image);
+    for (int i = -4; i <= 0; i++) {
+      frame_totensor(video_buffer(video, i), tensor);
+
+      image = image_from_tensor(tensor, 0 /* batch*/);
+      snprintf(output_file_name, sizeof(output_file_name), "%s/%06d.png",
+               output_dir, start++);
+      image_save(image, output_file_name);
+      image_destroy(image);
+    }
     n--;
   }
   time_spend("Playing");

@@ -264,13 +264,13 @@ VIDEO *__file_open(char *filename, int start)
 	if (__video_probe(filename, v) != RET_OK)
 		goto fail;
 
-	snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -f rawvideo - 2>/dev/null", filename);
-
-	// snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -vcodec rawvideo -pix_fmt rgba - 2>/dev/null", filename);
+	// snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -f rawvideo - 2>/dev/null", filename);
+	snprintf(cmdline, sizeof(cmdline) - 1, "ffmpeg -i %s -f image2pipe -vcodec rawvideo -pix_fmt rgba - 2>/dev/null", filename);
 	if ((fp = popen(cmdline, "r")) == NULL) {
 		syslog_error("Open %s.", cmdline);
 		goto fail;
 	}
+	v->format = MAKE_FOURCC('R', 'G', 'B', 'A');
 	v->_fp = fp;
 
 	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
@@ -451,14 +451,19 @@ FRAME *video_read(VIDEO * v)
 		ioctl(fileno(v->_fp), VIDIOC_QBUF, &v4l2buf);
 	} else {
 		v->_buffer_index++;
-		v->_buffer_index %= VIDEO_BUFFER_NUMS;
-		f = v->frames[v->_buffer_index];
+		f = v->frames[v->_buffer_index % VIDEO_BUFFER_NUMS];
 
 		n = fread(f->Y, v->frame_size, 1, v->_fp);
 	}
 
 	v->frame_index++;
 	return (n == 0) ? NULL : f;	// n==0 ==> end of file
+}
+
+FRAME *video_buffer(VIDEO *v, int offset)
+{
+	int index = (v->_buffer_index + offset) % VIDEO_BUFFER_NUMS;
+	return v->frames[index];
 }
 
 int video_play(char *filename, int start)

@@ -68,6 +68,9 @@ int frame_goodbuf(FRAME * f)
 	case FRAME_FMT_YUV422P:
 	case FRAME_FMT_YUV444P:
 		return (f->U && f->V);
+	case FRAME_FMT_RGB24:
+	case FRAME_FMT_RGBA32:
+		return (f->Y != NULL);
 	default:
 		break;
 	}
