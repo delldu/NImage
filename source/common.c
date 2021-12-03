@@ -143,7 +143,14 @@ int file_save(char *filename, char *buf, int size)
 
 int make_dir(char *dirname)
 {
-	return (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)? RET_OK : RET_ERROR;
+	int ret = RET_OK;
+
+	if (access(dirname, W_OK) != 0)
+		ret = (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)? RET_OK : RET_ERROR;
+	if (ret != RET_OK)
+		syslog_error("Create dir '%s'.", dirname);
+
+	return ret;
 }
 
 // For tar files
