@@ -64,7 +64,7 @@ void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw)
 	*nw = w * times;
 }
 
-int lock(char *endpoint)
+int file_lock(char *endpoint)
 {
 	int i, n, fd, rc;
 	char filename[512];

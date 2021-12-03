@@ -107,7 +107,7 @@ extern "C" {
 	void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw);
 
 // if lock success, return 1, else return 0 
-	int lock(char *endpoint);
+	int file_lock(char *endpoint);
 
 	int file_exist(char *filename);
 	int file_size(char *filename);

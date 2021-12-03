@@ -50,8 +50,7 @@ static int __video_probe(char *filename, VIDEO * v)
 
 	snprintf(cmd, sizeof(cmd) - 1, "ffprobe -show_streams %s 2>/dev/null", filename);
 
-	fp = popen(cmd, "r");
-	if (!fp) {
+	if ((fp = popen(cmd, "r")) == NULL) {
 		syslog_error("Run %s", cmd);
 		return RET_ERROR;
 	}
