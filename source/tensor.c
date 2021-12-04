@@ -172,6 +172,27 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 	return tensor;
 }
 
+TENSOR *tensor_load_image(char *filename, int with_alpha)
+{
+	TENSOR *tensor;
+	IMAGE *image = image_load(filename);
+	CHECK_IMAGE(image);
+	tensor = tensor_from_image(image, with_alpha);
+	image_destroy(image);
+	return tensor;
+}
+
+int tensor_saveas_image(TENSOR *tensor, int k, char *filename)
+{
+	int ret;
+	IMAGE *image = image_from_tensor(tensor, k);
+	check_image(image);
+	ret = image_save(image, filename);
+	image_destroy(image);
+	return ret;
+}	
+
+
 float *tensor_start_row(TENSOR * tensor, int b, int c, int h)
 {
 	int offset;
