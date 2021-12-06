@@ -157,8 +157,6 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 	R = tensor->data;
 	G = R + tensor->height * tensor->width;
 	B = G + tensor->height * tensor->width;
-	if (with_alpha)
-		A = B + tensor->height * tensor->width;
 
 	image_foreach(image, i, j) {
 		*R++ = (float) image->ie[i][j].r / 255.0;
@@ -166,6 +164,7 @@ TENSOR *tensor_from_image(IMAGE * image, int with_alpha)
 		*B++ = (float) image->ie[i][j].b / 255.0;
 	}
 	if (with_alpha) {
+		A = B + tensor->height * tensor->width;
 		image_foreach(image, i, j) * A++ = (float) image->ie[i][j].a / 255.0;
 	}
 
@@ -191,7 +190,6 @@ int tensor_saveas_image(TENSOR *tensor, int k, char *filename)
 	image_destroy(image);
 	return ret;
 }	
-
 
 float *tensor_start_row(TENSOR * tensor, int b, int c, int h)
 {
@@ -252,7 +250,7 @@ TENSOR *tensor_zoom(TENSOR * source, int nh, int nw)
 
 TENSOR *tensor_zeropad(TENSOR * source, int nh, int nw)
 {
-	int b, c, i, j;
+	int b, c, i;
 	float *s_row, *d_row;
 	TENSOR *destion = NULL;
 
@@ -265,8 +263,10 @@ TENSOR *tensor_zeropad(TENSOR * source, int nh, int nw)
 			for (i = 0; i < source->height && i < nh; i++) {
 				s_row = tensor_start_row(source, b, c, i);
 				d_row = tensor_start_row(destion, b, c, i);
-				for (j = 0; j < source->width && j < nw; j++)
-					d_row[j] = s_row[j];
+				// int j;
+				// for (j = 0; j < source->width && j < nw; j++)
+				// 	d_row[j] = s_row[j];
+				memcpy(d_row, s_row, MIN(source->width, nw) * sizeof(float));
 			}
 		}
 	}

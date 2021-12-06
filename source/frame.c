@@ -124,7 +124,7 @@ FRAME *frame_create(DWORD fmt, WORD width, WORD height)
 
 	f = (FRAME *) calloc((size_t) 1, sizeof(FRAME));
 	if (!f) {
-		syslog_error("Allocate memeory.");
+		syslog_error("Allocate memeory (frame_create).");
 		return NULL;
 	}
 

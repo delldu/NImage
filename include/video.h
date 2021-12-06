@@ -24,16 +24,18 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include "tensor.h"
+
 #define VIDEO_MAGIC MAKE_FOURCC('V', 'I', 'D', 'E')
 
 #define VIDEO_BUFFER_NUMS 5
 #define VIDEO_FROM_CAMERA 1		// From camera, file, network ...
 
-	struct video_buffer_s {
+	typedef struct {
 		size_t offset;
 		unsigned int length;
 		void *startmap;			//  memory map/allocate start
-	};
+	} video_buffer_t;
 
 	typedef struct {
 		DWORD magic;			// VIDEO_MAGIC
@@ -41,12 +43,15 @@ extern "C" {
 		WORD width, height;
 		int frame_index, frame_size, frame_speed, frame_numbers;
 		FRAME *frames[VIDEO_BUFFER_NUMS];
+		TENSOR *tensors[VIDEO_BUFFER_NUMS];	// tensor buffer for frames
+
 		int video_source;
 
 		// internal/temp
 		FILE *_fp;
 		int _buffer_index;
-		struct video_buffer_s _frame_buffer[VIDEO_BUFFER_NUMS];
+		video_buffer_t _frame_buffer[VIDEO_BUFFER_NUMS];
+
 	} VIDEO;
 
 #define check_video(video)                                                     \
@@ -73,7 +78,12 @@ extern "C" {
 	int video_eof(VIDEO * v);
 	VIDEO *video_open(char *filename, int start);
 	FRAME *video_read(VIDEO * v);
+
+	// frame buffer
 	FRAME *video_buffer(VIDEO *v, int offset);
+	// tensor for frame buffer
+	TENSOR *video_tensor(VIDEO *v, int offset);
+
 	void video_info(VIDEO * v);
 	void video_close(VIDEO * v);
 
@@ -85,8 +95,6 @@ extern "C" {
 // Video IDS: Instrusion Detection System
 	int video_ids(char *filename, int start, float threshold);
 
-// YUV420 !!!
-	int yuv420_play(char *filename, int width, int height);
 
 #if defined(__cplusplus)
 }

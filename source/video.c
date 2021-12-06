@@ -11,7 +11,7 @@
 #include "frame.h"
 #include "image.h"
 
-#define FILENAME_MAXLEN 256
+#define FILENAME_MAXLEN 1024
 
 static float __math_snr(int m, char *orig, char *now)
 {
@@ -74,58 +74,6 @@ static int __video_probe(char *filename, VIDEO * v)
 	return RET_OK;
 }
 
-static VIDEO *__yuv420_open(char *filename, int width, int height)
-{
-	int i;
-	FILE *fp;
-	VIDEO *v = NULL;
-
-	// Allocate video
-	v = (VIDEO *) calloc((size_t) 1, sizeof(VIDEO));
-	if (!v) {
-		syslog_error("Allocate memeory.");
-		return NULL;
-	}
-	v->frame_speed = 25;
-	v->format = MAKE_FOURCC('4', '2', '0', 'P');
-	v->width = width;
-	v->height = height;
-
-	if ((fp = fopen(filename, "r")) == NULL) {
-		syslog_error("Open %s\n", filename);
-		return NULL;
-	}
-	v->_fp = fp;
-
-	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
-		v->frames[i] = frame_create(v->format, v->width, v->height);
-		if (!v->frames[i]) {
-			syslog_error("Allocate memory");
-			return NULL;
-		}
-	}
-
-	v->frame_size = frame_size(v->format, v->width, v->height);
-	// Allocate memory
-	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
-		v->_frame_buffer[i].startmap = (BYTE *) calloc((size_t) v->frame_size, sizeof(BYTE));
-		if (v->_frame_buffer[i].startmap == NULL) {
-			syslog_error("Allocate memory");
-			goto fail;
-		} else
-			frame_binding(v->frames[i], (BYTE *) v->_frame_buffer[i].startmap);
-	}
-
-	v->frame_index = 0;
-
-	v->magic = VIDEO_MAGIC;
-
-	return v;
-  fail:
-	video_close(v);
-
-	return NULL;
-}
 
 VIDEO *__camera_open(char *filename, int start)
 {
@@ -274,10 +222,11 @@ VIDEO *__file_open(char *filename, int start)
 
 	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 		v->frames[i] = frame_create(v->format, v->width, v->height);
-		if (!v->frames[i]) {
-			syslog_error("Allocate memory.");
-			return NULL;
-		}
+		if (v->frames[i] == NULL)
+			goto fail;
+		v->tensors[i] = tensor_create(1, 4, v->height, v->width);	// RGBA
+		if (v->tensors[i] == NULL)
+			goto fail;
 	}
 
 	v->frame_size = frame_size(v->format, v->width, v->height);
@@ -285,7 +234,7 @@ VIDEO *__file_open(char *filename, int start)
 	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 		v->_frame_buffer[i].startmap = (BYTE *) calloc((size_t) v->frame_size, sizeof(BYTE));
 		if (v->_frame_buffer[i].startmap == NULL) {
-			syslog_error("Allocate memory.");
+			syslog_error("Allocate memory for _frame_buffer[i].");
 			goto fail;
 		} else
 			frame_binding(v->frames[i], (BYTE *) v->_frame_buffer[i].startmap);
@@ -423,8 +372,13 @@ void video_close(VIDEO * v)
 		for (i = 0; i < VIDEO_BUFFER_NUMS; i++)
 			free(v->_frame_buffer[i].startmap);
 	}
-	for (i = 0; i < VIDEO_BUFFER_NUMS; i++)
+	for (i = 0; i < VIDEO_BUFFER_NUMS; i++) {
 		frame_destroy(v->frames[i]);
+
+		// video file has tensor buffers, camera without ？ ...
+		if (v->tensors[i])
+			tensor_destroy(v->tensors[i]);
+	}
 
 	pclose(v->_fp);
 	i = system("stty echo");
@@ -434,6 +388,7 @@ void video_close(VIDEO * v)
 
 FRAME *video_read(VIDEO * v)
 {
+	int i;
 	int n = v->frame_size;
 	struct v4l2_buffer v4l2buf;
 	FRAME *f = NULL;
@@ -450,9 +405,12 @@ FRAME *video_read(VIDEO * v)
 		ioctl(fileno(v->_fp), VIDIOC_QBUF, &v4l2buf);
 	} else {
 		v->_buffer_index++;
-		f = v->frames[v->_buffer_index % VIDEO_BUFFER_NUMS];
+		i = v->_buffer_index % VIDEO_BUFFER_NUMS;
+		f = v->frames[i];
 
 		n = fread(f->Y, v->frame_size, 1, v->_fp);
+		if (n > 0 && v->tensors[i])
+			frame_totensor(f, v->tensors[i]);
 	}
 
 	v->frame_index++;
@@ -461,9 +419,16 @@ FRAME *video_read(VIDEO * v)
 
 FRAME *video_buffer(VIDEO *v, int offset)
 {
-	int index = (v->_buffer_index + offset) % VIDEO_BUFFER_NUMS;
-	return v->frames[index];
+	int i = (v->_buffer_index + offset) % VIDEO_BUFFER_NUMS;
+	return v->frames[i];
 }
+
+TENSOR *video_tensor(VIDEO *v, int offset)
+{
+	int i = (v->_buffer_index + offset) % VIDEO_BUFFER_NUMS;
+	return v->tensors[i];
+}
+
 
 int video_play(char *filename, int start)
 {
@@ -516,19 +481,6 @@ int video_ids(char *filename, int start, float threshold)
 	return RET_OK;
 }
 
-int yuv420_play(char *filename, int width, int height)
-{
-	VIDEO *video;
-
-	video = __yuv420_open(filename, width, height);
-	check_video(video);
-
-	video_info(video);
-	__video_play(video);
-	video_close(video);
-
-	return RET_OK;
-}
 
 int video_eof(VIDEO * v)
 {
