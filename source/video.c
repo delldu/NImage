@@ -429,7 +429,6 @@ TENSOR *video_tensor(VIDEO *v, int offset)
 	return v->tensors[i];
 }
 
-
 int video_play(char *filename, int start)
 {
 	VIDEO *video;
@@ -480,7 +479,6 @@ int video_ids(char *filename, int start, float threshold)
 
 	return RET_OK;
 }
-
 
 int video_eof(VIDEO * v)
 {
