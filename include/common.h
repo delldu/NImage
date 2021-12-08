@@ -113,6 +113,7 @@ extern "C" {
 	int file_size(char *filename);
 	char *file_load(char *filename, int *size);
 	int file_save(char *filename, char *buf, int size);
+  int file_chown(char *dfile, char *sfile);
 	int make_dir(char *dirname);
 
 // load data from tgz file

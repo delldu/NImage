@@ -141,6 +141,17 @@ int file_save(char *filename, char *buf, int size)
 	return ret;
 }
 
+int file_chown(char *dfile, char *sfile)
+{
+	struct stat s;
+
+	if (stat(sfile, &s) != 0 || !S_ISREG(s.st_mode)) {
+		syslog_error("File '%s' is not regular.", sfile);
+		return RET_ERROR;
+	}
+	return (chown(dfile, s.st_uid, s.st_gid) == 0)?RET_OK : RET_ERROR;
+}
+
 int make_dir(char *dirname)
 {
 	int ret = RET_OK;
