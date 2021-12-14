@@ -20,7 +20,7 @@ extern "C" {
 #include "tensor.h"
 #include "vector.h"
 
-#define IMAGE_VERSION "1.1.0"
+#define IMAGE_VERSION "1.2.0"
 
 	typedef struct {
 		BYTE r, g, b, a;

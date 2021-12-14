@@ -46,39 +46,23 @@ extern "C" {
 #define ZOOM_METHOD_COPY 0
 #define ZOOM_METHOD_BLINE 1
 
-#define CheckPoint(fmt, arg...)                                                \
-  printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
-#if 0
-#define syslog_info(fmt, arg...)                                               \
-  do {                                                                         \
-    syslog(LOG_INFO, "Info: " fmt "\n", ##arg);                                \
-  } while (0)
-#define syslog_debug(fmt, arg...)                                              \
-  do {                                                                         \
-    syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__,     \
-           ##arg);                                                             \
-  } while (0)
-#define syslog_error(fmt, arg...)                                              \
-  do {                                                                         \
-    syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__,       \
-           ##arg);                                                             \
-  } while (0)
-#else
-#define syslog_info(fmt, arg...)                                               \
-  do {                                                                         \
-    fprintf(stderr, "Info: " fmt "\n", ##arg);                                 \
-  } while (0)
-#define syslog_debug(fmt, arg...)                                              \
-  do {                                                                         \
-    fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__,       \
-            ##arg);                                                            \
-  } while (0)
-#define syslog_error(fmt, arg...)                                              \
-  do {                                                                         \
-    fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__,       \
-            ##arg);                                                            \
-  } while (0)
-#endif
+#define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
+
+#define syslog_info(fmt, arg...) do { \
+  if (getenv("DEBUG")) fprintf(stderr, "Info: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+  else syslog(LOG_INFO, "Info: " fmt "\n", ##arg); \
+} while (0)
+
+#define syslog_debug(fmt, arg...) do { \
+  if (getenv("DEBUG")) fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+  else syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+} while (0)
+
+#define syslog_error(fmt, arg...) do { \
+  if (getenv("DEBUG")) fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+  else syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+} while (0)
+
 
 #define ARRAY_SIZE(x) (int)(sizeof(x) / sizeof(x[0]))
 
