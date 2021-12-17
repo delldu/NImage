@@ -85,10 +85,10 @@ install:
 	make -C msgpackc && make -C msgpackc install
 	make -C nanomsg && make -C nanomsg install
 
-	mkdir -p ${INSTALL_DIR}/include/nimage
-	cp include/*.h ${INSTALL_DIR}/include/nimage 
-	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
-	cp nimagetool ${INSTALL_DIR}/bin
+	sudo mkdir -p ${INSTALL_DIR}/include/nimage
+	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
+	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+	sudo cp nimagetool ${INSTALL_DIR}/bin
 
 premake:
 	sudo apt-get install -y libjpeg-dev libpng-dev

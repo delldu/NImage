@@ -63,7 +63,7 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
-	mkdir -p ${INSTALL_DIR}/include/msgpack
-	cp include/* ${INSTALL_DIR}/include -R
-	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+	sudo mkdir -p ${INSTALL_DIR}/include/msgpack
+	sudo cp include/* ${INSTALL_DIR}/include -R
+	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 

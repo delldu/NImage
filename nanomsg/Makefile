@@ -181,7 +181,7 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
-	mkdir -p ${INSTALL_DIR}/include/nanomsg
-	cp src/*.h ${INSTALL_DIR}/include/nanomsg 
-	cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
+	sudo mkdir -p ${INSTALL_DIR}/include/nanomsg
+	sudo cp src/*.h ${INSTALL_DIR}/include/nanomsg 
+	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
 	

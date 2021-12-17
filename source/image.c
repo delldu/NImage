@@ -717,7 +717,6 @@ IMAGE *image_loadpng(char *fname)
 
 static int image_savepng(IMAGE * img, const char *filename)
 {
-	int i, j;
 	FILE *outfile;
 	png_struct *png_ptr = NULL;
 	png_info *info_ptr = NULL;
@@ -727,10 +726,10 @@ static int image_savepng(IMAGE * img, const char *filename)
 		return RET_ERROR;
 	}
 	// Save png alpha channel for display
-	if (img->format != IMAGE_MASK) {
+	int i, j;
+	if (img->format != IMAGE_MASK && img->K > 0) {
 		image_foreach(img, i, j) img->ie[i][j].a = 255;
 	}
-
 	if ((outfile = fopen(filename, "wb")) == NULL) {
 		syslog_error("Create file (%s).", filename);
 		return RET_ERROR;
