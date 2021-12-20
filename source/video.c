@@ -485,7 +485,6 @@ int video_eof(VIDEO * v)
 	return (!video_valid(v) || feof(v->_fp));
 }
 
-
 int video_encode(char *input_dir, char *output_file)
 {
 	FILE *fp;
