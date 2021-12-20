@@ -484,3 +484,49 @@ int video_eof(VIDEO * v)
 {
 	return (!video_valid(v) || feof(v->_fp));
 }
+
+
+int video_encode(char *input_dir, char *output_file)
+{
+	FILE *fp;
+	char buf[512], cmdline[2048];
+
+	// ffmpeg -i "$1" -vcodec avc -c:v h264 -preset slow -crf 11 -vf format=yuv420p -y "$2"
+	snprintf(cmdline, sizeof(cmdline) - 1, 
+		"ffmpeg -i %s/%%6d.png -vcodec avc -c:v h264 -preset slow -crf 11 -vf format=yuv420p -y %s",
+		input_dir, output_file);
+	if ((fp = popen(cmdline, "r")) == NULL) {
+		syslog_error("Open %s.", cmdline);
+		return RET_ERROR;
+	}
+	while (fgets(buf, sizeof(buf) - 1, fp)) {
+		syslog_info("%s", buf);
+	}
+	pclose(fp);
+
+	return RET_OK;
+}
+
+int video_decode(char *input_file, char *output_dir)
+{
+	FILE *fp;
+	char buf[512], cmdline[2048];
+
+	if (make_dir(output_dir) != RET_OK)
+		return RET_ERROR; 
+
+	// ffmpeg -i "$1" -q:v 2 -y "$2"
+	snprintf(cmdline, sizeof(cmdline) - 1, 
+		"ffmpeg -i %s -q:v 2 -y %s/%%6d.png", 
+		input_file, output_dir);
+	if ((fp = popen(cmdline, "r")) == NULL) {
+		syslog_error("Open %s.", cmdline);
+		return RET_ERROR;
+	}
+	while (fgets(buf, sizeof(buf) - 1, fp)) {
+		syslog_info("%s", buf);
+	}
+	pclose(fp);
+
+	return RET_OK;
+}

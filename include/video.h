@@ -95,6 +95,8 @@ extern "C" {
 // Video IDS: Instrusion Detection System
 	int video_ids(char *filename, int start, float threshold);
 
+	int video_encode(char *input_dir, char *output_file);
+	int video_decode(char *input_file, char *output_dir);
 
 #if defined(__cplusplus)
 }
