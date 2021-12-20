@@ -502,6 +502,7 @@ int video_encode(char *input_dir, char *output_file)
 		syslog_info("%s", buf);
 	}
 	pclose(fp);
+	file_chown(output_file, input_dir);
 
 	return RET_OK;
 }
@@ -512,7 +513,10 @@ int video_decode(char *input_file, char *output_dir)
 	char buf[512], cmdline[2048];
 
 	if (make_dir(output_dir) != RET_OK)
-		return RET_ERROR; 
+		return RET_ERROR;
+	else {
+		file_chown(output_dir, input_file);
+	} 
 
 	// ffmpeg -i "$1" -q:v 2 -y "$2"
 	snprintf(cmdline, sizeof(cmdline) - 1, 
