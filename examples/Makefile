@@ -17,20 +17,12 @@ INCS	:= -I/usr/local/include
 
 LIBS	:= \
 	-Wl,-Bstatic \
-	-lnimage \
+	-L ../ -lnimage \
 	-lnanomsg -lanl \
 	-lmsgpackc \
 	-ljpeg -lpng -lz \
 	-Wl,-Bdynamic \
 	-lpthread -lm
-
-
-# LIBS	:= \
-# 	-L.. -lnimage \
-# 	-lnanomsg -lanl \
-# 	-lmsgpackc \
-# 	-ljpeg -lpng \
-# 	-lpthread -lm
 
 DEFINES :=
 
