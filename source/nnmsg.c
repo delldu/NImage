@@ -214,7 +214,7 @@ int server_open(char *endpoint)
 	int max_recv_size = 256 * 1024 * 1024;	// 256 M
 
 	// sudo journalctl -u image.service -n 10
-	syslog_info("Start service on %s ...\n", endpoint);
+	syslog_info("Start service on %s ...", endpoint);
 
 	if ((socket = nn_socket(AF_SP, NN_REP)) < 0) {
 		syslog_error("nn_socket: error code = %d, message = %s", nn_errno(), nn_strerror(nn_errno()));
