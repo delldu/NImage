@@ -1,6 +1,6 @@
 /************************************************************************************
 ***
-***	Copyright 2020 Dell(18588220928g@163.com), All Rights Reserved.
+***	Copyright 2020 Dell(18588220928@163.com), All Rights Reserved.
 ***
 ***	File Author: Dell, 2020-11-22 13:18:11
 ***
