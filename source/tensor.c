@@ -87,7 +87,7 @@ void tensor_show(TENSOR * tensor)
 		printf("%.4f ", tensor->data[i]);
 	}
 	printf("... ");
-	for (i = n - show_numbers; i < n; i++) {
+	for (i = n - show_numbers; i >= 0 && i < n; i++) {
 		printf("%.4f ", tensor->data[i]);
 	}
 	printf("\n");
