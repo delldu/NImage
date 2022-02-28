@@ -14,8 +14,8 @@
 
 int tensor_valid(TENSOR * tensor)
 {
-	return (!tensor || tensor->batch < 1 || tensor->chan < 1 ||
-			tensor->height < 1 || tensor->width < 1 || tensor->magic != TENSOR_MAGIC)
+	return (!tensor || tensor->batch < 0 || tensor->chan < 0 ||
+			tensor->height < 0 || tensor->width < 0 || tensor->magic != TENSOR_MAGIC)
 		? 0 : 1;
 }
 
@@ -83,7 +83,7 @@ void tensor_show(TENSOR * tensor)
 
 	syslog_info("Tensor: %dx%dx%dx%d", tensor->batch, tensor->chan, tensor->height, tensor->width);
 	n = tensor->batch * tensor->chan * tensor->height * tensor->width;
-	for (i = 0; i < show_numbers; i++) {
+	for (i = 0; i < show_numbers && i < n; i++) {
 		printf("%.4f ", tensor->data[i]);
 	}
 	printf("... ");
