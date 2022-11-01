@@ -491,8 +491,11 @@ int video_encode(char *input_dir, char *output_file)
 	char buf[512], cmdline[2048];
 
 	// ffmpeg -i "$1" -vcodec avc -c:v h264 -preset slow -crf 11 -vf format=yuv420p -y "$2"
-	snprintf(cmdline, sizeof(cmdline) - 1, 
-		"ffmpeg -i %s/%%6d.png -vcodec avc -c:v h264 -preset slow -crf 11 -vf format=yuv420p -y %s",
+	// snprintf(cmdline, sizeof(cmdline) - 1, 
+	// 	"ffmpeg -i %s/%%6d.png -vcodec avc -c:v h264 -preset slow -crf 11 -vf format=yuv420p -y %s",
+	// 	input_dir, output_file);
+
+	snprintf(cmdline, sizeof(cmdline) - 1,  "ffmpeg -i %s/%%6d.png -vcodec png -y %s", 
 		input_dir, output_file);
 	if ((fp = popen(cmdline, "r")) == NULL) {
 		syslog_error("Open %s.", cmdline);
