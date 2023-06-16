@@ -7,13 +7,21 @@
 #************************************************************************************/
 #
 
-LIB_NAME := libnimage
-INSTALL_DIR := /usr/local
+LIBNAME := libnimage
+PKGCONFNAME=nimage.pc
+
+# Installation related variables and target
+PREFIX?=/usr/local
+INCLUDE_PATH?=include/nimage
+LIBRARY_PATH?=lib
+PKGCONF_PATH?=pkgconfig
+INSTALL_INCLUDE_PATH= $(PREFIX)/$(INCLUDE_PATH)
+INSTALL_LIBRARY_PATH= $(PREFIX)/$(LIBRARY_PATH)
+INSTALL_PKGCONF_PATH= $(INSTALL_LIBRARY_PATH)/$(PKGCONF_PATH)
+
 
 INCS	:= \
 	-Iinclude \
-	-Imsgpackc/include \
-	-Inanomsg/src/ \
 	-I/usr/local/include
 
 SOURCE :=  \
@@ -35,14 +43,12 @@ SOURCE :=  \
 	source/retinex.c \
 	source/histogram.c \
 	source/mask.c \
-	source/tensor.c \
-	source/nnmsg.c
+	source/tensor.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra
 LDFLAGS := -fPIC -ljpeg -lpng
  
-
 
 #****************************************************************************
 # Makefile code common to all platforms
@@ -56,11 +62,8 @@ OBJECTS := $(addsuffix .o,$(basename ${SOURCE}))
 #****************************************************************************
 all: premake staticlib
 
-sharelib: $(OBJECTS)
-	$(LD) $(LDFLAGS) -shared -soname $(LIB_NAME).so -o $(LIB_NAME).so $(OBJECTS)
-
 staticlib:$(OBJECTS)
-	$(AR) $(ARFLAGS) $(LIB_NAME).a $(OBJECTS)
+	$(AR) $(ARFLAGS) $(LIBNAME).a $(OBJECTS)
 
 
 #****************************************************************************
@@ -82,14 +85,13 @@ clean:
 	rm -rf *.a *.so *.o $(OBJECTS)
 
 install:
-	make -C msgpackc && make -C msgpackc install
-	make -C nanomsg && make -C nanomsg install
+	sudo mkdir -p ${INSTALL_INCLUDE_PATH}
+	sudo cp include/*.h ${INSTALL_INCLUDE_PATH}
+	sudo cp ${LIBNAME}.a ${INSTALL_LIBRARY_PATH}
 
-	sudo mkdir -p ${INSTALL_DIR}/include/nimage
-	sudo cp include/*.h ${INSTALL_DIR}/include/nimage 
-	sudo cp ${LIB_NAME}.a ${INSTALL_DIR}/lib
-	sudo cp nimagetool ${INSTALL_DIR}/bin
+	sudo mkdir -p ${INSTALL_PKGCONF_PATH}
+	sudo cp ${PKGCONFNAME} ${INSTALL_PKGCONF_PATH}
 
 premake:
-	sudo apt-get install -y libjpeg-dev libpng-dev
+	echo sudo apt-get install -y libjpeg-dev libpng-dev
 

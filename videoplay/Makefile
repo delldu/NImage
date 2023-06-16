@@ -13,20 +13,22 @@ TARGET := videoplay
 SOURCE :=  \
 	main.c \
 
-INCS	:= -I/usr/local/include
+# INCS	:= -I/usr/local/include
 
-LIBS	:= \
-	-Wl,-Bstatic \
-	-lnimage \
-	-lnanomsg -lanl \
-	-lmsgpackc \
-	-ljpeg -lpng -lz \
-	-Wl,-Bdynamic \
-	-lpthread -lm
+INCS	:= $(shell pkg-config nimage --cflags)
+
+LIBS	:= $(shell pkg-config nimage --libs)
+# LIBS	:= \
+# 	-Wl,-Bstatic \
+# 	-lnimage \
+# 	-lnanomsg -lanl \
+# 	-lmsgpackc \
+# 	-ljpeg -lpng -lz \
+# 	-Wl,-Bdynamic \
+# 	-lpthread -lm
 
 
 DEFINES :=
-
 CFLAGS := -O2 -fPIC -Wall -Wextra
 LDFLAGS := -fPIC
 
@@ -44,13 +46,12 @@ OBJECT := $(addsuffix .o,$(basename ${SOURCE}))
 all: ${TARGET}
 
 ${TARGET}: ${OBJECT}
-	${CC} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
+	${CXX} ${LDFLAGS} -o ${TARGET} ${OBJECT} ${LIBS}
 
 install:
 # 	${STRIP} ${TARGET}
 	sudo install -m 755 ${TARGET} ${INSTALL_DIR}/bin
-	sudo cp nimage.service /lib/systemd/system/
-	sudo systemctl daemon-reload
+
 
 
 #****************************************************************************
@@ -60,7 +61,7 @@ install:
 	${CXX} ${CXXFLAGS} ${INCS} -c $< -o $@
 
 %.o : %.c
-	${CC} ${CFLAGS} ${INCS} -c $< -o $@
+	${CXX} ${CFLAGS} ${INCS} -c $< -o $@
 
 #****************************************************************************
 # Depend block

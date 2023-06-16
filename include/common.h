@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include <arpa/inet.h>			// Suppot htonl, ntohl etc ...
+#include <arpa/inet.h> // Suppot htonl, ntohl etc ...
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -16,7 +16,7 @@ extern "C" {
 #include <string.h>
 #include <sys/time.h>
 #include <syslog.h>
-#include <syslog.h>				// syslog, RFC3164 ?
+#include <syslog.h> // syslog, RFC3164 ?
 #include <time.h>
 #include <unistd.h>
 
@@ -48,62 +48,65 @@ extern "C" {
 
 #define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 
-#define syslog_info(fmt, arg...) do { \
-  fprintf(stdout, "Info: " fmt "\n", ##arg); \
-  syslog(LOG_INFO, "Info: " fmt "\n", ##arg); \
-} while (0)
+#define syslog_info(fmt, arg...)                    \
+    do {                                            \
+        fprintf(stdout, "Info: " fmt "\n", ##arg);  \
+        syslog(LOG_INFO, "Info: " fmt "\n", ##arg); \
+    } while (0)
 
-#define syslog_debug(fmt, arg...) do { \
-  if (getenv("DEBUG")) fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-  else syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-} while (0)
+#define syslog_debug(fmt, arg...)                                                          \
+    do {                                                                                   \
+        if (getenv("DEBUG"))                                                               \
+            fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg);   \
+        else                                                                               \
+            syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+    } while (0)
 
-#define syslog_error(fmt, arg...) do { \
-  fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-  syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-} while (0)
-
+#define syslog_error(fmt, arg...)                                                    \
+    do {                                                                             \
+        fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+        syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+    } while (0)
 
 #define ARRAY_SIZE(x) (int)(sizeof(x) / sizeof(x[0]))
 
 // Big Enddian ..
-#define MAKE_FOURCC(a, b, c, d)                                                \
-  (((DWORD)(a) << 24) | ((DWORD)(b) << 16) | ((DWORD)(c) << 8) |               \
-   ((DWORD)(d) << 0))
+#define MAKE_FOURCC(a, b, c, d) \
+    (((DWORD)(a) << 24) | ((DWORD)(b) << 16) | ((DWORD)(c) << 8) | ((DWORD)(d) << 0))
 #define GET_FOURCC1(abcd) ((BYTE)(((abcd) >> 24) & 0xff))
 #define GET_FOURCC2(abcd) ((BYTE)(((abcd) >> 16) & 0xff))
 #define GET_FOURCC3(abcd) ((BYTE)(((abcd) >> 8) & 0xff))
 #define GET_FOURCC4(abcd) ((BYTE)(((abcd) >> 0) & 0xff))
 
-	typedef struct {
-		int r, c, h, w;
-	} RECT;
-#define rect_foreach(rect, i, j)                                               \
-  for (i = 0; i < (rect)->h; i++)                                              \
-    for (j = 0; j < (rect)->w; j++)
+typedef struct {
+    int r, c, h, w;
+} RECT;
+#define rect_foreach(rect, i, j)    \
+    for (i = 0; i < (rect)->h; i++) \
+        for (j = 0; j < (rect)->w; j++)
 
 // Time
-	TIME time_now();			// ms
-	void time_reset();
-	void time_spend(char *prompt);
+TIME time_now(); // ms
+void time_reset();
+void time_spend(char* prompt);
 
 // Space resize
-	void space_resize(int h, int w, int maxhw, int times, int *nh, int *nw);
+void space_resize(int h, int w, int maxhw, int times, int* nh, int* nw);
 
-// if lock success, return 1, else return 0 
-	int file_lock(char *endpoint);
+// if lock success, return 1, else return 0
+int file_lock(char* endpoint);
 
-	int file_exist(char *filename);
-	int file_size(char *filename);
-	char *file_load(char *filename, int *size);
-	int file_save(char *filename, char *buf, int size);
-  int file_chown(char *dfile, char *sfile);
-	int make_dir(char *dirname);
+int file_exist(char* filename);
+int file_size(char* filename);
+char* file_load(char* filename, int* size);
+int file_save(char* filename, char* buf, int size);
+int file_chown(char* dfile, char* sfile);
+int make_dir(char* dirname);
 
 // load data from tgz file
-	char *file_untar(char *tar_filename, char *file_name, int *file_size);
+char* file_untar(char* tar_filename, char* file_name, int* file_size);
 
 #if defined(__cplusplus)
 }
 #endif
-#endif							// _COMMON_H
+#endif // _COMMON_H
