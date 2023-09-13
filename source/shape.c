@@ -131,7 +131,7 @@ static void __canny_edgetrace(IMAGE* img, float hr, float lr)
     char* p = getenv("CANNY_EDGE_MIN_DOTS");
     int min_edge_dots = (p) ? atoi(p) : 4;
 
-    printf("CANNY_EDGE_MIN_DOTS = %d\n", min_edge_dots);
+    // printf("CANNY_EDGE_MIN_DOTS = %d\n", min_edge_dots);
 
     for (i = 1; i < (int)img->height - 1; i++) {
         for (j = 1; j < (int)img->width - 1; j++) {
