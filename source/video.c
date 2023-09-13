@@ -282,7 +282,7 @@ static int __video_play(VIDEO* video)
     while ((f = video_read(video)) != NULL && n < 25) {
         frame_toimage(f, edge);
 
-        shape_bestedge(edge);
+        shape_bestedge(edge, 0.4, 0.8);
         image_mcenter(edge, 'R', &r, &c);
         rect.w = rect.h = 20;
         rect.r = r - 10;

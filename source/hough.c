@@ -77,7 +77,7 @@ static int __hough_line(IMAGE* image, int threshold, int debug)
     endcol = matrix_create(2 * rmax, MAX_ANGLES);
     check_matrix(endcol);
     //  shape_midedge(image);
-    shape_bestedge(image);
+    shape_bestedge(image, 0.4, 0.8);
 
     image_foreach(image, i, j)
     {

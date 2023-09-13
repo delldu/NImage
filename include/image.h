@@ -193,7 +193,7 @@ int image_contour(IMAGE* img);
 int image_skeleton(IMAGE* img);
 // Middle value edge &  Canny edge
 int shape_midedge(IMAGE* img);
-int shape_bestedge(IMAGE* img);
+int shape_bestedge(IMAGE* img, float lr, float hr);
 
 // Hough Transform
 int line_detect(IMAGE* img, int debug);

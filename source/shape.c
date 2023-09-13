@@ -528,7 +528,7 @@ VECTOR* shape_vector(IMAGE* img, RECT* rect, int ndim)
     if (rect) {
         sub = image_subimg(img, rect);
         CHECK_IMAGE(sub);
-        shape_bestedge(sub);
+        shape_bestedge(sub, 0.4, 0.8);
         image_mcenter(sub, 'A', &crow, &ccol);
         image_foreach(sub, i, j)
         {
@@ -543,7 +543,7 @@ VECTOR* shape_vector(IMAGE* img, RECT* rect, int ndim)
         }
         image_destroy(sub);
     } else {
-        shape_bestedge(img);
+        shape_bestedge(img, 0.4, 0.8);
         image_mcenter(img, 'A', &crow, &ccol);
         image_foreach(img, i, j)
         {
@@ -697,25 +697,21 @@ int shape_midedge(IMAGE* img)
     return RET_OK;
 }
 
-int shape_bestedge(IMAGE* img)
+int shape_bestedge(IMAGE* img, float lr, float hr)
 {
     char* p;
     int i, j, ret;
-    float hr, lr;
 
     check_image(img);
-
     image_foreach(img, i, j) img->ie[i][j].r = image_getvalue(img, 'A', i, j);
 
     img->format = IMAGE_GRAY;
     image_gauss_filter(img, 2.0);
 
-    p = getenv("CANNY_EDGE_HI_THRESHOLD");
-    hr = (p) ? atof(p) : 0.80;
     p = getenv("CANNY_EDGE_LO_THRESHOLD");
-    lr = (p) ? atof(p) : 0.75;
-    printf("CANNY_EDGE_HI_THRESHOLD = %f, CANNY_EDGE_LO_THRESHOLD = %f\n", hr,
-        lr);
+    lr = (p) ? atof(p) : lr;
+    p = getenv("CANNY_EDGE_HI_THRESHOLD");
+    hr = (p) ? atof(p) : hr;
     ret = __canny_edge_detect(img, hr, lr);
     image_foreach(img, i, j)
     {
