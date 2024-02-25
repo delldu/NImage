@@ -671,14 +671,19 @@ IMAGE* image_loadpng(char* fname)
     for (row = 0; row < height; row++) {
         for (col = 0; col < width; col++) {
             if (bit_depth == 16) {
-                image->ie[row][col].r = (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
-                if (channels >= 2)
-                    image->ie[row][col].g = (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
-                if (channels >= 3)
-                    image->ie[row][col].b = (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                {
+                    image->ie[row][col].r = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
+                if (channels >= 2) {
+                    image->ie[row][col].g = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
+                if (channels >= 3) {
+                    image->ie[row][col].b = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
                 if (channels >= 4) {
-                    if (alpha_present)
-                        image->ie[row][col].a = (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                    if (alpha_present) {
+                        image->ie[row][col].a = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                    }
                 }
             } else {
                 image->ie[row][col].r = (BYTE)*pix_ptr++;

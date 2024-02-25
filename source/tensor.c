@@ -887,3 +887,104 @@ TENSOR* tensor_load(char* fname)
     fclose(fp);
     return tensor;
 }
+
+IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
+{
+    float *R, *G, *B, *A;
+    int i, j, k, bi, bj;
+
+    if (n < 1)
+        return NULL;
+
+    for (k = 0; k < n; k++)
+        CHECK_TENSOR(tensor[k]);
+
+    for (k = 1; k < n; k++) {
+        if (tensor[k]->chan != tensor[0]->chan || 
+            tensor[k]->height != tensor[0]->height ||
+            tensor[k]->width != tensor[0]->width) {
+            syslog_error("Channel/Height/Width of tensors is not same");
+            return NULL;
+        }
+    }
+    if (n_cols >= n)
+        n_cols = n;
+
+    int n_rows = (int)((n + n_cols - 1) / n_cols);
+    IMAGE *image = image_create(n_rows * tensor[0]->height, n_cols * tensor[0]->width);
+    CHECK_IMAGE(image);
+
+    for (k = 0; k < n; k++) {
+        bi = (int)(k/n_cols) * tensor[k]->height;
+        bj = (k % n_cols) * tensor[k]->width;
+
+        R = tensor[k]->data;
+        G = R + tensor[k]->height * tensor[k]->width;
+        B = G + tensor[k]->height * tensor[k]->width;
+        A = B + tensor[k]->height * tensor[k]->width;
+
+        for (i = 0; i < tensor[k]->height; i++) {
+            for (j = 0; j < tensor[k]->width; j++) {
+                image->ie[bi + i][bj + j].r = (BYTE)((*R++) * 255);
+            }
+        }
+
+        if (tensor[k]->chan >= 2) {
+            for (i = 0; i < tensor[k]->height; i++) {
+                for (j = 0; j < tensor[k]->width; j++) {
+                    image->ie[bi + i][bj + j].g = (BYTE)((*G++) * 255);
+                }
+            }
+        }
+
+        if (tensor[k]->chan >= 3) {
+            for (i = 0; i < tensor[k]->height; i++) {
+                for (j = 0; j < tensor[k]->width; j++) {
+                    image->ie[bi + i][bj + j].b = (BYTE)((*B++) * 255);
+                }
+            }
+        }
+
+        if (tensor[k]->chan >= 4) {
+            for (i = 0; i < tensor[k]->height; i++) {
+                for (j = 0; j < tensor[k]->width; j++) {
+                    image->ie[bi + i][bj + j].a = (BYTE)((*A++) * 255);
+                }
+            }
+        }
+    }
+
+    return image;
+}
+
+int tensor_saveas_oneimage(TENSOR *tensor1, TENSOR *tensor2, char *filename)
+{
+    IMAGE *image = NULL;
+    TENSOR *tensors[2];
+    int max_height, max_width;
+
+    if (tensor1->chan != tensor2->chan) {
+        syslog_error("Tensor1/Tensor2 channel is not same");
+        return RET_ERROR;
+    }
+
+    if (tensor1->height == tensor2->height && tensor1->width == tensor2->width) {
+        tensors[0] = tensor1;
+        tensors[1] = tensor2;
+        image = tensor_grid_image(ARRAY_SIZE(tensors), tensors, 2 /*n_cols*/);
+    } else {
+        max_height = MAX(tensor1->height, tensor2->height);
+        max_width = MAX(tensor1->width, tensor2->width);
+        tensors[0] = tensor_zoom(tensor1, max_height, max_width);
+        tensors[1] = tensor_zoom(tensor2, max_height, max_width);
+        image = tensor_grid_image(ARRAY_SIZE(tensors), tensors, 2 /*n_cols*/);
+        tensor_destroy(tensors[0]);
+        tensor_destroy(tensors[1]);
+    }
+
+    check_image(image);
+    image_save(image, filename);
+    image_destroy(image);
+
+    return RET_OK;
+}

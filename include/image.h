@@ -287,6 +287,8 @@ IMAGE* image_from_tensor(TENSOR* tensor, int k);
 TENSOR* tensor_from_image(IMAGE* image, int with_alpha);
 TENSOR* tensor_load_image(char* filename, int with_alpha);
 int tensor_saveas_image(TENSOR* tensor, int k, char* filename);
+IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols);
+int tensor_saveas_oneimage(TENSOR *tensor1, TENSOR *tensor2, char *filename);
 
 TENSOR* tensor_rgb2lab(IMAGE* image);
 IMAGE* tensor_lab2rgb(TENSOR* tensor, int k);
