@@ -10,32 +10,34 @@
 #include "image.h"
 #include "matrix.h"
 
+#define GRID_MAX_BLOCKS 16
 #define TENSOR_MAGIC MAKE_FOURCC('T', 'E', 'N', 'S')
 
 int tensor_valid(TENSOR* tensor)
 {
-    return (!tensor || tensor->batch < 0 || tensor->chan < 0 || tensor->height < 0 || tensor->width < 0 || tensor->magic != TENSOR_MAGIC)
-        ? 0
-        : 1;
+    return (!tensor || tensor->batch < 0 || tensor->chan < 0 || tensor->height < 0 || tensor->width < 0 
+        || tensor->magic != TENSOR_MAGIC) ? 0 : 1;
 }
 
 TENSOR* tensor_create(int b, int c, int h, int w)
 {
     TENSOR* t;
 
-    BYTE* base = (BYTE*)calloc((size_t)1, sizeof(TENSOR) + b * c * h * w * sizeof(float));
-    if (!base) {
+    t = (TENSOR *)calloc((size_t)1, sizeof(TENSOR));
+    if (t == NULL) {
         syslog_error("Allocate memeory.");
         return NULL;
     }
-    t = (TENSOR*)base;
-
+    t->data = (float *)calloc((size_t) b*c*h*w, sizeof(float));
+    if (t->data == NULL) {
+        syslog_error("Allocate memeory.");
+        return NULL;
+    }
     t->magic = TENSOR_MAGIC;
     t->batch = b;
     t->chan = c;
     t->height = h;
     t->width = w;
-    t->data = (float*)(base + sizeof(TENSOR));
 
     return t;
 }
@@ -78,13 +80,32 @@ TENSOR* tensor_copy(TENSOR* src)
     return dst;
 }
 
-void tensor_show(TENSOR* tensor)
+void tensor_show(char *prompt, TENSOR* tensor)
 {
     int i, n, show_numbers = 10;
 
-    syslog_info("Tensor: %dx%dx%dx%d", tensor->batch, tensor->chan,
+    syslog_info("%s Tensor: %dx%dx%dx%d", prompt, tensor->batch, tensor->chan,
         tensor->height, tensor->width);
     n = tensor->batch * tensor->chan * tensor->height * tensor->width;
+
+    // min, max, mean
+    {
+        double d;
+        float min, max, mean;
+
+        d = 0.0;
+        min = tensor->data[0];
+        max = tensor->data[0];
+        for (i = 0; i < n; i++) {
+            d += tensor->data[i];
+            min = MIN(min, tensor->data[i]);
+            max = MAX(max, tensor->data[i]);
+        }
+        d /= n;
+        mean = (float)d;
+        printf("min: %.4f, max: %.4f, mean: %.4f\n", min, max, mean);
+    }
+
     for (i = 0; i < show_numbers && i < n; i++) {
         printf("%.4f ", tensor->data[i]);
     }
@@ -99,6 +120,9 @@ void tensor_destroy(TENSOR* tensor)
 {
     if (!tensor_valid(tensor))
         return;
+
+    if (tensor->data)
+        free(tensor->data);
 
     free(tensor);
 }
@@ -266,9 +290,6 @@ TENSOR* tensor_zeropad(TENSOR* source, int nh, int nw)
             for (i = 0; i < source->height && i < nh; i++) {
                 s_row = tensor_start_row(source, b, c, i);
                 d_row = tensor_start_row(destion, b, c, i);
-                // int j;
-                // for (j = 0; j < source->width && j < nw; j++)
-                // 	d_row[j] = s_row[j];
                 memcpy(d_row, s_row, MIN(source->width, nw) * sizeof(float));
             }
         }
@@ -891,17 +912,20 @@ TENSOR* tensor_load(char* fname)
 IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
 {
     float *R, *G, *B, *A;
-    int i, j, k, bi, bj;
+    int i, j, k, bi, bj, min_chan;
 
     if (n < 1)
         return NULL;
 
-    for (k = 0; k < n; k++)
+    min_chan = 1024;
+    for (k = 0; k < n; k++) {
         CHECK_TENSOR(tensor[k]);
+        if (tensor[k]->chan < min_chan)
+            min_chan = tensor[k]->chan;
+    }
 
     for (k = 1; k < n; k++) {
-        if (tensor[k]->chan != tensor[0]->chan || 
-            tensor[k]->height != tensor[0]->height ||
+        if (tensor[k]->height != tensor[0]->height ||
             tensor[k]->width != tensor[0]->width) {
             syslog_error("Channel/Height/Width of tensors is not same");
             return NULL;
@@ -929,7 +953,7 @@ IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
             }
         }
 
-        if (tensor[k]->chan >= 2) {
+        if (min_chan >= 2) {
             for (i = 0; i < tensor[k]->height; i++) {
                 for (j = 0; j < tensor[k]->width; j++) {
                     image->ie[bi + i][bj + j].g = (BYTE)((*G++) * 255);
@@ -937,7 +961,7 @@ IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
             }
         }
 
-        if (tensor[k]->chan >= 3) {
+        if (min_chan >= 3) {
             for (i = 0; i < tensor[k]->height; i++) {
                 for (j = 0; j < tensor[k]->width; j++) {
                     image->ie[bi + i][bj + j].b = (BYTE)((*B++) * 255);
@@ -945,10 +969,16 @@ IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
             }
         }
 
-        if (tensor[k]->chan >= 4) {
+        if (min_chan >= 4) {
             for (i = 0; i < tensor[k]->height; i++) {
                 for (j = 0; j < tensor[k]->width; j++) {
                     image->ie[bi + i][bj + j].a = (BYTE)((*A++) * 255);
+                }
+            }
+        } else {
+            for (i = 0; i < tensor[k]->height; i++) {
+                for (j = 0; j < tensor[k]->width; j++) {
+                    image->ie[bi + i][bj + j].a = (BYTE)255;
                 }
             }
         }
@@ -957,34 +987,91 @@ IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols)
     return image;
 }
 
-int tensor_saveas_oneimage(TENSOR *tensor1, TENSOR *tensor2, char *filename)
+int tensor_saveas_grid(int n, TENSOR *tensor[], char *filename)
 {
     IMAGE *image = NULL;
-    TENSOR *tensors[2];
-    int max_height, max_width;
+    TENSOR *temp_tensors[GRID_MAX_BLOCKS];
+    int max_height, max_width, n_cols;
 
-    if (tensor1->chan != tensor2->chan) {
-        syslog_error("Tensor1/Tensor2 channel is not same");
+    if (n < 1)
         return RET_ERROR;
+    if (n > GRID_MAX_BLOCKS)
+        n = GRID_MAX_BLOCKS;
+
+    // n_cols * n_cols >= n;
+    n_cols = (int)sqrt(n);
+    if (n > n_cols * n_cols)
+        n_cols++;
+
+    max_height = tensor[0]->height;
+    max_width = tensor[0]->width;
+    for (int k = 1; k < n; k++) {
+        if (tensor[k]->height > max_height)
+            max_height = tensor[k]->height;
+        if (tensor[k]->width > max_width)
+            max_width = tensor[k]->width;
     }
 
-    if (tensor1->height == tensor2->height && tensor1->width == tensor2->width) {
-        tensors[0] = tensor1;
-        tensors[1] = tensor2;
-        image = tensor_grid_image(ARRAY_SIZE(tensors), tensors, 2 /*n_cols*/);
-    } else {
-        max_height = MAX(tensor1->height, tensor2->height);
-        max_width = MAX(tensor1->width, tensor2->width);
-        tensors[0] = tensor_zoom(tensor1, max_height, max_width);
-        tensors[1] = tensor_zoom(tensor2, max_height, max_width);
-        image = tensor_grid_image(ARRAY_SIZE(tensors), tensors, 2 /*n_cols*/);
-        tensor_destroy(tensors[0]);
-        tensor_destroy(tensors[1]);
+    // Allocate temp_tensors ...
+    for (int k = 0; k < n; k++) {
+        if (tensor[k]->height != max_height || tensor[k]->width != max_width) {
+            temp_tensors[k] = tensor_zoom(tensor[k], max_height, max_width);
+        } else {
+            temp_tensors[k] = tensor[k];
+        }
+    }
+
+    image = tensor_grid_image(n, temp_tensors, n_cols);
+
+    // Clean temp_tensors ...
+    for (int k = 0; k < n; k++) {
+        if (tensor[k]->height != max_height || tensor[k]->width != max_width) {
+            tensor_destroy(temp_tensors[k]);
+        }
     }
 
     check_image(image);
     image_save(image, filename);
     image_destroy(image);
+
+    return RET_OK;
+}
+
+int tensor_resizepad_(TENSOR *x, int max_h, int max_w, int max_times)
+{
+    float s;
+    int nh, nw;
+
+    check_tensor(x);
+
+    // s * h <= max_h ==> s <= max_h/h
+    s = MIN((float)max_h/(float)x->height, (float)max_w/(float)x->width);
+    s = MIN(s, 1.0); // NOT zoom in !!!
+    nh = (int)(s * x->height);
+    nw = (int)(s * x->width);
+
+    // Need pad ?
+    nh = (nh + max_times - 1)/max_times;
+    nh *= max_times;
+    nw = (nw + max_times - 1)/max_times;
+    nw *= max_times;
+
+    // At least 4*times, NOT too small for out vision applications !!!
+    nh = MAX(nh, 4*max_times);
+    nw = MAX(nw, 4*max_times);
+
+    // Resize and pad ?
+    if (nh == x->height && nw == x->width)
+        return RET_OK;
+
+    TENSOR *t = tensor_zoom(x, nh, nw);
+    check_tensor(t);
+
+    free(x->data);
+    x->data = t->data;
+    x->height = nh;
+    x->width = nw;
+    free(t);
 
     return RET_OK;
 }

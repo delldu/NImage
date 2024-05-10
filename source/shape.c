@@ -37,22 +37,23 @@ void dot_put(int r, int c)
     }
 }
 
-static int __matrix_8connect(MATRIX* mat, int r, int c)
+static int dot_compare(const void * a, const void * b)
 {
-    int k, sum = 0;
-    int nb[8][2] = { { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 },
-        { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 } };
-    int e[9];
+    DOT *dot_a = (DOT *)a;
+    DOT *dot_b = (DOT *)b;
 
-    for (k = 0; k < 8; k++)
-        e[k] = ABS(mat->me[r + nb[k][0]][c + nb[k][1]]) > MIN_FLOAT_NUMBER ? 0 : 1;
+    if (dot_a->r == dot_b->r)
+        return dot_a->c - dot_b->c;
 
-    e[8] = e[0];
-    for (k = 0; k < 8; k += 2)
-        sum += e[k] - e[k] * e[k + 1] * e[k + 2];
-
-    return sum;
+    return dot_a->r - dot_b->r;
 }
+
+void dot_sort()
+{
+    DOTS *s = dot_set();
+    qsort(s->dot, sizeof(DOT), s->count, dot_compare);
+}
+
 
 static int __higher_cross(char orgb, IMAGE* img, int i, int j, int mid_thr)
 {
@@ -104,20 +105,20 @@ static int __canny_histsumv(IMAGE* img, float hirate)
 static void __canny_8nbtrace(IMAGE* img, int i, int j, int lowthreashold)
 {
     // 8- neighbour coordinations
-    static int jnhs[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
-    static int inhs[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+    static int jnbs[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+    static int inbs[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 
     if (i < 1 || i >= (int)img->height - 1 || j < 1 || j >= (int)img->width - 1)
         return;
 
-    int ii, jj, k;
+    int r, c, k;
     for (k = 0; k < 8; k++) {
-        ii = i + inhs[k];
-        jj = j + jnhs[k];
-        if (img->ie[ii][jj].b == 128 && img->ie[ii][jj].g >= lowthreashold) {
-            img->ie[ii][jj].b = 255;
-            dot_put(ii, jj);
-            __canny_8nbtrace(img, ii, jj, lowthreashold);
+        r = i + inbs[k];
+        c = j + jnbs[k];
+        if (img->ie[r][c].b == 128 && img->ie[r][c].g >= lowthreashold) {
+            img->ie[r][c].b = 255;
+            dot_put(r, c);
+            __canny_8nbtrace(img, r, c, lowthreashold);
         }
     }
 }
@@ -137,7 +138,7 @@ static void __canny_edgetrace(IMAGE* img, float hr, float lr)
         for (j = 1; j < (int)img->width - 1; j++) {
             if (img->ie[i][j].b != 128 || img->ie[i][j].g < hithreshold)
                 continue;
-            dots->count = 0;
+            dots->count = 0; // clear dots
             img->ie[i][j].b = 255;
             dot_put(i, j);
             __canny_8nbtrace(img, i, j, lothreshold);
@@ -231,81 +232,6 @@ static int __canny_edge_detect(IMAGE* img, float hr, float lr)
     return RET_OK;
 }
 
-// Make sure mat is valid, for 3x3 template, center is (1,1), ndim is 3
-static int __temp_match(MATRIX* mat, int r, int c, int ndim, int* temp)
-{
-    int i, j, dim, d, g;
-
-    dim = ndim / 2; // template center is (dim, dim)
-    if (r < dim || r > mat->m - 1 - dim || c < dim || c > mat->n - 1 - dim)
-        return 0;
-
-    for (i = -dim; i <= dim; i++) {
-        for (j = -dim; j <= dim; j++) {
-            d = temp[(i + dim) * ndim + (j + dim)];
-            if (d == 0)
-                continue;
-            g = (int)mat->me[r + i][c + j];
-            if (g == 0)
-                return 0;
-        }
-    }
-
-    return 1;
-}
-
-static int __skeleton_sort(MATRIX* mat)
-{
-    int i, j;
-    int needrepeat;
-    int ts0[9] = { 0, 0, 1, 0, 1, 0, 0, 0, 1 }; // ==> '<'
-    int ts2[9] = { 1, 0, 1, 0, 1, 0, 0, 0, 0 }; // ==> 'v'
-    int ts4[9] = { 1, 0, 0, 0, 1, 0, 1, 0, 0 }; // ==> '>'
-    int ts6[9] = { 0, 0, 0, 0, 1, 0, 1, 0, 1 }; // ==> 'A'
-    int to[9] = { 0, 1, 0, 1, 0, 1, 0, 1, 1 }; // ==> 'O'      // ring
-
-    // Cut isolate and end points
-    do {
-        needrepeat = 0;
-
-        for (i = 1; i < mat->m - 1; i++) {
-            for (j = 1; j < mat->n - 1; j++) {
-                if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) >= MIN_FLOAT_NUMBER)
-                    continue;
-                if (__matrix_8connect(mat, i, j) <= 1) {
-                    mat->me[i][j] = 0;
-                    needrepeat = 1;
-                }
-            }
-        }
-    } while (needrepeat);
-
-    for (i = 1; i < mat->m - 1; i++) {
-        for (j = 1; j < mat->n - 1; j++) {
-            // Break ring !!!
-            if (__temp_match(mat, i, j, 3, to)) // 3x3 'O'
-                mat->me[i][j + 1] = 0;
-
-            if (ABS(mat->me[i][j] - MAYBE_SKELETON_COLOR) < MIN_FLOAT_NUMBER)
-                continue;
-            if (__temp_match(mat, i, j, 3, ts0)) { // 3x3 '<'
-                mat->me[i][j] = 0;
-                mat->me[i][j + 1] = MAYBE_SKELETON_COLOR;
-            } else if (__temp_match(mat, i, j, 3, ts2)) { // 3x3 'v'
-                mat->me[i][j] = 0;
-                mat->me[i - 1][j] = MAYBE_SKELETON_COLOR;
-            } else if (__temp_match(mat, i, j, 3, ts4)) { // 3x3 '>'
-                mat->me[i][j] = 0;
-                mat->me[i][j - 1] = MAYBE_SKELETON_COLOR;
-            } else if (__temp_match(mat, i, j, 3, ts6)) { // 3x3 'A'
-                mat->me[i][j] = 0;
-                mat->me[i + 1][j] = MAYBE_SKELETON_COLOR;
-            }
-        }
-    }
-
-    return RET_OK;
-}
 
 static int __contour_border(MATRIX* mat, int r, int c)
 {
@@ -359,110 +285,6 @@ static int __matrix_contour(MATRIX* mat)
     matrix_destroy(copy);
 
     return height;
-}
-
-static void __skeleton_trace(MATRIX* mat, MATRIX* label, int r, int c)
-{
-    int max, k, n, e[8];
-    static int nb[8][2] = { { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 },
-        { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 } };
-
-    if ((int)label->me[r][c] == 255) // Traced ?
-        return;
-
-    label->me[r][c] = 255.0f; // mark (r,c) as trace point
-
-    if (r < 1 || r >= label->m - 1 || c < 1 || c >= label->n - 1)
-        return;
-
-    // balance ?
-    if ((int)mat->me[r][c - 1] == (int)mat->me[r][c + 1] && (int)mat->me[r - 1][c] == (int)mat->me[r + 1][c])
-        return;
-
-    // Calculate energy, find max energy points, maybe >= 2
-    for (k = 0; k < 4; k++) {
-        n = (int)(mat->me[r][c] - mat->me[r + nb[2 * k][0]][c + nb[2 * k][1]]);
-        e[2 * k] = (n > 0) ? n : 0;
-    }
-    e[1] = e[0] + e[2];
-    e[3] = e[2] + e[4];
-    e[5] = e[4] + e[6];
-    e[7] = e[6] + e[0];
-    max = e[0];
-    for (k = 1; k < 8; k++) {
-        if (e[k] > max)
-            max = e[k];
-    }
-    if (max <= 1) // Power is not big enough !
-        return;
-    for (k = 0; k < 8; k++) {
-        if (e[k] == max && ABS(mat->me[r][c] - mat->me[r + nb[k][0]][c + nb[k][1]] - 1) < MIN_FLOAT_NUMBER)
-            __skeleton_trace(mat, label, r + nb[k][0], c + nb[k][1]);
-    }
-}
-
-static int __sharp_angle(MATRIX* mat, int r, int c)
-{
-    int k, s, e, level;
-    static int nb[8][2] = { { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 },
-        { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 } };
-
-    level = (int)mat->me[r][c];
-    if (level < 2) // energy should be power enough
-        return 0;
-
-    s = 8;
-    e = 0;
-    for (k = 0; k < 8; k++) {
-        if ((int)mat->me[r + nb[k][0]][c + nb[k][1]] == level) {
-            s = k;
-            break;
-        }
-    }
-    for (k = s + 1; k < 8; k++) {
-        if ((int)mat->me[r + nb[k][0]][c + nb[k][1]] == level) {
-            e = k;
-            break;
-        }
-    }
-    return k = (e - s) > 0 && (e - s) != 4;
-}
-
-// Make sure mat's fg is 255 and bg is 0
-static int __skeleton_matrix(MATRIX* mat)
-{
-    int i, j, height;
-    MATRIX* contmat; // contour matrix
-
-    check_matrix(mat);
-    contmat = matrix_copy(mat);
-    check_matrix(contmat);
-    height = __matrix_contour(contmat);
-
-    matrix_clear(mat);
-    if (height >= 1) {
-        for (i = 1; i < mat->m - 1; i++) {
-            for (j = 1; j < mat->n - 1; j++) {
-                if (__sharp_angle(contmat, i, j))
-                    mat->me[i][j] = MAYBE_SKELETON_COLOR;
-            }
-        }
-        __skeleton_sort(mat);
-        for (i = 1; i < mat->m - 1; i++) {
-            for (j = 1; j < mat->n - 1; j++) {
-                if (matrix_localmax(contmat, i, j)) //  mat->me[i][j] = 255;
-                    __skeleton_trace(contmat, mat, i, j);
-            }
-        }
-        matrix_foreach(mat, i, j)
-        {
-            if ((int)mat->me[i][j] != 255)
-                mat->me[i][j] = 0;
-        }
-    }
-    matrix_destroy(contmat);
-
-    return RET_OK;
 }
 
 // Carte to polar coordinate
@@ -637,32 +459,76 @@ int image_contour(IMAGE* img)
     return RET_OK;
 }
 
-int image_skeleton(IMAGE* img)
+// Binary image thinning in-place with Zhang-Suen algorithm.
+static int __thinning_step(IMAGE *image, int iter)
 {
-    int i, j, n, ret;
-    MATRIX* mat;
+    int i, j;
+    int need_check_more = 0;
 
-    check_image(img);
-    mat = matrix_create(img->height, img->width);
-    check_matrix(mat);
+    for (i = 1; i < image->height - 1; i++) {
+        for (j = 1; j < image->width - 1; j++) {
+            int p2 = image->ie[i - 1][j].a & 1;
+            int p3 = image->ie[i - 1][j + 1].a & 1;
+            int p4 = image->ie[i][j + 1].a & 1;
+            int p5 = image->ie[i + 1][j + 1].a & 1;
+            int p6 = image->ie[i + 1][j].a & 1;
+            int p7 = image->ie[i + 1][j - 1].a & 1;
+            int p8 = image->ie[i][j - 1].a & 1;
+            int p9 = image->ie[i - 1][j - 1].a & 1;
 
-    // Convert image to bitmap on channel 'A'
-    n = color_midval(img, 'A');
+            int A = (p2 == 0 && p3 == 1) + (p3 == 0 && p4 == 1) 
+                + (p4 == 0 && p5 == 1) + (p5 == 0 && p6 == 1) + (p6 == 0 && p7 == 1) 
+                + (p7 == 0 && p8 == 1) + (p8 == 0 && p9 == 1) + (p9 == 0 && p2 == 1);
 
-    image_foreach(img, i, j) mat->me[i][j] = (image_getvalue(img, 'A', i, j) < n) ? 0 : 255;
-    ret = __skeleton_matrix(mat);
+            int B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+            int m1 = iter == 0 ? (p2 * p4 * p6) : (p2 * p4 * p8);
+            int m2 = iter == 0 ? (p4 * p6 * p8) : (p2 * p6 * p8);
 
-    // Save skeleton
-    image_foreach(img, i, j)
-    {
-        if ((int)mat->me[i][j])
-            img->ie[i][j].r = img->ie[i][j].g = img->ie[i][j].b = 255;
-        else
-            img->ie[i][j].r = img->ie[i][j].g = img->ie[i][j].b = 0;
+            if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
+                image->ie[i][j].a |= 2;
+        }
     }
-    matrix_destroy(mat);
 
-    return ret;
+    image_foreach(image, i, j) {
+        int marker = image->ie[i][j].a >> 1;
+        int old = image->ie[i][j].a & 1;
+        image->ie[i][j].a = old & (!marker);
+
+        if (image->ie[i][j].a != old)
+            need_check_more = 1;
+    }
+
+    return need_check_more;
+};
+
+// https://github.com/LingDong-/skeleton-tracing
+int image_skeleton(IMAGE* image)
+{
+    BYTE n;
+    int i, j;
+
+    check_image(image);
+
+    // Save bitmap to channel A ...
+    image_foreach(image, i, j) {
+        color_rgb2gray(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b, &n);
+        image->ie[i][j].a = (n > 128)? 1 : 0;
+    }
+
+    int need_check_more = 1;
+    do {
+        // Stage 1
+        need_check_more &= __thinning_step(image, 0);
+        // Stage 2
+        need_check_more &= __thinning_step(image, 1);
+    } while (need_check_more);
+
+    // Save results ...
+    image_foreach(image, i, j) {
+        image->ie[i][j].a = (image->ie[i][j].a > 0)? 255 : 0;
+    }
+
+    return RET_OK;
 }
 
 // Middle value edge detection
@@ -722,4 +588,129 @@ int shape_bestedge(IMAGE* img, float lr, float hr)
     }
 
     return ret;
+}
+
+
+IMAGE *image_get_connected(IMAGE *image)
+{
+    int i, j, r, c, k, nr, nc;
+    static int inbs[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+    static int jnbs[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+    DOTS *ds = dot_set();
+
+    CHECK_IMAGE(image);
+
+    image_foreach(image, i, j) {
+        if (image->ie[i][j].a == 0)
+            continue;
+
+        IMAGE *outimg = image_copy(image);
+        CHECK_IMAGE(outimg);
+
+        image_foreach(outimg, r, c) {
+            outimg->ie[r][c].a = 0;
+        }
+
+        // Start trace ...
+        ds->count = 0;
+        dot_put(i, j); // push stack
+        while(ds->count > 0) {
+            // pop stack
+            ds->count--; 
+            r = ds->dot[ds->count].r;
+            c = ds->dot[ds->count].c;
+
+            // output r, c
+            outimg->ie[r][c].a = 255;
+            image->ie[r][c].a = 0; // clear avoid loop check
+
+            // Check nb of (r, c)
+            for (k = 0; k < 8; k++) {
+                nr = r + inbs[k];
+                nc = c + jnbs[k];
+
+                if (image->ie[nr][nc].a > 0)
+                    dot_put(nr, nc);
+            }
+        }
+
+        // return for next
+        return outimg; 
+    }
+
+    return NULL; // not found connected ...
+}
+
+int image_parse_arrow(IMAGE *image, int *start_row, int *start_col, int *stop_row, int *stop_col)
+{
+    RECT rect;
+    int weight[4]; // top_left, top_right, bottom_left, bottom_righ;
+    int i, j, r1, c1, r2, c2;
+
+    check_image(image);
+    r1 = image->height; c1 = image->width;
+    r2 = 0; c2 = 0;
+    image_foreach(image, i, j) {
+        if (image->ie[i][j].a == 0)
+            continue;
+
+        r1 = MIN(i, r1); c1 = MIN(j, c1);
+        r2 = MAX(i, r2); c2 = MAX(j, c2);
+    }
+    rect.r = r1; rect.h = r2 - r1;
+    rect.c = c1; rect.w = c2 - c1;
+
+    /*************************************************************
+     * Weight layout 
+     *  0 | 1
+     *  2 | 3
+    *************************************************************/
+    weight[0] = weight[1] = weight[2] = weight[3] = 0;
+    rect_foreach(&rect, i, j)
+    {
+        if (image->ie[rect.r + i][rect.c + j].r == 0)
+            continue;
+        if (i < rect.h/2) { //top
+            if (j < rect.w/2) {
+                weight[0]++;
+            } else {
+                weight[1]++;
+            }
+        } else { // bottom
+            if (j < rect.w/2)
+                weight[2]++;
+            else
+                weight[3]++;
+        }
+    }
+
+    *start_row = rect.r + rect.h/2;
+    *start_col = rect.c + rect.w/2;
+
+    if (weight[0] >= weight[1] && weight[0] >= weight[2] && weight[0] >= weight[3]) {
+        // weight[0] 
+        *stop_row = rect.r;
+        *stop_col = rect.c;
+    }
+    if (weight[1] >= weight[0] && weight[1] >= weight[2] && weight[1] >= weight[3]) {
+        // weight[1] 
+        *stop_row = rect.r;
+        *stop_col = rect.c + rect.w;
+    }
+    if (weight[2] >= weight[0] && weight[2] >= weight[1] && weight[2] >= weight[3]) {
+        // weight[2] 
+        *stop_row = rect.r + rect.h;
+        *stop_col = rect.c;
+    }
+    if (weight[3] >= weight[0] && weight[3] >= weight[1] && weight[3] >= weight[2]) {
+        // weight[3] 
+        *stop_row = rect.r + rect.h;
+        *stop_col = rect.c + rect.w;
+    }
+
+    // extend vector from center 
+    *start_row = *start_row - (*stop_row - *start_row);
+    *start_col = *start_col - (*stop_col - *start_col);
+
+    return RET_OK;
 }

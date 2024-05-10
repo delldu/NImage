@@ -288,11 +288,16 @@ TENSOR* tensor_from_image(IMAGE* image, int with_alpha);
 TENSOR* tensor_load_image(char* filename, int with_alpha);
 int tensor_saveas_image(TENSOR* tensor, int k, char* filename);
 IMAGE *tensor_grid_image(int n, TENSOR *tensor[], int n_cols);
-int tensor_saveas_oneimage(TENSOR *tensor1, TENSOR *tensor2, char *filename);
+int tensor_saveas_grid(int n, TENSOR *tensor[], char *filename);
 
 TENSOR* tensor_rgb2lab(IMAGE* image);
 IMAGE* tensor_lab2rgb(TENSOR* tensor, int k);
 int tensor_setmask(TENSOR* tensor, float mask);
+
+
+IMAGE *image_get_connected(IMAGE *image);
+int image_parse_arrow(IMAGE *image, int *start_row, int *start_col, int *stop_row, int *stop_col);
+
 
 #if defined(__cplusplus)
 }

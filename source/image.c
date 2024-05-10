@@ -64,6 +64,7 @@ static void __draw_hline(IMAGE* img, int* x, int* y, int run_length,
         img->ie[*y][*x + (i * x_advance)].r = r;
         img->ie[*y][*x + (i * x_advance)].g = g;
         img->ie[*y][*x + (i * x_advance)].b = b;
+        img->ie[*y][*x + (i * x_advance)].a = 255;
     }
 
     *x += run_length * x_advance;
@@ -82,6 +83,7 @@ static void __draw_vline(IMAGE* img, int* x, int* y, int run_length,
         img->ie[*y + i][*x].r = r;
         img->ie[*y + i][*x].g = g;
         img->ie[*y + i][*x].b = b;
+        img->ie[*y + i][*x].a = 255;
     }
 
     *x += x_advance;
@@ -999,6 +1001,7 @@ int image_drawline(IMAGE* img, int r1, int c1, int r2, int c2, int color)
             img->ie[r1 + i][c1].r = r;
             img->ie[r1 + i][c1].g = g;
             img->ie[r1 + i][c1].b = b;
+            img->ie[r1 + i][c1].a = 255;
         }
         return RET_OK;
     }
@@ -1009,12 +1012,14 @@ int image_drawline(IMAGE* img, int r1, int c1, int r2, int c2, int color)
                 img->ie[r1][c1 - i].r = r;
                 img->ie[r1][c1 - i].g = g;
                 img->ie[r1][c1 - i].b = b;
+                img->ie[r1][c1 - i].a = 255;
             }
         } else {
             for (i = 0; i <= x_delta; i += x_advance) {
                 img->ie[r1][c1 + i].r = r;
                 img->ie[r1][c1 + i].g = g;
                 img->ie[r1][c1 + i].b = b;
+                img->ie[r1][c1 + i].a = 255;
             }
         }
         return RET_OK;
@@ -1027,6 +1032,7 @@ int image_drawline(IMAGE* img, int r1, int c1, int r2, int c2, int color)
             img->ie[r1 + i][c1 + j].r = r;
             img->ie[r1 + i][c1 + j].g = g;
             img->ie[r1 + i][c1 + j].b = b;
+            img->ie[r1 + i][c1 + j].a = 255;
         }
         return RET_OK;
     }
@@ -1841,9 +1847,9 @@ int image_show(IMAGE* image, char* title)
 
     check_image(image);
 
-    snprintf(str, sizeof(str) - 1, "/tmp/%s.jpg", title);
+    snprintf(str, sizeof(str) - 1, "/tmp/%s.png", title);
     image_save(image, str);
-    snprintf(str, sizeof(str) - 1, "display /tmp/%s.jpg", title);
+    snprintf(str, sizeof(str) - 1, "display /tmp/%s.png", title);
 
     return system(str);
 }

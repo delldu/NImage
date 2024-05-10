@@ -44,7 +44,7 @@ TENSOR* tensor_copy(TENSOR* src);
 int tensor_zero_(TENSOR* tensor);
 int tensor_clamp_(TENSOR* tensor, float low, float high);
 void tensor_destroy(TENSOR* tensor);
-void tensor_show(TENSOR* tensor);
+void tensor_show(char *prompt, TENSOR* tenso);
 
 float* tensor_start_row(TENSOR* tensor, int b, int c, int h);
 float* tensor_start_chan(TENSOR* tensor, int b, int c);
@@ -71,6 +71,8 @@ int tensor_dilate_smooth(TENSOR* tensor, float sigma);
 
 int tensor_save(TENSOR* tensor, char* fname);
 TENSOR* tensor_load(char* fname);
+
+int tensor_resizepad_(TENSOR *x, int max_h, int max_w, int max_times);
 
 #if defined(__cplusplus)
 }

@@ -68,6 +68,37 @@ extern "C" {
         syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
     } while (0)
 
+
+#define check_avoid(x)                                                                                                 \
+    do {                                                                                                               \
+        if (!(x)) {                                                                                                    \
+            fflush(stdout);                                                                                            \
+            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
+            return;                                                                                                    \
+        }                                                                                                              \
+    } while (0)
+
+    
+#define check_point(x)                                                                                                 \
+    do {                                                                                                               \
+        if (!(x)) {                                                                                                    \
+            fflush(stdout);                                                                                            \
+            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
+            return RET_ERROR;                                                                                              \
+        }                                                                                                              \
+    } while (0)
+
+
+#define CHECK_POINT(x)                                                                                                 \
+    do {                                                                                                               \
+        if (!(x)) {                                                                                                    \
+            fflush(stdout);                                                                                            \
+            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
+            return NULL;                                                                                               \
+        }                                                                                                              \
+    } while (0)
+
+
 #define ARRAY_SIZE(x) (int)(sizeof(x) / sizeof(x[0]))
 
 // Big Enddian ..
