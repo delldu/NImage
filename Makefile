@@ -22,7 +22,7 @@ INSTALL_PKGCONF_PATH= $(INSTALL_LIBRARY_PATH)/$(PKGCONF_PATH)
 
 INCS	:= \
 	-Iinclude \
-	-I/usr/local/include
+	-I/usr/local/include \
 
 SOURCE :=  \
 	source/color.c \
@@ -43,7 +43,8 @@ SOURCE :=  \
 	source/retinex.c \
 	source/histogram.c \
 	source/mask.c \
-	source/tensor.c
+	source/tensor.c \
+	source/license.c
 
 DEFINES := 
 CFLAGS := -O2 -fPIC -Wall -Wextra

@@ -11,12 +11,14 @@ extern "C" {
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <syslog.h>
 #include <syslog.h> // syslog, RFC3164 ?
+#include <sys/time.h>
+
+#define _XOPEN_SOURCE
+#define __USE_XOPEN
 #include <time.h>
 #include <unistd.h>
 
@@ -133,9 +135,6 @@ char* file_load(char* filename, int* size);
 int file_save(char* filename, char* buf, int size);
 int file_chown(char* dfile, char* sfile);
 int make_dir(char* dirname);
-
-// load data from tgz file
-char* file_untar(char* tar_filename, char* file_name, int* file_size);
 
 #if defined(__cplusplus)
 }

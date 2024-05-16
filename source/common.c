@@ -15,10 +15,10 @@
 
 // stat ...
 #include <sys/stat.h>
-
 #include <zlib.h>
 
 static TIME __system_ms_time;
+
 
 // return ms
 TIME time_now()
@@ -157,145 +157,4 @@ int make_dir(char* dirname)
         syslog_error("Create dir '%s'.", dirname);
 
     return ret;
-}
-
-// For tar files
-/* values used in typeflag field */
-
-#define REGTYPE '0' /* regular file */
-#define AREGTYPE '\0' /* regular file */
-#define LNKTYPE '1' /* link */
-#define SYMTYPE '2' /* reserved */
-#define CHRTYPE '3' /* character special */
-#define BLKTYPE '4' /* block special */
-#define DIRTYPE '5' /* directory */
-#define FIFOTYPE '6' /* FIFO special */
-#define CONTTYPE '7' /* reserved */
-
-/* GNU tar extensions */
-
-#define GNUTYPE_DUMPDIR 'D' /* file names from dumped directory */
-#define GNUTYPE_LONGLINK 'K' /* long link name */
-#define GNUTYPE_LONGNAME 'L' /* long file name */
-#define GNUTYPE_MULTIVOL 'M' /* continuation of file from another volume */
-#define GNUTYPE_NAMES 'N' /* file name that does not fit into main hdr */
-#define GNUTYPE_SPARSE 'S' /* sparse file */
-#define GNUTYPE_VOLHDR 'V' /* tape/volume header */
-
-/* tar header */
-
-#define BLOCKSIZE 512
-#define SHORTNAMESIZE 100
-
-typedef struct { /* byte offset */
-    char name[100]; /*   0 */
-    char mode[8]; /* 100 */
-    char uid[8]; /* 108 */
-    char gid[8]; /* 116 */
-    char size[12]; /* 124 */
-    char mtime[12]; /* 136 */
-    char chksum[8]; /* 148 */
-    char typeflag; /* 156 */
-    char linkname[100]; /* 157 */
-    char magic[6]; /* 257 */
-    char version[2]; /* 263 */
-    char uname[32]; /* 265 */
-    char gname[32]; /* 297 */
-    char devmajor[8]; /* 329 */
-    char devminor[8]; /* 337 */
-    char prefix[155]; /* 345 */
-    /* 500 */
-} tar_header_t;
-
-union tar_buffer {
-    char buffer[BLOCKSIZE];
-    tar_header_t header;
-};
-
-int getoct(char* p, int width)
-{
-    char c;
-    int result = 0;
-
-    while (width--) {
-        c = *p++;
-        if (c == 0)
-            break;
-        if (c == ' ')
-            continue;
-        if (c < '0' || c > '7')
-            return -1;
-        result = result * 8 + (c - '0');
-    }
-    return result;
-}
-
-char* file_untar(char* tar_filename, char* file_name, int* file_size)
-{
-    gzFile gzfile;
-    union tar_buffer buffer;
-    int len, err, fsize;
-    char typeflag, fname[BLOCKSIZE], *buf = NULL;
-
-    gzfile = gzopen(tar_filename, "rb");
-    if (gzfile == NULL) {
-        syslog_error("Open file %s.", tar_filename);
-        return NULL;
-    }
-
-    while (1) {
-        len = gzread(gzfile, &buffer, BLOCKSIZE);
-        /*
-     * Always expect full blocks and valid file name
-     */
-        if (len != BLOCKSIZE || buffer.header.name[0] == 0) {
-            syslog_error("%s.", gzerror(gzfile, &err));
-            break;
-        }
-        typeflag = buffer.header.typeflag;
-        if (typeflag != REGTYPE && typeflag != AREGTYPE && typeflag != GNUTYPE_LONGLINK && typeflag != GNUTYPE_LONGNAME)
-            continue;
-
-        if ((fsize = getoct(buffer.header.size, 12)) == -1) // impossiable
-            break;
-
-        // Normal file ?
-        strncpy(fname, buffer.header.name, SHORTNAMESIZE);
-        if (fname[SHORTNAMESIZE - 1] != 0)
-            fname[SHORTNAMESIZE] = 0;
-
-        if (typeflag == GNUTYPE_LONGLINK || typeflag == GNUTYPE_LONGNAME) {
-            // long file name, read more ...
-            if (gzread(gzfile, fname, BLOCKSIZE) != BLOCKSIZE) {
-                syslog_error("%s.", gzerror(gzfile, &err));
-                break;
-            }
-        }
-
-        if (strcmp(fname, file_name) == 0) {
-            // Found expect file ...
-            buf = malloc(fsize + 1);
-            if (buf != NULL) {
-                *file_size = gzread(gzfile, buf, fsize);
-            } else {
-                syslog_error("Allocate memory.");
-            }
-            break;
-        } else {
-            // Skip not wanted file ...
-            while (fsize > 0) {
-                len = gzread(gzfile, &buffer, BLOCKSIZE);
-                if (len != BLOCKSIZE) {
-                    syslog_error("%s.", gzerror(gzfile, &err));
-                    fsize = 0; // force quit
-                } else {
-                    fsize -= len;
-                }
-            }
-        } // end file data read loop
-    }
-
-    gzclose(gzfile);
-
-    return buf;
 }

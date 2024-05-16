@@ -7,5 +7,5 @@ pkgincludedir=/usr/local/include/nimage
 Name: nimage
 Description: New Image Library.
 Version: 1.3.0
-Libs: -L${libdir} -lnimage -ljpeg -lpng -lz
+Libs: -L${libdir} -lnimage -ljpeg -lpng -lcrypto -lz 
 Cflags: -I${pkgincludedir} -I${includedir}
