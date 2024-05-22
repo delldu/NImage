@@ -14,19 +14,7 @@ SOURCE :=  \
 	main.c \
 
 INCS	:= -I../include 
-#$(shell pkg-config nimage --cflags)
 LIBS	:= -L.. -lnimage -lcrypto
-#$(shell pkg-config nimage --libs)
-
-# LIBS	:= \
-# 	-Wl,-Bstatic \
-# 	-lnimage \
-# 	-lnanomsg -lanl \
-# 	-lmsgpackc \
-# 	-ljpeg -lpng -lz \
-# 	-Wl,-Bdynamic \
-# 	-lpthread -lm
-
 
 DEFINES :=
 CFLAGS := -O2 -fPIC -Wall -Wextra

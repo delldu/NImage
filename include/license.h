@@ -17,6 +17,8 @@ extern "C" {
 #include "common.h"
 
 typedef struct {
+    int is_docker;
+
     // CPU 0
     int cpu_count;
     char cpu_name[256];

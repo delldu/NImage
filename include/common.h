@@ -17,14 +17,14 @@ extern "C" {
 #include <syslog.h> // syslog, RFC3164 ?
 #include <sys/time.h>
 
-#define _XOPEN_SOURCE
-#define __USE_XOPEN
+#ifndef _XOPEN_SOURCE
+    #define _XOPEN_SOURCE
+#endif
+#ifndef __USE_XOPEN
+    #define __USE_XOPEN
+#endif
 #include <time.h>
 #include <unistd.h>
-
-// config.h
-#define CONFIG_JPEG
-#define CONFIG_PNG
 
 #define BYTE uint8_t
 #define WORD uint16_t

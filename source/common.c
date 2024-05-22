@@ -96,7 +96,7 @@ int file_size(char* filename)
     return (stat(filename, &s) != 0 || !S_ISREG(s.st_mode)) ? -1 : s.st_size;
 }
 
-char* file_load(char* filename, int* size)
+char* file_load(char *filename, int *size)
 {
     int fd;
     char* buf;

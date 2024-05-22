@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     }
 
     detect_hardware();
-    check_license("hw.lic");
+    check_license((char *)"hw.lic");
 
     return RET_OK;
 }

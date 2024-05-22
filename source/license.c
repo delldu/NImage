@@ -65,6 +65,25 @@ int get_hardware(Hardware *h)
 
     memset(h, 0, sizeof(Hardware));
 
+    // Running machine is docker ?
+    if (file_exist("/proc/self/cgroup")) {
+        buffer = file_load("/proc/self/cgroup", &size);
+        if (buffer != NULL) {
+            if (strstr(buffer, "docker") != NULL || strstr(buffer, "lxc") != NULL) 
+                h->is_docker = 1;
+            free(buffer);
+        }
+    }
+    // Check more for host ...
+    if (h->is_docker == 0 && file_exist("/var/run/systemd/container")) {
+        buffer = file_load("/var/run/systemd/container", &size);
+        if (buffer != NULL) {
+            if (strstr(buffer, "docker") != NULL || strstr(buffer, "lxc") != NULL) 
+                h->is_docker = 1;
+            free(buffer);
+        }
+    }
+
     // CPU
     h->cpu_count = get_nprocs(); // 24 threads
     if (__get_cpuid_max(0x80000004, NULL)) {
@@ -114,13 +133,13 @@ int get_hardware(Hardware *h)
     //     Product Name                          : NVIDIA GeForce RTX 2080 Ti
     {
         size_t size;
-        char buffer[1024], *p, *e;
+        char buf[1024], *p, *e;
         FILE *fp;
 
         fp = popen("nvidia-smi --query | grep 'Product Name'", "r");
         if (fp != NULL) {
-            while((size = fread(buffer, sizeof(char), sizeof(buffer), fp)) > 0) {
-                p = strstr(buffer, ": ");
+            while((size = fread(buf, sizeof(char), sizeof(buf), fp)) > 0) {
+                p = strstr(buf, ": ");
                 if (p) {
                     p += 2; // Skip ": "
                     e = strstr(p, "\n");
@@ -137,9 +156,9 @@ int get_hardware(Hardware *h)
         
         fp = popen("nvidia-smi --query | grep 'CUDA Version'", "r");
         if (fp != NULL) {
-            size = fread(buffer, sizeof(char), sizeof(buffer), fp);
+            size = fread(buf, sizeof(char), sizeof(buf), fp);
             if (size > 0) {
-                p = strstr(buffer, ": ");
+                p = strstr(buf, ": ");
                 if (p) 
                     p += 2; // Skip ": "
                 e = strstr(p, "\n");
@@ -182,7 +201,7 @@ int get_hardware(Hardware *h)
     freeifaddrs(if_buffer);
 
     // Time
-    h->date = time(NULL); // seconds from epoch
+    h->date = time(NULL); // seconds from linux epoch
     h->expire = 365; // one year
 
     return RET_OK;
@@ -191,6 +210,8 @@ int get_hardware(Hardware *h)
 
 void dump_hardware(Hardware *h)
 {
+    printf("Machine: %s\n", h->is_docker?"Docker" : "Host");
+
     // CPU 0
     printf("CPU: %s, %d processors\n", h->cpu_name, h->cpu_count);
     printf("Board: %s\n", h->board_name);
@@ -244,18 +265,18 @@ void dump_hardware(Hardware *h)
 static RSA* load_public_key(char *pkey)
 {
     BIO *bio;
-    RSA* rsa_public_key = NULL;
+    RSA* public_key = NULL;
 
     bio = BIO_new(BIO_s_mem());
     if (bio == NULL)
         return NULL;
     BIO_puts(bio, pkey);
 
-    rsa_public_key = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL); // PKCS#1 -----BEGIN PUBLIC KEY-----
+    public_key = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL); // PKCS#1 -----BEGIN PUBLIC KEY-----
     // PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL); // PKCS#8 -----BEGIN RSA PUBLIC KEY-----
     BIO_free(bio);
 
-    return rsa_public_key;
+    return public_key;
 }
 
 static int base64_decode(char *s, unsigned char* out)
@@ -338,7 +359,18 @@ static int load_hardware(char *message, Hardware *h)
     if (h == NULL)
         return RET_ERROR;
 
+    // Suppose messge sequence as:
+    // 1) Machine: ...
+    // 2) CPU: ...
+    // 3) Board: ...
+    // 4) GPU ...
+    // 5) MAC ...
+    // 6) Time ...
+
     memset(h, 0, sizeof(Hardware));
+    p = strstr(message, "Machine: Docker");
+    if (p)
+        h->is_docker = 1;
 
     // CPU
     p = strstr(message, "CPU:");
@@ -392,11 +424,13 @@ static int load_hardware(char *message, Hardware *h)
         }
         p += 6; // Skip "Date: "
         strptime((const char *)p, "%Y-%m-%d %H:%M:%S", &t_tm);
+        // t_tm.tm_year += 1900; t_tm.tm_mon += 1;
+        t_tm.tm_isdst = 0; // t_tm.tm_isdst = 4096 ==> Fixed bug for mktime == -1
         h->date = mktime(&t_tm);
     }
     p = strstr(message, "Expire: ");
     if (p) {
-        e = strstr(p, " "); // 0 or 365 days
+        e = strstr(p, " days"); // 0 or 365 days
         if (e) {
             *e = '\0';
             message = e + 1;
@@ -411,14 +445,23 @@ int check_license(char *fname)
 {
     int ret = RET_ERROR;
     int buff_size;
-    char *buff_data, *message, *publickey, *signature, *p;
+    char *message, *publickey, *signature, *p;
+    char *base64_data = NULL;
+    char *buff_data = NULL;
     Hardware running_hw, sign_hw;
 
-    buff_data = file_load(fname, &buff_size);
-    if (buff_data == NULL) {
+    base64_data = file_load(fname, &buff_size);
+    if (base64_data == NULL) {
         syslog_error("Read license '%s'", fname);
         return RET_ERROR;
     }
+
+    buff_data = (char *)malloc(2 * buff_size);
+    if (buff_data == NULL) {
+        syslog_error("Allocate memeory");
+        goto failure;
+    }
+    base64_decode(base64_data, (unsigned char *)buff_data); // cat hw.lic | base64 -d
 
     message = strstr(buff_data, BEGIN_SIGNED_MESSAGE);
     publickey = strstr(buff_data, BEGIN_PUBLIC_KEY);
@@ -489,7 +532,22 @@ int check_license(char *fname)
         goto failure;
     }
 
-    if (strncmp(running_hw.mac_address, sign_hw.mac_address, strlen(running_hw.mac_address)) != 0) {
+    // ---------------------------------------------------------------------------------------------------
+    // Docker 容器中的 MAC 地址是由 Docker 守护进程在启动容器时动态生成的。当 Docker 启动一个容器时，
+    // 它会为该容器创建一个新的虚拟网络接口，并分配一个唯一的 MAC 地址。这个 MAC 地址遵循以下规则：
+    //     MAC地址格式：Docker 容器的 MAC 地址遵循标准以太网地址格式，即 6 个字节（48 位）。
+    //     前缀：Docker 容器的 MAC 地址前缀通常是 02:42:ac:11:00:00。这个前缀是 Docker 容器的默认 MAC 地址前缀。
+    //     随机生成：在前缀之后，Docker 会随机生成 3 个字节（24 位），以确保每个容器的 MAC 地址都是唯一的。
+    //     多播地址：Docker 容器的 MAC 地址也可以用于多播地址的计算。例如，如果容器的 MAC 地址是 02:42:ac:11:00:01，
+    //         那么对应的多播地址将是 01:00:5e:00:00:01。
+    //     容器重启：如果容器被重启，它将保留相同的 MAC 地址。但是，如果容器被删除并重新创建，它将获得一个新的 MAC 地址。
+    //     自定义：虽然 Docker 默认会生成 MAC 地址，但用户也可以通过 Docker 的网络插件或自定义网络驱动来指定特定的 MAC 地址。
+    //     虚拟化技术：Docker 容器的 MAC 地址与宿主机的 MAC 地址是独立的，这是通过虚拟化技术实现的，确保了容器的网络隔离。
+    // Docker 容器的 MAC 地址生成机制确保了每个容器在网络层面上具有唯一性，并且可以与其他容器或网络设备进行通信。
+    // 这种机制是 Docker 网络隔离策略的一部分，有助于容器化环境中的网络安全和隔离。
+    // ---------------------------------------------------------------------------------------------------
+    // ==> Skip docker, only check host(is_docker == 0) mac address ...
+    if (running_hw.is_docker == 0 && strncmp(running_hw.mac_address, sign_hw.mac_address, strlen(running_hw.mac_address)) != 0) {
         syslog_error("MAC");
         goto failure;
     }
@@ -502,6 +560,10 @@ int check_license(char *fname)
     }
 
 failure:
-    free(buff_data);
+    if (base64_data)
+        free(base64_data);
+
+    if (buff_data)
+        free(buff_data);
     return ret;
 }

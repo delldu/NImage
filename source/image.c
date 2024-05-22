@@ -12,10 +12,22 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#ifdef CONFIG_JPEG
 #include <jerror.h>
 #include <jpeglib.h>
-#endif
+#include <png.h>
+
+typedef struct {
+    const unsigned char *data;
+    ssize_t size;
+    int offset;
+} PngSource;
+
+typedef struct {
+    char* data; // the begin of the memory
+    size_t length; // ths size of the data
+    size_t offset; // the current read pointer
+} PngDestination;
+
 
 #define IMAGE_MAGIC MAKE_FOURCC('I', 'M', 'A', 'G')
 
@@ -29,14 +41,33 @@ extern int color_rgbcmp(RGBA_8888* c1, RGBA_8888* c2);
 extern void color_rgbsort(int n, RGBA_8888* cv[]);
 extern int image_memsize(WORD h, WORD w);
 extern void image_membind(IMAGE* img, WORD h, WORD w);
+extern int text_puts(IMAGE* image, int r, int c, char* text, int color);
 
-#ifdef CONFIG_JPEG
+static void __jpeg_errexit(j_common_ptr cinfo);
+static int __nb3x3_map(IMAGE* img, int r, int c);
+static void __draw_hline(IMAGE* img, int* x, int* y, int run_length,
+    int x_advance, int r, int g, int b);
+static void __draw_vline(IMAGE* img, int* x, int* y, int run_length,
+    int x_advance, int r, int g, int b);
+static int __color_rgbfind(RGBA_8888* c, int n, RGBA_8888* cv[]);
+static void* __image_malloc(WORD h, WORD w);
+
+static IMAGE* image_loadpng(char* fname);
+static int image_savepng(IMAGE* img, const char* filename);
+static IMAGE* image_loadjpeg(char* fname);
+static int image_savejpeg(IMAGE* img, const char* filename, int quality);
+static void png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length);
+static void png_write_callback(png_structp png_ptr, png_bytep data, png_size_t size);
+
+// ---------------------------------------------------------------------
+
+
+
 static void __jpeg_errexit(j_common_ptr cinfo)
 {
     cinfo->err->output_message(cinfo);
     exit(EXIT_FAILURE);
 }
-#endif
 
 static int __nb3x3_map(IMAGE* img, int r, int c)
 {
@@ -123,7 +154,6 @@ static void* __image_malloc(WORD h, WORD w)
     return img;
 }
 
-extern int text_puts(IMAGE* image, int r, int c, char* text, int color);
 
 int image_memsize(WORD h, WORD w)
 {
@@ -389,7 +419,6 @@ void image_destroy(IMAGE* img)
     free(img);
 }
 
-#ifdef CONFIG_JPEG
 static IMAGE* image_loadjpeg(char* fname)
 {
     JSAMPARRAY lineBuf;
@@ -523,12 +552,20 @@ static int image_savejpeg(IMAGE* img, const char* filename, int quality)
 
     return RET_OK;
 }
-#endif
 
-#ifdef CONFIG_PNG
-#include <png.h>
-IMAGE* image_loadpng(char* fname)
+static IMAGE* image_loadpng(char* fname)
 {
+#if 1
+    int size;
+    CHECK_POINT(fname != NULL);
+
+    char *data = file_load(fname, &size);
+    CHECK_POINT(data != NULL);
+    IMAGE *image = image_loadpng_from_memory(data, size);
+    free(data);
+
+    return image;
+#else 
     FILE* fp;
     IMAGE* image = NULL;
     png_struct* png_ptr = NULL;
@@ -648,7 +685,6 @@ IMAGE* image_loadpng(char* fname)
         syslog_error("Allocate memeory.");
         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
         free(png_pixels);
-        png_pixels = NULL;
         return NULL;
     }
 
@@ -725,10 +761,23 @@ read_fail:
         image_destroy(image);
 
     return NULL;
+#endif
 }
 
 static int image_savepng(IMAGE* img, const char* filename)
 {
+#if 1
+    int size;
+    check_image(img);
+
+    char *data = image_savepng_to_memory(img, &size);
+
+    check_point(data != NULL);
+    int ret = file_save((char *)filename, data, size);
+    free(data);
+
+    return ret;
+#else
     FILE* outfile;
     png_struct* png_ptr = NULL;
     png_info* info_ptr = NULL;
@@ -778,21 +827,17 @@ static int image_savepng(IMAGE* img, const char* filename)
     png_destroy_write_struct(&png_ptr, &info_ptr);
 
     return RET_OK;
-}
 #endif
+}
 
 IMAGE* image_load(char* fname)
 {
     char* extname = strrchr(fname, '.');
     if (extname) {
-#ifdef CONFIG_JPEG
         if (strcasecmp(extname, ".jpg") == 0 || strcasecmp(extname, ".jpeg") == 0)
             return image_loadjpeg(fname);
-#endif
-#ifdef CONFIG_PNG
         if (strcasecmp(extname, ".png") == 0)
             return image_loadpng(fname);
-#endif
     }
 
     syslog_error("Only support jpg/jpeg/png loading.");
@@ -805,14 +850,10 @@ int image_save(IMAGE* img, const char* fname)
     check_image(img);
 
     if (extname) {
-#ifdef CONFIG_JPEG
         if (strcasecmp(extname, ".jpg") == 0 || strcasecmp(extname, ".jpeg") == 0)
             return image_savejpeg(img, fname, 100);
-#endif
-#ifdef CONFIG_PNG
         if (strcasecmp(extname, ".png") == 0)
             return image_savepng(img, fname);
-#endif
     }
 
     syslog_error("ONLY Support jpg/jpeg/png image saving.");
@@ -1885,3 +1926,278 @@ float image_entropy(IMAGE* img)
     return e;
 #undef COLOR_QUANT_LEVEL
 }
+
+static void png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length)
+{
+    PngSource *s = (PngSource *)png_get_io_ptr(png_ptr);
+
+    if((int)(s->offset + length) <= s->size) {
+        memcpy(data, s->data + s->offset, length);
+        s->offset += length;
+    } else {
+        png_error(png_ptr, "pngReaderCallback failed");
+    }
+}
+
+IMAGE* image_loadpng_from_memory(char *data, size_t size)
+{
+    IMAGE* image = NULL;
+    png_struct* png_ptr = NULL;
+    png_info* info_ptr = NULL;
+    png_byte* png_pixels = NULL;
+    png_byte** row_pointers = NULL;
+
+    // Check PNG header
+    {
+        static const int PNGSIGSIZE = 8;
+        png_byte header[PNGSIGSIZE];
+
+        CHECK_POINT(size >= PNGSIGSIZE);
+        memcpy(header, data, PNGSIGSIZE);
+        CHECK_POINT(png_sig_cmp(header, 0, PNGSIGSIZE) == 0); // png_check_sig(header, 8) != 0
+    }
+
+    /* Create png and info structures */
+    {
+        png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        CHECK_POINT(png_ptr != NULL);
+        info_ptr = png_create_info_struct(png_ptr);
+        if (! info_ptr)
+            png_destroy_read_struct(&png_ptr, NULL, NULL);
+        CHECK_POINT(info_ptr != NULL);
+        CHECK_POINT(setjmp(png_jmpbuf(png_ptr)) == 0);
+    }
+
+    PngSource png_source;
+    {
+        png_source.data = (unsigned char *)data;
+        png_source.size = size;
+        png_source.offset = 0;
+        png_set_read_fn(png_ptr, &png_source, png_read_callback);
+    }
+
+    /* Read the file information */
+    png_read_info(png_ptr, info_ptr);
+
+    /* Get size and bit-depth of the PNG-image */
+    png_uint_32 width, height;
+    int bit_depth, channels, color_type;
+
+    png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
+
+    /* Set-up the transformations */
+    {
+        /* transform paletted images into full-color rgb */
+        if (color_type == PNG_COLOR_TYPE_PALETTE)
+            png_set_expand(png_ptr);
+        /* expand images to bit-depth 8 (only applicable for grayscale images) */
+        if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+            png_set_expand(png_ptr);
+        /* transform transparency maps into full alpha-channel */
+        if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
+            png_set_expand(png_ptr);
+    }
+
+#ifdef NJET
+    /* downgrade 16-bit images to 8 bit */
+    if (bit_depth == 16)
+        png_set_strip_16(png_ptr);
+    /* transform grayscale images into full-color */
+    if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+        png_set_gray_to_rgb(png_ptr);
+    /* only if file has a file gamma, we do a correction */
+    if (png_get_gAMA(png_ptr, info_ptr, &file_gamma))
+        png_set_gamma(png_ptr, (float)2.2, file_gamma);
+#endif
+
+    /* all transformations have been registered; now update info_ptr data,
+   * get rowbytes and channels, and allocate image memory */
+
+    png_read_update_info(png_ptr, info_ptr);
+    /* get the new color-type and bit-depth (after expansion/stripping) */
+    png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
+
+    /* Calculate new number of channels and store alpha-presence */
+    {
+        if (color_type == PNG_COLOR_TYPE_GRAY)
+            channels = 1;
+        else if (color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+            channels = 2;
+        else if (color_type == PNG_COLOR_TYPE_RGB)
+            channels = 3;
+        else if (color_type == PNG_COLOR_TYPE_RGB_ALPHA)
+            channels = 4;
+        else
+            channels = 0; /* should never happen */
+    }
+
+    int alpha_present = (channels - 1) % 2;
+
+    /* row_bytes is the width x number of channels x (bit-depth / 8) */
+    png_uint_32 row_bytes = png_get_rowbytes(png_ptr, info_ptr);
+
+    // Allocate memory for png_pixels and row_pointers
+    {
+        png_pixels = (png_byte *)malloc(row_bytes * height * sizeof(png_byte));
+        if (png_pixels == NULL) {
+            png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+        }
+        CHECK_POINT(png_pixels != NULL);
+
+        row_pointers = (png_byte **)malloc(height * sizeof(png_bytep));
+        if (row_pointers == NULL) {
+            png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+            free(png_pixels);
+        }
+        CHECK_POINT(row_pointers != NULL);
+
+        /* Set the individual row_pointers to point at the correct offsets */
+        for (png_uint_32 i = 0; i < (height); i++)
+            row_pointers[i] = png_pixels + i * row_bytes;
+    }
+
+    // Reead image data ...
+    {
+        /* Go ahead and just read the whole image */
+        png_read_image(png_ptr, row_pointers);
+        /* Read rest and get additional chunks in info_ptr - REQUIRED */
+        png_read_end(png_ptr, info_ptr);
+
+        /* Clean up after the read, and free any memory allocated - REQUIRED */
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+
+        free(row_pointers); // NO need row_points ...
+    }
+
+
+    image = image_create(height, width);
+    if (image == NULL) {
+        free(png_pixels);
+    }
+    CHECK_IMAGE(image);
+
+    png_uint_32 row, col;
+    png_byte *pix_ptr = png_pixels;
+
+    for (row = 0; row < height; row++) {
+        for (col = 0; col < width; col++) {
+            if (bit_depth == 16) {
+                {
+                    image->ie[row][col].r = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
+                if (channels >= 2) {
+                    image->ie[row][col].g = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
+                if (channels >= 3) {
+                    image->ie[row][col].b = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                }
+                if (channels >= 4) {
+                    if (alpha_present) {
+                        image->ie[row][col].a = (BYTE)*pix_ptr++; pix_ptr++; // (((BYTE)*pix_ptr++ << 8) + (BYTE)*pix_ptr++);
+                    }
+                }
+            } else {
+                image->ie[row][col].r = (BYTE)*pix_ptr++;
+                if (channels >= 2)
+                    image->ie[row][col].g = (BYTE)*pix_ptr++;
+                if (channels >= 3)
+                    image->ie[row][col].b = (BYTE)*pix_ptr++;
+                if (channels >= 4) {
+                    if (alpha_present)
+                        image->ie[row][col].a = (BYTE)*pix_ptr++;
+                }
+            }
+        }
+    }
+
+    // Set missing channels
+    {
+        if (channels < 2) {
+            image_foreach(image, row, col) image->ie[row][col].g = image->ie[row][col].r;
+            image_foreach(image, row, col) image->ie[row][col].b = image->ie[row][col].r;
+        }
+        if (channels < 3) {
+            image_foreach(image, row, col) image->ie[row][col].b = image->ie[row][col].r;
+        }
+    }
+
+    free(png_pixels);
+
+    return image;
+}
+
+#if 1
+static void png_write_callback(png_structp png_ptr, png_bytep data, png_size_t size)
+{
+    PngDestination *png_buff = (PngDestination *)png_get_io_ptr(png_ptr);
+    size_t nsize = png_buff->length + size;
+
+    if (png_buff->data){
+        png_buff->data =(char*) realloc(png_buff->data, nsize);
+    } else {
+        png_buff->data =(char*) malloc(nsize);
+    }
+
+    if (!png_buff->data){
+        png_error(png_ptr, "Write Error");
+    }
+
+    memcpy(png_buff->data + png_buff->length, data, size);
+    png_buff->length += size;  
+}
+
+char *image_savepng_to_memory(IMAGE* image, int *size)
+{
+    png_struct* png_ptr = NULL;
+    png_info* info_ptr = NULL;
+
+    CHECK_IMAGE(image);
+    // Save png alpha channel for display
+    {
+        int i, j;
+        if (image->format != IMAGE_MASK && image->K > 0) {
+            image_foreach(image, i, j) image->ie[i][j].a = 255;
+        }
+    }
+    // Allocate memory for png_ptr and info_ptr
+    {
+        png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        CHECK_POINT(png_ptr != NULL);
+
+        info_ptr = png_create_info_struct(png_ptr);
+        if (info_ptr == NULL) {
+            png_destroy_write_struct(&png_ptr, NULL);
+        }
+        CHECK_POINT(info_ptr != NULL);
+        CHECK_POINT(setjmp(png_jmpbuf(png_ptr)) == 0);
+    }
+
+    // png_init_io(png_ptr, outfile);
+    png_set_IHDR(png_ptr, info_ptr, image->width, image->height,
+        8 * sizeof(BYTE) /*bit_depth */, PNG_COLOR_TYPE_RGB_ALPHA,
+        PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT);
+
+
+    PngDestination destination;
+    destination.data = NULL;
+    destination.length = 0;
+    destination.offset = 0;
+    {
+        // Writing decoded data into buffer 
+        png_set_write_fn(png_ptr, &destination, png_write_callback, NULL);
+        png_set_rows(png_ptr, info_ptr, (png_bytep *)image->ie);
+        png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+
+        // png_write_info(png_ptr, info_ptr);
+        // png_write_image(png_ptr, (png_bytep *)image->ie);
+        // png_write_end(png_ptr, NULL);
+    }
+
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+
+    // Save result ...
+    *size = destination.length;
+    return destination.data;
+}
+#endif

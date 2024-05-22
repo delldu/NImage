@@ -298,6 +298,8 @@ int tensor_setmask(TENSOR* tensor, float mask);
 IMAGE *image_get_connected(IMAGE *image);
 int image_parse_arrow(IMAGE *image, int *start_row, int *start_col, int *stop_row, int *stop_col);
 
+IMAGE* image_loadpng_from_memory(char *data, size_t size);
+char *image_savepng_to_memory(IMAGE* image, int *size); // if return is not null, need free(...)
 
 #if defined(__cplusplus)
 }
