@@ -43,7 +43,6 @@ int get_hardware(Hardware *h);
 void dump_hardware(Hardware *h);
 int check_license(char *fname);
 
-
 #if defined(__cplusplus)
 }
 #endif

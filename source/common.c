@@ -32,7 +32,10 @@ TIME time_now()
     return ms;
 }
 
-void time_reset() { __system_ms_time = time_now(); }
+void time_reset()
+{
+    __system_ms_time = time_now();
+}
 
 void time_spend(char* prompt)
 {
@@ -150,9 +153,8 @@ int make_dir(char* dirname)
     int ret = RET_OK;
 
     if (access(dirname, W_OK) != 0)
-        ret = (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0)
-            ? RET_OK
-            : RET_ERROR;
+        ret = (mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) ? RET_OK : RET_ERROR;
+
     if (ret != RET_OK)
         syslog_error("Create dir '%s'.", dirname);
 

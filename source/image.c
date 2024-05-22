@@ -58,10 +58,7 @@ static IMAGE* image_loadjpeg(char* fname);
 static int image_savejpeg(IMAGE* img, const char* filename, int quality);
 static void png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length);
 static void png_write_callback(png_structp png_ptr, png_bytep data, png_size_t size);
-
 // ---------------------------------------------------------------------
-
-
 
 static void __jpeg_errexit(j_common_ptr cinfo)
 {
@@ -2172,12 +2169,10 @@ char *image_savepng_to_memory(IMAGE* image, int *size)
         CHECK_POINT(setjmp(png_jmpbuf(png_ptr)) == 0);
     }
 
-    // png_init_io(png_ptr, outfile);
     png_set_IHDR(png_ptr, info_ptr, image->width, image->height,
         8 * sizeof(BYTE) /*bit_depth */, PNG_COLOR_TYPE_RGB_ALPHA,
         PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
         PNG_FILTER_TYPE_DEFAULT);
-
 
     PngDestination destination;
     destination.data = NULL;

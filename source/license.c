@@ -32,10 +32,12 @@
 #define BEGIN_SIGNATURE "-----BEGIN SIGNATURE-----"
 #define END_SIGNATURE "-----END SIGNATURE-----"
 
+#define BASE64_PAD '='
+#define BASE64_ENCODE_OUT_SIZE(s) ((unsigned int)((((s) + 2) / 3) * 4 + 1))
+#define BASE64_DECODE_OUT_SIZE(s) ((unsigned int)(((s) / 4) * 3))
 
 static void all_trim(char *str);
 static RSA* load_public_key(char *pkey);
-static int base64_decode(char *s, unsigned char* out);
 static int rsa_sign_verify(char *publickey, char *message, char *signature);
 static int load_hardware(char *message, Hardware *h);
 // ------------------------------------------------------------------------------------------------------------------
@@ -279,23 +281,6 @@ static RSA* load_public_key(char *pkey)
     return public_key;
 }
 
-static int base64_decode(char *s, unsigned char* out)
-{
-    int outlen;
-
-    BIO* b64 = BIO_new(BIO_f_base64());
-    BIO* bmem = BIO_new_mem_buf(s, strlen(s));
-    if (b64 == NULL || bmem == NULL) {
-        syslog_error("Allocate memory");
-        return -1;
-    }
-    BIO* bio_sign = BIO_push(b64, bmem);
-    // BIO_set_flags(bio_sign, BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
-    outlen = BIO_read(bio_sign, out, strlen(s));
-    BIO_free_all(bio_sign);
-
-    return outlen;
-}
 
 static int rsa_sign_verify(char *publickey, char *message, char *signature)
 {
@@ -306,13 +291,8 @@ static int rsa_sign_verify(char *publickey, char *message, char *signature)
     int base64_decode_size = 0;
 
     // Decode signature ...
-    base64_decode_buff = (unsigned char *)malloc(2 * strlen(signature));
-    if (base64_decode_buff == NULL) {
-        syslog_error("Allocate memory.");
-        return RET_ERROR;
-    }
-    base64_decode_size = base64_decode(signature, base64_decode_buff);
-    if (base64_decode_size <= 0)
+    base64_decode_buff = (unsigned char *)base64_decode(signature, strlen(signature), &base64_decode_size);
+    if (base64_decode_buff == NULL || base64_decode_size <= 0)
         goto failure;
 
     // for (int i = 0; i < base64_decode_size; i++) {
@@ -456,12 +436,8 @@ int check_license(char *fname)
         return RET_ERROR;
     }
 
-    buff_data = (char *)malloc(2 * buff_size);
-    if (buff_data == NULL) {
-        syslog_error("Allocate memeory");
-        goto failure;
-    }
-    base64_decode(base64_data, (unsigned char *)buff_data); // cat hw.lic | base64 -d
+    buff_data = base64_decode(base64_data, strlen(base64_data), &buff_size); // cat hw.lic | base64 -d
+    check_point(buff_data != NULL && buff_size > 0);
 
     message = strstr(buff_data, BEGIN_SIGNED_MESSAGE);
     publickey = strstr(buff_data, BEGIN_PUBLIC_KEY);
@@ -566,4 +542,88 @@ failure:
     if (buff_data)
         free(buff_data);
     return ret;
+}
+
+char *base64_encode(const char *input_data, int input_size)
+{
+    /* BASE 64 encode table */
+    static const char base64en[] = {
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        'w', 'x', 'y', 'z', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', '+', '/',
+    };
+
+    int s, i, j;
+    char c, l;
+
+
+    int output_size = BASE64_ENCODE_OUT_SIZE(input_size);
+    char *output_data = (char *)malloc(output_size + 1);
+    CHECK_POINT(output_data != NULL);
+
+    s = 0;
+    l = 0;
+    for (i = j = 0; i < input_size; i++) {
+        c = input_data[i];
+
+        switch (s) {
+        case 0:
+            s = 1;
+            output_data[j++] = base64en[(c >> 2) & 0x3F];
+            break;
+        case 1:
+            s = 2;
+            output_data[j++] = base64en[((l & 0x3) << 4) | ((c >> 4) & 0xF)];
+            break;
+        case 2:
+            s = 0;
+            output_data[j++] = base64en[((l & 0xF) << 2) | ((c >> 6) & 0x3)];
+            output_data[j++] = base64en[c & 0x3F];
+            break;
+        }
+        l = c;
+    }
+
+    switch (s) {
+    case 1:
+        output_data[j++] = base64en[(l & 0x3) << 4];
+        output_data[j++] = BASE64_PAD;
+        output_data[j++] = BASE64_PAD;
+        break;
+    case 2:
+        output_data[j++] = base64en[(l & 0xF) << 2];
+        output_data[j++] = BASE64_PAD;
+        break;
+    }
+
+    output_data[j] = '\0';
+
+    return output_data;
+}
+
+
+char *base64_decode(char *input_data, int input_size, int *output_size)
+{
+    int outlen;
+    char* output_data;
+
+    outlen = BASE64_DECODE_OUT_SIZE(input_size);
+    output_data = (char *)calloc((size_t)(outlen + 1), sizeof(char));
+    CHECK_POINT(output_data != NULL);
+
+    BIO* b64 = BIO_new(BIO_f_base64());
+    BIO* bmem = BIO_new_mem_buf(input_data, input_size);
+    CHECK_POINT(b64 != NULL && bmem != NULL);
+
+    BIO* bio_sign = BIO_push(b64, bmem);
+    // BIO_set_flags(bio_sign, BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
+    *output_size = BIO_read(bio_sign, output_data, input_size);
+    BIO_free_all(bio_sign);
+
+    return output_data;
 }

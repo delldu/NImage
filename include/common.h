@@ -136,6 +136,9 @@ int file_save(char* filename, char* buf, int size);
 int file_chown(char* dfile, char* sfile);
 int make_dir(char* dirname);
 
+char *base64_encode(const char *input_data, int input_size); // free(...)
+char *base64_decode(char *input_data, int input_size, int *output_size); // free(...)
+
 #if defined(__cplusplus)
 }
 #endif
