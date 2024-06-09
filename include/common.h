@@ -48,58 +48,68 @@ extern "C" {
 #define ZOOM_METHOD_COPY 0
 #define ZOOM_METHOD_BLINE 1
 
-#define CheckPoint(fmt, arg...) printf("# CheckPoint: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg)
 
-#define syslog_info(fmt, arg...)                    \
-    do {                                            \
-        fprintf(stdout, "Info: " fmt "\n", ##arg);  \
-        syslog(LOG_INFO, "Info: " fmt "\n", ##arg); \
+#define syslog_info(fmt, arg...)                       \
+    do {                                               \
+        if (isatty(fileno(stdout)))                    \
+            fprintf(stdout, "Info: " fmt "\n", ##arg); \
+        else                                           \
+            syslog(LOG_INFO, fmt "\n", ##arg);         \
     } while (0)
 
-#define syslog_debug(fmt, arg...)                                                          \
-    do {                                                                                   \
-        if (getenv("DEBUG"))                                                               \
-            fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg);   \
-        else                                                                               \
-            syslog(LOG_DEBUG, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+#define syslog_debug(fmt, arg...)                                                            \
+    do {                                                                                     \
+        if (getenv("DEBUG")) {                                                               \
+            if (isatty(fileno(stdout)))                                                      \
+                fprintf(stderr, "Debug: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+            else                                                                             \
+                syslog(LOG_DEBUG, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg);      \
+        }                                                                                    \
     } while (0)
 
-#define syslog_error(fmt, arg...)                                                    \
-    do {                                                                             \
-        fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
-        syslog(LOG_ERR, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+#define syslog_error(fmt, arg...)                                                        \
+    do {                                                                                 \
+        if (isatty(fileno(stdout)))                                                      \
+            fprintf(stderr, "Error: %d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg); \
+        else                                                                             \
+            syslog(LOG_ERR, "%d(%s): " fmt "\n", (int)__LINE__, __FILE__, ##arg);        \
     } while (0)
 
-
-#define check_avoid(x)                                                                                                 \
-    do {                                                                                                               \
-        if (!(x)) {                                                                                                    \
-            fflush(stdout);                                                                                            \
-            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
-            return;                                                                                                    \
-        }                                                                                                              \
+#define check_avoid(x)                                                          \
+    do {                                                                        \
+        if (!(x)) {                                                             \
+            fflush(stdout);                                                     \
+            if (isatty(fileno(stdout)))                                         \
+                fprintf(stderr, "Error: %s (%s:%d)\n", #x, __FILE__, __LINE__); \
+            else                                                                \
+                syslog(LOG_ERR, "%s (%s:%d)\n", #x, __FILE__, __LINE__);        \
+            return;                                                             \
+        }                                                                       \
     } while (0)
 
-    
-#define check_point(x)                                                                                                 \
-    do {                                                                                                               \
-        if (!(x)) {                                                                                                    \
-            fflush(stdout);                                                                                            \
-            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
-            return RET_ERROR;                                                                                              \
-        }                                                                                                              \
+#define check_point(x)                                                          \
+    do {                                                                        \
+        if (!(x)) {                                                             \
+            fflush(stdout);                                                     \
+            if (isatty(fileno(stdout)))                                         \
+                fprintf(stderr, "Error: %s (%s:%d)\n", #x, __FILE__, __LINE__); \
+            else                                                                \
+                syslog(LOG_ERR, "%s (%s:%d)\n", #x, __FILE__, __LINE__);        \
+            return RET_ERROR;                                                   \
+        }                                                                       \
     } while (0)
 
-
-#define CHECK_POINT(x)                                                                                                 \
-    do {                                                                                                               \
-        if (!(x)) {                                                                                                    \
-            fflush(stdout);                                                                                            \
-            fprintf(stderr, "Error: Assert %s (%s:%d)\n", #x, __FILE__, __LINE__);                               \
-            return NULL;                                                                                               \
-        }                                                                                                              \
+#define CHECK_POINT(x)                                                          \
+    do {                                                                        \
+        if (!(x)) {                                                             \
+            fflush(stdout);                                                     \
+            if (isatty(fileno(stdout)))                                         \
+                fprintf(stderr, "Error: %s (%s:%d)\n", #x, __FILE__, __LINE__); \
+            else                                                                \
+                syslog(LOG_ERR, "%s (%s:%d)\n", #x, __FILE__, __LINE__);        \
+            return NULL;                                                        \
+        }                                                                       \
     } while (0)
-
 
 #define ARRAY_SIZE(x) (int)(sizeof(x) / sizeof(x[0]))
 
@@ -136,8 +146,8 @@ int file_save(char* filename, char* buf, int size);
 int file_chown(char* dfile, char* sfile);
 int make_dir(char* dirname);
 
-char *base64_encode(const char *input_data, int input_size); // free(...)
-char *base64_decode(char *input_data, int input_size, int *output_size); // free(...)
+char *base64_encode(const char *input_data, int input_size, int new_line); // free(...)
+char *base64_decode(char *input_data, int input_size, int *output_size, int new_line); // free(...)
 
 #if defined(__cplusplus)
 }

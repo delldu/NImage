@@ -32,7 +32,6 @@
 #define BEGIN_SIGNATURE "-----BEGIN SIGNATURE-----"
 #define END_SIGNATURE "-----END SIGNATURE-----"
 
-#define BASE64_PAD '='
 #define BASE64_ENCODE_OUT_SIZE(s) ((unsigned int)((((s) + 2) / 3) * 4 + 1))
 #define BASE64_DECODE_OUT_SIZE(s) ((unsigned int)(((s) / 4) * 3))
 
@@ -291,7 +290,7 @@ static int rsa_sign_verify(char *publickey, char *message, char *signature)
     int base64_decode_size = 0;
 
     // Decode signature ...
-    base64_decode_buff = (unsigned char *)base64_decode(signature, strlen(signature), &base64_decode_size);
+    base64_decode_buff = (unsigned char *)base64_decode(signature, strlen(signature), &base64_decode_size, 1 /*new_line*/);
     if (base64_decode_buff == NULL || base64_decode_size <= 0)
         goto failure;
 
@@ -436,7 +435,7 @@ int check_license(char *fname)
         return RET_ERROR;
     }
 
-    buff_data = base64_decode(base64_data, strlen(base64_data), &buff_size); // cat hw.lic | base64 -d
+    buff_data = base64_decode(base64_data, strlen(base64_data), &buff_size, 1 /*new_line*/); // cat hw.lic | base64 -d
     check_point(buff_data != NULL && buff_size > 0);
 
     message = strstr(buff_data, BEGIN_SIGNED_MESSAGE);
@@ -544,74 +543,40 @@ failure:
     return ret;
 }
 
-char *base64_encode(const char *input_data, int input_size)
+char *base64_encode(const char *input_data, int input_size, int new_line)
 {
-    /* BASE 64 encode table */
-    static const char base64en[] = {
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-        'w', 'x', 'y', 'z', '0', '1', '2', '3',
-        '4', '5', '6', '7', '8', '9', '+', '/',
-    };
+    BIO *bmem = NULL;
+    BIO *b64 = NULL;
+    BUF_MEM *bptr;
 
-    int s, i, j;
-    char c, l;
-
-
-    int output_size = BASE64_ENCODE_OUT_SIZE(input_size);
-    char *output_data = (char *)malloc(output_size + 1);
-    CHECK_POINT(output_data != NULL);
-
-    s = 0;
-    l = 0;
-    for (i = j = 0; i < input_size; i++) {
-        c = input_data[i];
-
-        switch (s) {
-        case 0:
-            s = 1;
-            output_data[j++] = base64en[(c >> 2) & 0x3F];
-            break;
-        case 1:
-            s = 2;
-            output_data[j++] = base64en[((l & 0x3) << 4) | ((c >> 4) & 0xF)];
-            break;
-        case 2:
-            s = 0;
-            output_data[j++] = base64en[((l & 0xF) << 2) | ((c >> 6) & 0x3)];
-            output_data[j++] = base64en[c & 0x3F];
-            break;
-        }
-        l = c;
+    b64 = BIO_new(BIO_f_base64());
+    CHECK_POINT(b64 != NULL);
+    bmem = BIO_new(BIO_s_mem());
+    CHECK_POINT(bmem != NULL);
+    if (! new_line) {
+        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     }
+    b64 = BIO_push(b64, bmem);
+    BIO_write(b64, input_data, input_size);
+    BIO_flush(b64);
+    BIO_get_mem_ptr(b64, &bptr);
+    BIO_set_close(b64, BIO_NOCLOSE);
 
-    switch (s) {
-    case 1:
-        output_data[j++] = base64en[(l & 0x3) << 4];
-        output_data[j++] = BASE64_PAD;
-        output_data[j++] = BASE64_PAD;
-        break;
-    case 2:
-        output_data[j++] = base64en[(l & 0xF) << 2];
-        output_data[j++] = BASE64_PAD;
-        break;
-    }
-
-    output_data[j] = '\0';
+    char *output_data = (char *)malloc(bptr->length + 1);
+    memcpy(output_data, bptr->data, bptr->length);
+    output_data[bptr->length] = '\0';
+    BIO_free_all(b64);
 
     return output_data;
 }
 
 
-char *base64_decode(char *input_data, int input_size, int *output_size)
+char *base64_decode(char *input_data, int input_size, int *output_size, int new_line)
 {
     int outlen;
     char* output_data;
 
+    *output_size = 0;
     outlen = BASE64_DECODE_OUT_SIZE(input_size);
     output_data = (char *)calloc((size_t)(outlen + 1), sizeof(char));
     CHECK_POINT(output_data != NULL);
@@ -621,7 +586,9 @@ char *base64_decode(char *input_data, int input_size, int *output_size)
     CHECK_POINT(b64 != NULL && bmem != NULL);
 
     BIO* bio_sign = BIO_push(b64, bmem);
-    // BIO_set_flags(bio_sign, BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
+    if (! new_line)
+        BIO_set_flags(bio_sign, BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
+
     *output_size = BIO_read(bio_sign, output_data, input_size);
     BIO_free_all(bio_sign);
 

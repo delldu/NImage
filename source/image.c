@@ -2123,7 +2123,6 @@ IMAGE* image_loadpng_from_memory(char *data, size_t size)
     return image;
 }
 
-#if 1
 static void png_write_callback(png_structp png_ptr, png_bytep data, png_size_t size)
 {
     PngDestination *png_buff = (PngDestination *)png_get_io_ptr(png_ptr);
@@ -2181,12 +2180,13 @@ char *image_savepng_to_memory(IMAGE* image, int *size)
     {
         // Writing decoded data into buffer 
         png_set_write_fn(png_ptr, &destination, png_write_callback, NULL);
-        png_set_rows(png_ptr, info_ptr, (png_bytep *)image->ie);
-        png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-
         // png_write_info(png_ptr, info_ptr);
-        // png_write_image(png_ptr, (png_bytep *)image->ie);
-        // png_write_end(png_ptr, NULL);
+        // png_set_rows(png_ptr, info_ptr, (png_bytep *)image->ie);
+        // png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+
+        png_write_info(png_ptr, info_ptr);
+        png_write_image(png_ptr, (png_bytep *)image->ie);
+        png_write_end(png_ptr, NULL);
     }
 
     png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -2195,4 +2195,30 @@ char *image_savepng_to_memory(IMAGE* image, int *size)
     *size = destination.length;
     return destination.data;
 }
-#endif
+
+char *image_base64(IMAGE *image)
+{
+    int size;
+    CHECK_IMAGE(image);
+
+    char *data = image_savepng_to_memory(image, &size);
+    CHECK_POINT(data != NULL);
+    char *b64_txt = base64_encode(data, size, 0 /*new_line*/);
+    free(data);
+
+    return b64_txt;
+}
+
+IMAGE *base64_image(char *b64_txt)
+{
+    int size;
+    // convert plain to image
+
+    char *b64_bin = base64_decode(b64_txt, strlen(b64_txt), &size, 0 /*new_line*/);
+    CHECK_POINT(b64_bin != NULL);
+
+    IMAGE *image = image_loadpng_from_memory(b64_bin, size);
+    free(b64_bin);
+
+    return image;
+}

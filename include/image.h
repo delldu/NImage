@@ -294,12 +294,14 @@ TENSOR* tensor_rgb2lab(IMAGE* image);
 IMAGE* tensor_lab2rgb(TENSOR* tensor, int k);
 int tensor_setmask(TENSOR* tensor, float mask);
 
-
 IMAGE *image_get_connected(IMAGE *image);
 int image_parse_arrow(IMAGE *image, int *start_row, int *start_col, int *stop_row, int *stop_col);
 
 IMAGE* image_loadpng_from_memory(char *data, size_t size);
 char *image_savepng_to_memory(IMAGE* image, int *size); // if return is not null, need free(...)
+
+char *image_base64(IMAGE *image);   // convert image to base64 txt
+IMAGE *base64_image(char *b64_txt); // convert base64 txt to image
 
 #if defined(__cplusplus)
 }
