@@ -8,7 +8,7 @@
 #
 INSTALL_DIR := /usr/local
 
-TARGET := hwinfo
+TARGET := gps_hwinfo
 
 SOURCE :=  \
 	main.c \
@@ -60,4 +60,4 @@ clean:
 	rm -f core ${OBJECT} ${TARGET}
 
 copy:
-	scp hwinfo ubuntu@43.128.71.81:hwinfo
+	scp gps_hwinfo ubuntu@43.128.71.81:gps_hwinfo

@@ -275,6 +275,25 @@ TENSOR* tensor_zoom(TENSOR* source, int nh, int nw)
     return zoom;
 }
 
+int tensor_zoom_(TENSOR* x, int nh, int nw)
+{
+    if (x->height == nh && x->width == nw)
+        return RET_OK;
+
+    // need pad ...
+    TENSOR* destion = tensor_zoom(x, nh, nw);
+    check_tensor(destion);
+
+    free(x->data);
+    x->data = destion->data;
+    x->height = nh;
+    x->width = nw;
+    free(destion);
+
+    return RET_OK;
+}
+
+
 TENSOR* tensor_zeropad(TENSOR* source, int nh, int nw)
 {
     int b, c, i;
@@ -298,6 +317,98 @@ TENSOR* tensor_zeropad(TENSOR* source, int nh, int nw)
     return destion;
 }
 
+int tensor_border_pad_(TENSOR* x, int left_pad, int right_pad, int top_pad, int bottom_pad, int pad_mode)
+{
+    int b, c, h, w;
+    float *s_row, *d_row;
+    TENSOR* destion = NULL;
+    
+    if (left_pad == 0 && right_pad == 0 && top_pad == 0 && bottom_pad == 0)
+        return RET_OK;
+
+    // need padding ...
+    int nh = x->height + top_pad + bottom_pad;
+    int nw = x->width + left_pad + right_pad;
+    check_tensor(x);
+    destion = tensor_create(x->batch, x->chan, nh, nw);
+    check_tensor(destion);
+
+    // center fill ...
+    for (b = 0; b < x->batch; b++) {
+        for (c = 0; c < x->chan; c++) {
+            for (h = 0; h < x->height; h++) {
+                s_row = tensor_start_row(x, b, c, h);
+                d_row = tensor_start_row(x, b, c, h + top_pad);
+                d_row += left_pad;
+                memcpy(d_row, s_row, x->width * sizeof(float));
+            }
+        }
+    }
+
+    // fill borders ...
+    if (pad_mode == PAD_METHOD_BORDER) {
+        for (b = 0; b < x->batch; b++) {
+            for (c = 0; c < x->chan; c++) {
+                for (h = 0; h < nh; h++) {
+                    d_row = tensor_start_row(destion, b, c, h);
+                    if (h < top_pad) {
+                        s_row = tensor_start_row(x, b, c, 0);
+                        // left-top corner
+                        for (w = 0; w < left_pad; w++) {
+                            d_row[w] = s_row[0];
+                        }
+                        // top - middle regin
+                        d_row += left_pad;
+                        memcpy(d_row, s_row, x->width * sizeof(float));
+
+                        // top-right corner
+                        for (w = 0; w < right_pad; w++) {
+                            d_row[w] = s_row[x->width - 1];
+                        }                        
+                    } else if (h >= x->height + top_pad) {
+                        s_row = tensor_start_row(x, b, c, x->height - 1);
+
+                        // left-bottom corner
+                        for (w = 0; w < left_pad; w++) {
+                            d_row[w] = s_row[0];
+                        }
+                        // bottom - middle regin
+                        d_row += left_pad;
+                        memcpy(d_row, s_row, x->width * sizeof(float));
+
+                        // bottom-right corner
+                        for (w = 0; w < right_pad; w++) {
+                            d_row[w] = s_row[x->width - 1];
+                        }                        
+                    } else {
+                        s_row = tensor_start_row(x, b, c, h - top_pad);
+
+                        // left side
+                        for (w = 0; w < left_pad; w++) {
+                            d_row[w] = s_row[0];
+                        }
+                        // middle regin
+                        d_row += left_pad;
+                        // skip middle regin
+                        // memcpy(d_row, s_row, x->width * sizeof(float));
+                        // right side
+                        for (w = 0; w < right_pad; w++) {
+                            d_row[w] = s_row[x->width - 1];
+                        }                        
+                    }
+                } // h
+            } // c
+        } // b
+    }
+    free(x->data);
+    x->data = destion->data;
+    x->height = nh;
+    x->width = nw;
+    free(destion);
+
+    return RET_OK;
+}
+
 TENSOR* tensor_rgb2lab(IMAGE* image)
 {
     int i, j;
@@ -316,8 +427,7 @@ TENSOR* tensor_rgb2lab(IMAGE* image)
 
     image_foreach(image, i, j)
     {
-        color_rgb2lab(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b, &L,
-            &a, &b);
+        color_rgb2lab(image->ie[i][j].r, image->ie[i][j].g, image->ie[i][j].b, &L, &a, &b);
         L = (L - 50.f) / 100.f;
         a /= 110.f;
         b /= 110.f;
@@ -1074,4 +1184,117 @@ int tensor_resizepad_(TENSOR *x, int max_h, int max_w, int max_times)
     free(t);
 
     return RET_OK;
+}
+
+int tensor_zeropad_(TENSOR* x, int nh, int nw)
+{
+    if (x->height == nh && x->width == nw)
+        return RET_OK;
+
+    // need pad ...
+    TENSOR* destion = tensor_zeropad(x, nh, nw);
+    check_tensor(destion);
+
+    free(x->data);
+    x->data = destion->data;
+    x->height = nh;
+    x->width = nw;
+    free(destion);
+
+    return RET_OK;
+}
+
+TENSOR* tensor_lab(TENSOR *rgb)
+{
+    // rgb -- [0.0, 1.0]
+    BYTE r2, g2, b2;
+    float L, a, b; 
+    float *S_R, *S_G, *S_B, *D_L, *D_a, *D_b;
+
+    CHECK_TENSOR(rgb);
+    if (rgb->batch != 1 || rgb->chan < 3) {
+        syslog_error("tensor is not rgb format.");
+        return NULL;
+    }    
+
+    TENSOR *lab = tensor_create(1, 3, rgb->height, rgb->width);
+    CHECK_TENSOR(lab);
+
+    S_R = rgb->data;
+    S_G = S_R + rgb->height * rgb->width;
+    S_B = S_G + rgb->height * rgb->width;
+
+    D_L = lab->data;
+    D_a = D_L + lab->height * lab->width;
+    D_b = D_a + lab->height * lab->width;
+
+    for (int i = 0; i < rgb->height; i++) {
+        for (int j = 0; j < rgb->width; j++) {
+            r2 = (BYTE)(*S_R * 255.0f);
+            g2 = (BYTE)(*S_G * 255.0f);
+            b2 = (BYTE)(*S_B * 255.0f);
+            S_R++; S_G++; S_B++;
+
+            color_rgb2lab(r2, g2, b2, &L, &a, &b);
+
+            L = (L - 50.f) / 100.f;
+            a /= 110.f;
+            b /= 110.f;
+            *D_L = L;
+            *D_a = a;
+            *D_b = b;
+
+            D_L++; D_a++; D_b++;
+        }
+    }
+
+    // lab -- l in [-0.5, 0.5], a, b in [-1.0, 1.0]
+    return lab;
+}
+
+
+TENSOR* tensor_rgb(TENSOR* lab)
+{
+    // lab -- l in [-0.5, 0.5], a, b in [-1.0, 1.0]
+    BYTE r2, g2, b2;
+    float L, a, b;
+    float *D_R, *D_G, *D_B, *S_L, *S_a, *S_b;
+
+    CHECK_TENSOR(lab);
+    if (lab->batch != 1 || lab->chan != 3) {
+        syslog_error("tensor is not lab format.");
+        return NULL;
+    }
+
+    TENSOR *rgb = tensor_create(1, 3, lab->height, lab->width);
+    CHECK_TENSOR(rgb);
+
+    S_L = lab->data;
+    S_a = S_L + lab->height * lab->width;
+    S_b = S_a + lab->height * lab->width;
+
+    D_R = rgb->data;
+    D_G = D_R + rgb->height * rgb->width;
+    D_B = D_G + rgb->height * rgb->width;
+
+    for (int i = 0; i < lab->height; i++) {
+        for (int j = 0; j < lab->width; j++) {
+            L = *S_L;
+            a = *S_a;
+            b = *S_b;
+            S_L++; S_a++; S_b++;
+
+            L = L * 100.f + 50.f;
+            a *= 110.f;
+            b *= 110.f;
+            color_lab2rgb(L, a, b, &r2, &g2, &b2);
+
+            *D_R = (float)r2/255.0;
+            *D_G = (float)g2/255.0;
+            *D_B = (float)b2/255.0;
+            D_R++; D_G++; D_B++;
+        }
+    }
+    
+    return rgb; // rgb -- [0.0, 1.0]
 }

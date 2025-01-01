@@ -48,6 +48,9 @@ extern "C" {
 #define ZOOM_METHOD_COPY 0
 #define ZOOM_METHOD_BLINE 1
 
+// Padding method
+#define PAD_METHOD_ZERO 0
+#define PAD_METHOD_BORDER 1
 
 #define syslog_info(fmt, arg...)                       \
     do {                                               \
@@ -137,7 +140,8 @@ void time_spend(char* prompt);
 void space_resize(int h, int w, int maxhw, int times, int* nh, int* nw);
 
 // if lock success, return 1, else return 0
-int file_lock(char* endpoint);
+int file_locked(char* endpoint);
+void file_unlock(char* endpoint);
 
 int file_exist(char* filename);
 int file_size(char* filename);

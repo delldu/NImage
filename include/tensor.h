@@ -51,6 +51,7 @@ float* tensor_start_chan(TENSOR* tensor, int b, int c);
 float* tensor_start_batch(TENSOR* tensor, int b);
 
 TENSOR* tensor_zoom(TENSOR* source, int nh, int nw);
+int tensor_zoom_(TENSOR* x, int nh, int nw);
 TENSOR* tensor_zeropad(TENSOR* source, int nh, int nw);
 
 TENSOR* tensor_make_grid(int batch, int height, int width);
@@ -72,7 +73,12 @@ int tensor_dilate_smooth(TENSOR* tensor, float sigma);
 int tensor_save(TENSOR* tensor, char* fname);
 TENSOR* tensor_load(char* fname);
 
+int tensor_zeropad_(TENSOR* x, int nh, int nw);
 int tensor_resizepad_(TENSOR *x, int max_h, int max_w, int max_times);
+int tensor_border_pad_(TENSOR* x, int left_pad, int right_pad, int top_pad, int bottom_pad, int pad_mode);
+
+TENSOR* tensor_lab(TENSOR *rgb);
+TENSOR* tensor_rgb(TENSOR* lab);
 
 #if defined(__cplusplus)
 }

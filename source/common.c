@@ -64,9 +64,46 @@ void space_resize(int h, int w, int maxhw, int times, int* nh, int* nw)
     *nw = w * times;
 }
 
-int file_lock(char* endpoint)
+int file_locked(char* endpoint)
 {
-    int i, n, fd, rc;
+    int i, n, fd;
+    char filename[512];
+    char tempstr[256];
+
+    n = strlen(endpoint);
+    for (i = 0; i < n && i < (int)sizeof(tempstr) - 1; i++) {
+        if (endpoint[i] == '/' || endpoint[i] == ':')
+            tempstr[i] = '_';
+        else
+            tempstr[i] = endpoint[i];
+    }
+    tempstr[i] = '\0';
+    snprintf(filename, sizeof(filename), "/tmp/%s.lock", tempstr);
+
+    fd = open(filename, O_CREAT | O_RDWR, 0666);
+    if (fd == -1) {
+        syslog_error("Open file %s", filename);
+        return 0;
+    }
+
+    if (flock(fd, LOCK_EX | LOCK_NB) == -1) {
+        if (errno == EWOULDBLOCK) {
+            syslog_error("File '%s' has been locked.", filename);
+        } else {
+            syslog_error("Error setting lock");
+        }
+        close(fd);
+        return 0;
+    }
+
+    return 1; // Got lock on filename at first time !!! OK !!!
+
+    // close(fd); DOT NOT CLOSE fd for keeping lock here !!!
+}
+
+void file_unlock(char* endpoint)
+{
+    int i, n;
     char filename[512];
     char tempstr[256];
 
@@ -81,15 +118,9 @@ int file_lock(char* endpoint)
 
     snprintf(filename, sizeof(filename), "/tmp/%s.lock", tempstr);
 
-    fd = open(filename, O_CREAT | O_RDWR, 0666);
-    if ((rc = flock(fd, LOCK_EX | LOCK_NB))) {
-        rc = (EWOULDBLOCK == errno) ? 1 : 0;
-    } else {
-        rc = 0;
-    }
-
-    return rc == 0;
+    unlink(filename);
 }
+
 
 int file_exist(char* filename) { return (access(filename, F_OK) == 0); }
 
